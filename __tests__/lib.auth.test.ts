@@ -1,5 +1,3 @@
-import { authOptions } from '@/lib/auth'
-
 describe('authOptions', () => {
   const OLD_ENV = process.env
 
@@ -16,6 +14,8 @@ describe('authOptions', () => {
     process.env.ADMIN_USERNAME = 'admin'
     process.env.ADMIN_PASSWORD = 'secret'
 
+    // require after setting env so module reads the values correctly
+    const { authOptions } = require('@/lib/auth')
     const provider = authOptions.providers![0] as any
     const user = await provider.authorize({ username: 'admin', password: 'secret' })
     expect(user).toBeDefined()
@@ -27,12 +27,14 @@ describe('authOptions', () => {
     process.env.ADMIN_USERNAME = 'admin'
     process.env.ADMIN_PASSWORD = 'secret'
 
+    const { authOptions } = require('@/lib/auth')
     const provider = authOptions.providers![0] as any
     const user = await provider.authorize({ username: 'no', password: 'wrong' })
     expect(user).toBeNull()
   })
 
   it('jwt and session callbacks propagate admin flag and id', async () => {
+    const { authOptions } = require('@/lib/auth')
     // jwt: when user provided sets token.admin
     const jwtCb = (authOptions.callbacks as any).jwt!
     const sessionCb = (authOptions.callbacks as any).session!
