@@ -26,7 +26,11 @@ describe('authOptions', () => {
     // eslint-disable-next-line no-console
     console.log('authorizeFn exists?', !!authorizeFn)
     if (!authorizeFn) throw new Error('authorize function not found on provider')
-    const user = await authorizeFn({ username: 'admin', password: 'secret' })
+    let user = await authorizeFn({ username: 'admin', password: 'secret' })
+    // some wrappers nest credentials under a `credentials` key
+    if (!user) {
+      user = await authorizeFn({ credentials: { username: 'admin', password: 'secret' } as any } as any)
+    }
     // eslint-disable-next-line no-console
     console.log('authorize returned', user)
     expect(user).toBeDefined()
