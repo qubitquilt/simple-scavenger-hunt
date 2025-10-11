@@ -28,7 +28,7 @@ describe('admin events api', () => {
     const admin = {
       from: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnThis(),
-      order: jest.fn().mockResolvedValue({ data: [{ id: '1', title: 'E' }], error: null }),
+      order: jest.fn().mockResolvedValue({ data: [{ id: '1', title: 'E', date: new Date().toISOString(), created_at: new Date().toISOString() }], error: null }),
     }
     ;(createAdminSupabaseClient as jest.Mock).mockReturnValue(admin)
     const res = await GET()
