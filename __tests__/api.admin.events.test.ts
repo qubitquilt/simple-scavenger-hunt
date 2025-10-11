@@ -13,11 +13,11 @@ jest.mock('@/lib/supabase', () => ({
   }))
 }))
 
-jest.mock('next-auth/react', () => ({ getServerSession: jest.fn() }))
+jest.mock('next-auth', () => ({ getServerSession: jest.fn() }))
 
 const { GET, POST, PUT, DELETE } = require('@/app/api/admin/events/route')
 const { createAdminSupabaseClient } = require('@/lib/supabase')
-const { getServerSession } = require('next-auth/react')
+const { getServerSession } = require('next-auth')
 
 describe('admin events api', () => {
   beforeEach(() => {
@@ -26,7 +26,10 @@ describe('admin events api', () => {
 
   it('GET returns events', async () => {
     const admin = createAdminSupabaseClient()
-    admin.from.mockImplementationOnce(() => ({ select: jest.fn().mockResolvedValue({ data: [{ id: '1', title: 'E' }], error: null }) }))
+    admin.from.mockImplementationOnce(() => ({
+      select: jest.fn().mockReturnThis(),
+      order: jest.fn().mockResolvedValue({ data: [{ id: '1', title: 'E' }], error: null })
+    }))
     const res = await GET()
     expect(res).toEqual({ events: [{ id: '1', title: 'E' }] })
   })
