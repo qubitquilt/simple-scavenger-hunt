@@ -17,7 +17,8 @@ describe('authOptions', () => {
     // require after setting env so module reads the values correctly
     const { authOptions } = require('@/lib/auth')
     const provider = authOptions.providers![0] as any
-    const user = await provider.authorize({ username: 'admin', password: 'secret' })
+    const authorizeFn = provider.authorize || provider.options?.authorize
+    const user = await authorizeFn({ username: 'admin', password: 'secret' })
     expect(user).toBeDefined()
     expect(user.admin).toBe(true)
     expect(user.id).toBe('admin')
