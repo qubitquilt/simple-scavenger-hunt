@@ -21,8 +21,7 @@ declare module 'next-auth' {
   }
 }
 
-export const authOptions: NextAuthOptions = {
-async function credentialsAuthorize(credentials: any) {
+export async function credentialsAuthorize(credentials: any) {
   if (credentials?.username === process.env.ADMIN_USERNAME && credentials?.password === process.env.ADMIN_PASSWORD) {
     return { id: 'admin', name: 'Admin User', email: 'admin@example.com', admin: true }
   }
@@ -30,6 +29,7 @@ async function credentialsAuthorize(credentials: any) {
 }
 
 
+export const authOptions: NextAuthOptions = {
   providers: [
     Credentials({
       credentials: {
