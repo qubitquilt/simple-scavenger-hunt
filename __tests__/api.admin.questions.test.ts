@@ -21,7 +21,10 @@ describe('admin questions api', () => {
     const admin = {
       from: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnThis(),
-      order: jest.fn().mockResolvedValue({ data: [{ id: 'q1' }], error: null }),
+      order: jest.fn().mockReturnThis(),
+      // when awaited the query should resolve to our desired data
+      _result: { data: [{ id: 'q1' }], error: null },
+      then(resolve): any { resolve(this._result); return { catch: () => {} } },
       eq: jest.fn().mockReturnThis(),
       limit: jest.fn().mockReturnThis(),
       single: jest.fn().mockResolvedValue({ data: null, error: null }),

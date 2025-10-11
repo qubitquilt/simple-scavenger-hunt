@@ -27,7 +27,17 @@ describe('admin users api', () => {
       last_name: 'B',
       progress: [{ id: 'p1', event_id: 'e1', completed: true, created_at: new Date().toISOString(), answers: [{ id: 'a1', question_id: 'q1', status: 'correct', created_at: new Date().toISOString() }] }]
     }
-    admin.from.mockImplementationOnce(() => ({ select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis(), order: jest.fn().mockResolvedValue({ data: [fakeUser], error: null }) }))
+    const adminClient = {
+      from: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      order: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockReturnThis(),
+      // when awaited, resolve to our fake user
+      _result: { data: [fakeUser], error: null },
+      then(resolve): any { resolve(this._result); return { catch: () => {} } },
+    }
+    ;(require('@/lib/supabase').createAdminSupabaseClient as jest.Mock).mockReturnValue(adminClient)
     const req = { url: 'https://example.com/?eventId=e1' }
     const res = await GET(req)
     expect(res.users.length).toBe(1)

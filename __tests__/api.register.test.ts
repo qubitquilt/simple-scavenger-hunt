@@ -28,7 +28,8 @@ describe('POST /api/register', () => {
       order: jest.fn().mockReturnThis(),
       limit: jest.fn().mockResolvedValue({ data: [], error: null }),
       eq: jest.fn().mockReturnThis(),
-      single: jest.fn().mockResolvedValue({ data: null, error: null }),
+      // first single() call (existing user) -> null, second single() call (after insert) -> new user id
+      single: jest.fn().mockResolvedValueOnce({ data: null, error: null }).mockResolvedValueOnce({ data: { id: 'u1' }, error: null }),
       insert: jest.fn().mockReturnThis(),
       update: jest.fn().mockReturnThis(),
       maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
