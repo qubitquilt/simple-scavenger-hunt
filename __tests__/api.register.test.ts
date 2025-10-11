@@ -23,7 +23,7 @@ describe('POST /api/register', () => {
 
   it('returns 404 when no events found', async () => {
     const admin = require('@/lib/supabase').createAdminSupabaseClient()
-    admin.from.mockImplementationOnce(() => ({ select: jest.fn().mockResolvedValue({ data: [], error: null }) }))
+    admin.from.mockImplementationOnce(() => ({ select: jest.fn().mockReturnThis(), order: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue({ data: [], error: null }) }))
     const req = { json: async () => ({ firstName: 'A', lastName: 'B' }) }
     const res = await POST(req)
     expect(res).toEqual({ error: 'No events found' })
