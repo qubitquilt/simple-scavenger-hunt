@@ -1,0 +1,290 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter, useParams } from 'next/navigation'
+import { createClient } from '@supabase/supabase-js'
+import { getUserId } from '@/utils/session'
+import type { Question } from '@/types/question'
+import LoadingSpinner from '@/components/LoadingSpinner'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
+
+interface AnswerResponse {
+  status: 'correct' | 'incorrect' | 'pending'
+  aiScore?: number
+  completed: boolean
+  stats: { correctCount: number; totalCount: number }
+}
+
+export default function ChallengeDetailPage() {
+  const params = useParams()
+  const router = useRouter()
+  const questionId = params.id as string
+  const userId = getUserId()
+
+  const [question, setQuestion] = useState<Question | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [feedback, setFeedback] = useState<string | null>(null)
+  const [aiScore, setAiScore] = useState<number | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [submission, setSubmission] = useState<string | File | null>(null)
+
+  useEffect(() => {
+    if (!userId || !questionId) {
+      router.push('/register')
+      return
+    }
+
+    const fetchQuestion = async () => {
+      try {
+        const response = await fetch(`/api/progress`)
+        if (!response.ok) {
+          throw new Error('Failed to fetch progress')
+        }
+        const data = await response.json()
+        const q = data.questions.find((q: Question) => q.id === questionId)
+        if (!q) {
+          throw new Error('Question not found')
+        }
+        setQuestion(q)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load question')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchQuestion()
+  }, [questionId, userId, router])
+
+  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSubmission(e.target.value)
+    if (feedback) setFeedback(null)
+  }
+
+  const handleMcChange = (value: string) => {
+    setSubmission(value)
+  }
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setSubmission(file)
+      if (feedback) setFeedback(null)
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!question || !submission || submitting) return
+
+    setSubmitting(true)
+    setFeedback(null)
+    setError(null)
+
+    try {
+      let submitData: string | { url: string }
+      if (question.type === 'image' && submission instanceof File) {
+        // Upload to Supabase storage
+        const fileExt = submission.name.split('.').pop()
+        const fileName = `${Date.now()}-${userId}-${questionId}.${fileExt}`
+        const { data, error: uploadError } = await supabase.storage
+          .from('challenge-images')
+          .upload(fileName, submission, {
+            cacheControl: '3600',
+            upsert: false
+          })
+
+        if (uploadError || !data) {
+          throw new Error(uploadError?.message || 'Upload failed')
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('challenge-images')
+          .getPublicUrl(fileName)
+
+        submitData = { url: publicUrl }
+      } else {
+        submitData = submission as string
+      }
+
+      const response = await fetch('/api/answers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ questionId, submission: submitData })
+      })
+
+      if (!response.ok) {
+        const errData = await response.json()
+        throw new Error(errData.error || 'Submission failed')
+      }
+
+      const result: AnswerResponse = await response.json()
+
+      if (result.status === 'correct') {
+        // Redirect to list
+        router.push('/challenges')
+        return
+      } else {
+        // Show feedback for retry (text/image)
+        setAiScore(result.aiScore || 0)
+        setFeedback(
+          question.type === 'text' || question.type === 'image'
+            ? `Score: ${result.aiScore || 0}/${question.aiThreshold}. Try again!`
+            : 'Incorrect. Please try again.'
+        )
+        if (question.type !== 'multiple_choice') {
+          setSubmission(null) // Clear for retry
+        }
+      }
+
+      // Announce feedback
+      const announcement = document.getElementById('feedback-announce')
+      if (announcement) {
+        announcement.textContent = feedback
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Submission error')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <LoadingSpinner size="lg" />
+        <div className="sr-only">Loading challenge...</div>
+      </div>
+    )
+  }
+
+  if (error || !question) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-red-600 text-center">
+          <h2 className="text-xl font-bold mb-2">Error</h2>
+          <p>{error || 'Challenge not found'}</p>
+          <button
+            onClick={() => router.push('/challenges')}
+            className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            aria-label="Back to challenges"
+          >
+            Back to Challenges
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const isTextOrImage = question.type === 'text' || question.type === 'image'
+  const isMc = question.type === 'multiple_choice'
+  const showRetry = isTextOrImage && feedback && aiScore! < question.aiThreshold
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-4">
+      <div className="max-w-md mx-auto bg-white rounded-lg shadow-md p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Challenge</h1>
+          <button
+            onClick={() => router.back()}
+            className="text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            aria-label="Back to challenges list"
+          >
+            ← Back
+          </button>
+        </div>
+
+        <div className="mb-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-2" id="question-content">
+            {question.content}
+          </h2>
+          <p className="text-sm text-gray-600">
+            Type: {question.type.replace('_', ' ')} • Threshold: {question.aiThreshold}/10
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {isMc && question.options && (
+            <div role="radiogroup" aria-labelledby="question-content">
+              {Object.entries(question.options).map(([key, option]) => (
+                <label key={key} className="flex items-center p-3 bg-gray-50 rounded-md cursor-pointer hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                  <input
+                    type="radio"
+                    name="mc-answer"
+                    value={key}
+                    checked={submission === key}
+                    onChange={(e) => handleMcChange(e.target.value)}
+                    className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                    required
+                    aria-label={`Option ${key}: ${option}`}
+                  />
+                  <span className="text-sm text-gray-900">{option}</span>
+                </label>
+              ))}
+            </div>
+          )}
+
+          {isTextOrImage && !isMc && (
+            <div>
+              {question.type === 'text' ? (
+                <input
+                  type="text"
+                  value={typeof submission === 'string' ? submission : ''}
+                  onChange={handleTextChange}
+                  placeholder="Enter your answer..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required={!showRetry}
+                  aria-describedby={feedback ? 'feedback-announce' : undefined}
+                  disabled={submitting}
+                />
+              ) : (
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  required={!showRetry}
+                  disabled={submitting}
+                  aria-label="Upload image for challenge"
+                />
+              )}
+            </div>
+          )}
+
+          {feedback && (
+            <div
+              id="feedback-announce"
+              className={`p-3 rounded-md ${
+                aiScore! >= question.aiThreshold ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+              }`}
+              role="alert"
+              aria-live="polite"
+            >
+              {feedback}
+            </div>
+          )}
+
+          {error && (
+            <div className="p-3 bg-red-100 text-red-800 rounded-md" role="alert">
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={!submission || submitting}
+            className="w-full bg-blue-500 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed"
+            aria-label={submitting ? 'Submitting...' : 'Submit answer'}
+          >
+            {submitting ? 'Submitting...' : showRetry ? 'Retry' : 'Submit Answer'}
+          </button>
+        </form>
+      </div>
+    </div>
+  )
+}
