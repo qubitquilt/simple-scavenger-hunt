@@ -8,10 +8,10 @@ if (typeof global.Request === 'undefined') {
   // minimal Request polyfill
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
-  global.Request = class Request {
+  (global as any).Request = class Request {
     constructor(input: any, init: any) {
-      this.input = input
-      this.init = init
+      ;(this as any).input = input
+      ;(this as any).init = init
     }
   }
 }
