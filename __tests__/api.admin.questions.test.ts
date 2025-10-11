@@ -18,9 +18,15 @@ const { createAdminSupabaseClient } = require('@/lib/supabase')
 
 describe('admin questions api', () => {
   it('GET returns questions filtered by eventId', async () => {
-    const admin = createAdminSupabaseClient()
-    // return the expected data when the route calls .order(...)
-    admin.order = async () => ({ data: [{ id: 'q1' }], error: null })
+    const admin = {
+      from: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      order: jest.fn().mockResolvedValue({ data: [{ id: 'q1' }], error: null }),
+      eq: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockReturnThis(),
+      single: jest.fn().mockResolvedValue({ data: null, error: null }),
+    }
+    ;(createAdminSupabaseClient as jest.Mock).mockReturnValue(admin)
     const fakeReq = { url: 'https://example.com/?eventId=ev1' }
     const res = await GET(fakeReq)
     expect(res).toEqual({ questions: [{ id: 'q1' }] })
@@ -33,9 +39,18 @@ describe('admin questions api', () => {
   })
 
   it('POST returns 404 when event not found', async () => {
-    const admin = createAdminSupabaseClient()
-    // when the route calls .single() to fetch the event, return null
-    admin.single = async () => ({ data: null, error: null })
+    const admin = {
+      from: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      single: jest.fn().mockResolvedValue({ data: null, error: null }),
+      insert: jest.fn().mockReturnThis(),
+      update: jest.fn().mockReturnThis(),
+      delete: jest.fn().mockReturnThis(),
+      order: jest.fn().mockReturnThis(),
+      maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
+    }
+    ;(createAdminSupabaseClient as jest.Mock).mockReturnValue(admin)
     const req = { json: async () => ({ eventId: 'ev1', content: 'c', expectedAnswer: 'e' }) }
     const res = await POST(req)
     expect(res).toEqual({ error: 'Event not found' })
