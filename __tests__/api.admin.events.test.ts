@@ -25,11 +25,12 @@ describe('admin events api', () => {
   })
 
   it('GET returns events', async () => {
-    const admin = createAdminSupabaseClient()
-    admin.from.mockImplementationOnce(() => ({
+    const admin = {
+      from: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnThis(),
-      order: jest.fn().mockResolvedValue({ data: [{ id: '1', title: 'E' }], error: null })
-    }))
+      order: jest.fn().mockResolvedValue({ data: [{ id: '1', title: 'E' }], error: null }),
+    }
+    ;(createAdminSupabaseClient as jest.Mock).mockReturnValue(admin)
     const res = await GET()
     expect(res).toEqual({ events: [{ id: '1', title: 'E' }] })
   })
