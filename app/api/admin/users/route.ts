@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { createAdminSupabaseClient } from '@/lib/supabase'
 import type { UserProgress, AdminMetrics } from '@/types/admin'
 import type { User } from '@/types/user'
 import type { Answer } from '@/types/answer'
@@ -14,7 +14,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'eventId is required' }, { status: 400 })
     }
 
-    let query = supabase
+    const adminSupabase = createAdminSupabaseClient()
+
+    let query = adminSupabase
       .from('users')
       .select(`
         id,
@@ -39,7 +41,8 @@ export async function GET(request: NextRequest) {
       query = query.eq('progress.completed', completed)
     }
 
-    const { data: usersData, error } = await query.order('progress.created_at', { ascending: false })
+    console.log('Users query executed')
+    const { data: usersData, error } = await query.order('created_at', { ascending: false })
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { createAdminSupabaseClient } from '@/lib/supabase'
 
 function shuffleArray(array: string[]) {
   for (let i = array.length - 1; i > 0; i--) {
@@ -13,12 +13,15 @@ export async function POST(request: NextRequest) {
   try {
     const { firstName, lastName } = await request.json()
 
+    const adminSupabase = createAdminSupabaseClient();
+
     if (!firstName || !lastName) {
       return NextResponse.json({ error: 'firstName and lastName are required' }, { status: 400 })
     }
 
+
     // Check if user exists by name
-    const { data: existingUser, error: userError } = await supabase
+    const { data: existingUser, error: userError } = await adminSupabase
       .from('users')
       .select('id')
       .eq('first_name', firstName)
@@ -26,6 +29,10 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (userError && userError.code !== 'PGRST116') {
+      if (userError.code === '42501') {
+        return NextResponse.json({ error: 'Access denied: Insufficient permissions' }, { status: 403 })
+      }
+      console.error('User check error:', userError)
       return NextResponse.json({ error: userError.message }, { status: 500 })
     }
 
@@ -35,16 +42,20 @@ export async function POST(request: NextRequest) {
       userId = existingUser.id
     } else {
       // Create new user
-      const { data: newUser, error: createError } = await supabase
+      const { data: newUser, error: createError } = await adminSupabase
         .from('users')
-        .insert({ 
+        .insert({
           first_name: firstName,
-          last_name: lastName 
+          last_name: lastName
         })
         .select()
         .single()
 
       if (createError) {
+        if (createError.code === '42501') {
+          return NextResponse.json({ error: 'Access denied: Insufficient permissions' }, { status: 403 })
+        }
+        console.error('User create error:', createError)
         return NextResponse.json({ error: createError.message }, { status: 500 })
       }
 
@@ -52,13 +63,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch default event (first event)
-    const { data: events, error: eventsError } = await supabase
+    const { data: events, error: eventsError } = await adminSupabase
       .from('events')
       .select('id')
       .order('id')
       .limit(1)
 
     if (eventsError) {
+      if (eventsError.code === '42501') {
+        return NextResponse.json({ error: 'Access denied: Insufficient permissions' }, { status: 403 })
+      }
+      console.error('Events fetch error:', eventsError)
       return NextResponse.json({ error: eventsError.message }, { status: 500 })
     }
 
@@ -69,12 +84,16 @@ export async function POST(request: NextRequest) {
     const eventId = events[0].id
 
     // Fetch questions for the event
-    const { data: questions, error: questionsError } = await supabase
+    const { data: questions, error: questionsError } = await adminSupabase
       .from('questions')
       .select('id')
       .eq('event_id', eventId)
 
     if (questionsError) {
+      if (questionsError.code === '42501') {
+        return NextResponse.json({ error: 'Access denied: Insufficient permissions' }, { status: 403 })
+      }
+      console.error('Questions fetch error:', questionsError)
       return NextResponse.json({ error: questionsError.message }, { status: 500 })
     }
 
@@ -86,7 +105,7 @@ export async function POST(request: NextRequest) {
     const shuffledOrder = shuffleArray([...questionIds])
 
     // Check if progress exists
-    const { data: existingProgress, error: existingError } = await supabase
+    const { data: existingProgress, error: existingError } = await adminSupabase
       .from('progress')
       .select('id, question_order, completed')
       .eq('user_id', userId)
@@ -94,38 +113,50 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (existingError && existingError.code !== 'PGRST116') {
+      if (existingError.code === '42501') {
+        return NextResponse.json({ error: 'Access denied: Insufficient permissions' }, { status: 403 })
+      }
+      console.error('Progress check error:', existingError)
       return NextResponse.json({ error: existingError.message }, { status: 500 })
     }
 
     if (existingProgress) {
       // Update existing
-      const { data: updatedProgress, error: updateError } = await supabase
+      const { data: updatedProgress, error: updateError } = await adminSupabase
         .from('progress')
-        .update({ 
+        .update({
           question_order: shuffledOrder,
-          completed: false 
+          completed: false
         })
         .eq('id', existingProgress.id)
         .select()
         .single()
 
       if (updateError) {
+        if (updateError.code === '42501') {
+          return NextResponse.json({ error: 'Access denied: Insufficient permissions' }, { status: 403 })
+        }
+        console.error('Progress update error:', updateError)
         return NextResponse.json({ error: updateError.message }, { status: 500 })
       }
     } else {
       // Create new progress
-      const { data: newProgress, error: createError } = await supabase
+      const { data: newProgress, error: createError } = await adminSupabase
         .from('progress')
-        .insert({ 
+        .insert({
           user_id: userId,
           event_id: eventId,
           question_order: shuffledOrder,
-          completed: false 
+          completed: false
         })
         .select()
         .single()
 
       if (createError) {
+        if (createError.code === '42501') {
+          return NextResponse.json({ error: 'Access denied: Insufficient permissions' }, { status: 403 })
+        }
+        console.error('Progress create error:', createError)
         return NextResponse.json({ error: createError.message }, { status: 500 })
       }
     }
@@ -141,6 +172,7 @@ export async function POST(request: NextRequest) {
 
     return response
   } catch (error) {
+    console.error('Register route error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

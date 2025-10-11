@@ -79,6 +79,8 @@ CREATE POLICY "Users read own progress" ON progress FOR SELECT USING (auth.uid()
 -- Answers: Users can insert own via progress
 CREATE POLICY "Users insert own answers" ON answers FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM progress WHERE progress.id = answers.progress_id AND auth.uid()::text = progress.user_id::text));
 CREATE POLICY "Users read own answers" ON answers FOR SELECT USING (EXISTS (SELECT 1 FROM progress WHERE progress.id = answers.progress_id AND auth.uid()::text = progress.user_id::text));
+-- Grant usage on public schema to service_role
+GRANT USAGE ON SCHEMA public TO service_role;
 
 -- Seed data: Sample event
 INSERT INTO events (title, description) VALUES 

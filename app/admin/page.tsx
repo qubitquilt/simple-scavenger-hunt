@@ -72,7 +72,7 @@ function AdminDashboard() {
   const loadEvents = async () => {
     try {
       setLoading(true)
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/admin/events`)
+      const res = await fetch('/api/admin/events')
       if (!res.ok) throw new Error('Failed to fetch events')
       const { events } = await res.json()
       setEvents(events)
@@ -88,9 +88,8 @@ function AdminDashboard() {
 
   const loadQuestions = async () => {
     try {
-      const url = new URL(`${process.env.NEXT_PUBLIC_BASE_URL}/api/admin/questions`)
-      if (selectedEventId) url.searchParams.append('eventId', selectedEventId)
-      const res = await fetch(url)
+      const query = selectedEventId ? `?eventId=${selectedEventId}` : ''
+      const res = await fetch(`/api/admin/questions${query}`)
       if (!res.ok) throw new Error('Failed to fetch questions')
       const { questions } = await res.json()
       setQuestions(questions)
@@ -101,8 +100,7 @@ function AdminDashboard() {
 
   const loadUsers = async () => {
     try {
-      const url = new URL(`${process.env.NEXT_PUBLIC_BASE_URL}/api/admin/users?eventId=${selectedEventId}`)
-      const res = await fetch(url)
+      const res = await fetch(`/api/admin/users?eventId=${selectedEventId}`)
       if (!res.ok) throw new Error('Failed to fetch users')
       const { users: data, metrics: m } = await res.json()
       setUsers(data)
@@ -116,7 +114,7 @@ function AdminDashboard() {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/admin/events`, {
+      const res = await fetch('/api/admin/events', {
         method: 'POST',
         body: JSON.stringify(Object.fromEntries(formData)),
         headers: { 'Content-Type': 'application/json' },
@@ -141,7 +139,7 @@ function AdminDashboard() {
     if (!editingEvent) return
     const formData = new FormData(e.currentTarget)
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/admin/events`, {
+      const res = await fetch('/api/admin/events', {
         method: 'PUT',
         body: JSON.stringify({ id: editingEvent.id, ...Object.fromEntries(formData) }),
         headers: { 'Content-Type': 'application/json' },
@@ -160,7 +158,7 @@ function AdminDashboard() {
   const handleDeleteEvent = async (id: string) => {
     if (!confirm('Are you sure you want to delete this event?')) return
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/admin/events`, {
+      const res = await fetch('/api/admin/events', {
         method: 'DELETE',
         body: JSON.stringify({ id }),
         headers: { 'Content-Type': 'application/json' },
@@ -181,7 +179,7 @@ function AdminDashboard() {
     const formData = new FormData(e.currentTarget)
     formData.append('eventId', selectedEventId)
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/admin/questions`, {
+      const res = await fetch('/api/admin/questions', {
         method: 'POST',
         body: JSON.stringify(Object.fromEntries(formData)),
         headers: { 'Content-Type': 'application/json' },
@@ -206,7 +204,7 @@ function AdminDashboard() {
     if (!editingQuestion) return
     const formData = new FormData(e.currentTarget)
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/admin/questions`, {
+      const res = await fetch('/api/admin/questions', {
         method: 'PUT',
         body: JSON.stringify({ id: editingQuestion.id, ...Object.fromEntries(formData) }),
         headers: { 'Content-Type': 'application/json' },
@@ -225,7 +223,7 @@ function AdminDashboard() {
   const handleDeleteQuestion = async (id: string) => {
     if (!confirm('Are you sure you want to delete this question?')) return
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/admin/questions`, {
+      const res = await fetch('/api/admin/questions', {
         method: 'DELETE',
         body: JSON.stringify({ id }),
         headers: { 'Content-Type': 'application/json' },
