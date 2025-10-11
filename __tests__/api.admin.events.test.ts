@@ -13,7 +13,6 @@ jest.mock('@/lib/supabase', () => ({
   }))
 }))
 
-jest.mock('next-auth', () => ({ default: () => {} }))
 jest.mock('next-auth/react', () => ({ getServerSession: jest.fn() }))
 
 const { GET, POST, PUT, DELETE } = require('@/app/api/admin/events/route')
