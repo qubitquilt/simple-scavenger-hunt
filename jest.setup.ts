@@ -39,7 +39,7 @@ if (typeof global.Headers === 'undefined') {
 // Export a NextResponse with a json helper; also export NextRequest/Headers if needed
 jest.mock('next/server', () => ({
   NextResponse: {
-    json: (body: any, init?: any) => ({ body, status: init?.status ?? 200 }),
+    json: (body: any, init?: any) => body,
     redirect: (url: string) => ({ redirect: url })
   },
   NextRequest: class NextRequest {},
