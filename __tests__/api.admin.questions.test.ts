@@ -19,7 +19,7 @@ const { createAdminSupabaseClient } = require('@/lib/supabase')
 describe('admin questions api', () => {
   it('GET returns questions filtered by eventId', async () => {
     const admin = createAdminSupabaseClient()
-    admin.from.mockImplementationOnce(() => ({ select: jest.fn().mockResolvedValue({ data: [{ id: 'q1' }], error: null }) }))
+    admin.from.mockImplementationOnce(() => ({ select: jest.fn().mockReturnThis(), order: jest.fn().mockResolvedValue({ data: [{ id: 'q1' }], error: null }) }))
     const fakeReq = { url: 'https://example.com/?eventId=ev1' }
     const res = await GET(fakeReq)
     expect(res).toEqual({ questions: [{ id: 'q1' }] })
@@ -33,7 +33,7 @@ describe('admin questions api', () => {
 
   it('POST returns 404 when event not found', async () => {
     const admin = createAdminSupabaseClient()
-    admin.from.mockImplementationOnce(() => ({ select: jest.fn().mockResolvedValue({ data: null, error: null }) }))
+    admin.from.mockImplementationOnce(() => ({ select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis(), single: jest.fn().mockResolvedValue({ data: null, error: null }) }))
     const req = { json: async () => ({ eventId: 'ev1', content: 'c', expectedAnswer: 'e' }) }
     const res = await POST(req)
     expect(res).toEqual({ error: 'Event not found' })

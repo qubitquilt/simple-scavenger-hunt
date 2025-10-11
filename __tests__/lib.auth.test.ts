@@ -18,7 +18,17 @@ describe('authOptions', () => {
     const { authOptions } = require('@/lib/auth')
     const provider = authOptions.providers![0] as any
     const authorizeFn = provider.authorize || provider.options?.authorize
+    // debug provider shape
+    // eslint-disable-next-line no-console
+    console.log('provider keys', Object.keys(provider))
+    // eslint-disable-next-line no-console
+    console.log('provider.options keys', provider.options ? Object.keys(provider.options) : null)
+    // eslint-disable-next-line no-console
+    console.log('authorizeFn exists?', !!authorizeFn)
+    if (!authorizeFn) throw new Error('authorize function not found on provider')
     const user = await authorizeFn({ username: 'admin', password: 'secret' })
+    // eslint-disable-next-line no-console
+    console.log('authorize returned', user)
     expect(user).toBeDefined()
     expect(user.admin).toBe(true)
     expect(user.id).toBe('admin')

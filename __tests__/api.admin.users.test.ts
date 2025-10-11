@@ -27,7 +27,7 @@ describe('admin users api', () => {
       last_name: 'B',
       progress: [{ id: 'p1', event_id: 'e1', completed: true, created_at: new Date().toISOString(), answers: [{ id: 'a1', question_id: 'q1', status: 'correct', created_at: new Date().toISOString() }] }]
     }
-    admin.from.mockImplementationOnce(() => ({ order: jest.fn().mockResolvedValue({ data: [fakeUser], error: null }) }))
+    admin.from.mockImplementationOnce(() => ({ select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis(), order: jest.fn().mockResolvedValue({ data: [fakeUser], error: null }) }))
     const req = { url: 'https://example.com/?eventId=e1' }
     const res = await GET(req)
     expect(res.users.length).toBe(1)
