@@ -36,14 +36,18 @@ if (typeof global.Headers === 'undefined') {
 }
 
 // Mock next/server NextResponse.json used by route handlers
-// Ensure NextResponse.json returns a plain object for assertions
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-global.NextResponse = {
-  json: (body: any, init?: any) => ({ body, status: init?.status ?? 200 }),
-}
+// Export a NextResponse with a json helper; also export NextRequest/Headers if needed
+jest.mock('next/server', () => ({
+  NextResponse: {
+    json: (body: any, init?: any) => ({ body, status: init?.status ?? 200 }),
+    redirect: (url: string) => ({ redirect: url })
+  },
+  NextRequest: class NextRequest {},
+  Headers: class Headers {
+    constructor(init: any) { this.map = init || {} }
+  }
+}))
 
 // Provide a default mock for getServerSession from next-auth
-// so routes that import it won't throw; individual tests can override this mock.
-
+// so routes that import it won't throw; individual tests can override this mock in-suite.
 jest.mock('next-auth', () => ({ getServerSession: jest.fn() }))
