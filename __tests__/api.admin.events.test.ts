@@ -32,7 +32,7 @@ describe('admin events api', () => {
     }
     ;(createAdminSupabaseClient as jest.Mock).mockReturnValue(admin)
     const res = await GET()
-    expect(res).toEqual({ events: [{ id: '1', title: 'E' }] })
+    expect(res).toEqual({ events: [{ id: '1', title: 'E', description: '', date: expect.any(String), createdAt: expect.any(String) }] })
   })
 
   it('POST returns 401 when not admin', async () => {
