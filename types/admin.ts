@@ -1,3 +1,5 @@
+import { Answer } from './answer';
+
 export interface Event {
   id: string;
   title: string;
@@ -23,6 +25,7 @@ export interface UserProgress {
   completed: boolean;
   completedQuestions: number;
   totalQuestions: number;
+  answers?: Answer[];
   createdAt: string;
 }
 

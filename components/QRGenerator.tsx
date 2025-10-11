@@ -1,7 +1,6 @@
 'use client'
 
-// @ts-ignore
-import QRCode from 'qrcode.react'
+import { QRCodeCanvas } from 'qrcode.react'
 
 interface QRGeneratorProps {
   value: string
@@ -12,7 +11,7 @@ interface QRGeneratorProps {
 export default function QRGenerator({ value, size = 128, className = '' }: QRGeneratorProps) {
   return (
     <div className={`flex flex-col items-center space-y-2 ${className}`}>
-      <QRCode
+      <QRCodeCanvas
         value={value}
         size={size}
         bgColor="#ffffff"

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import type { UserProgress, AdminMetrics } from '@/types/admin'
 import type { User } from '@/types/user'
+import type { Answer } from '@/types/answer'
 
 export async function GET(request: NextRequest) {
   try {
@@ -45,9 +46,18 @@ export async function GET(request: NextRequest) {
     }
 
     const users: UserProgress[] = (usersData || []).map(user => {
-      const progress = user.progress
-      const completedQuestions = progress.answers?.filter(a => a.status === 'correct').length || 0
-      const totalQuestions = progress.answers?.length || 0
+      const progress = user.progress[0]
+      const mappedAnswers: Answer[] = (progress.answers || []).map((a: any) => ({
+        id: a.id,
+        progressId: progress.id,
+        questionId: a.question_id,
+        submission: null,
+        aiScore: undefined,
+        status: a.status,
+        createdAt: a.created_at,
+      }))
+      const completedQuestions = mappedAnswers.filter(a => a.status === 'correct').length
+      const totalQuestions = mappedAnswers.length
 
       return {
         id: user.id,
@@ -60,6 +70,7 @@ export async function GET(request: NextRequest) {
         completedQuestions,
         totalQuestions,
         createdAt: progress.created_at,
+        answers: mappedAnswers,
       }
     })
 
