@@ -7,32 +7,30 @@ declare var jest: any;
 // These are lightweight stand-ins for testing purposes.
 
 if (typeof global.Request === 'undefined') {
-  // minimal Request polyfill
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
   (global as any).Request = class Request {
+    input: any;
+    init: any;
     constructor(input: any, init: any) {
-      ;(this as any).input = input
-      ;(this as any).init = init
+      this.input = input;
+      this.init = init;
     }
   }
 }
 if (typeof global.Response === 'undefined') {
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
   (global as any).Response = class Response {
+    body: any;
+    init: any;
     constructor(body: any, init: any) {
-      ;(this as any).body = body
-      ;(this as any).init = init
+      this.body = body;
+      this.init = init;
     }
   }
 }
 if (typeof global.Headers === 'undefined') {
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
   (global as any).Headers = class Headers {
+    map: any;
     constructor(init: any) {
-      ;(this as any).map = init || {}
+      this.map = init || {};
     }
   }
 }
