@@ -14,6 +14,9 @@ export async function GET() {
 
     console.log('Service key loaded:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
     console.log('Key prefix:', process.env.SUPABASE_SERVICE_ROLE_KEY?.substring(0, 10) + '...');
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json({ error: 'Supabase admin client not configured' }, { status: 500 })
+    }
     const adminSupabase = createAdminSupabaseClient()
     const { data: eventsData, error } = await adminSupabase
       .from('events')
@@ -51,6 +54,10 @@ export async function POST(request: NextRequest) {
 
     if (!title) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 })
+    }
+
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json({ error: 'Supabase admin client not configured' }, { status: 500 })
     }
 
     const adminSupabase = createAdminSupabaseClient()
