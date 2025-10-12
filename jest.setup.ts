@@ -18,19 +18,19 @@ if (typeof global.Request === 'undefined') {
 if (typeof global.Response === 'undefined') {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
-  global.Response = class Response {
+  (global as any).Response = class Response {
     constructor(body: any, init: any) {
-      this.body = body
-      this.init = init
+      ;(this as any).body = body
+      ;(this as any).init = init
     }
   }
 }
 if (typeof global.Headers === 'undefined') {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
-  global.Headers = class Headers {
+  (global as any).Headers = class Headers {
     constructor(init: any) {
-      this.map = init || {}
+      ;(this as any).map = init || {}
     }
   }
 }
