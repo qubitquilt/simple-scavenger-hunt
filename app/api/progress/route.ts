@@ -178,7 +178,7 @@ export async function GET(request: NextRequest) {
     )
 
     const questions: (Question & { answered?: boolean; status?: 'pending' | 'correct' | 'incorrect'; aiScore?: number })[] = 
-      (questionsData || []).map(q => {
+      (questionsData || []).map((q: Question) => {
         const answer = answersMap.get(q.id)
         return {
           id: q.id,
