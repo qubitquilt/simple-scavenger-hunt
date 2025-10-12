@@ -174,7 +174,7 @@ export async function GET(request: NextRequest) {
     }
 
     const answersMap = new Map(
-      answersData?.map(a => [a.question_id, { status: a.status, aiScore: a.ai_score }]) || []
+      answersData?.map((a: { question_id: string; status: string; ai_score: number }) => [a.question_id, { status: a.status, aiScore: a.ai_score }]) || []
     )
 
     const questions: (Question & { answered?: boolean; status?: 'pending' | 'correct' | 'incorrect'; aiScore?: number })[] = 
