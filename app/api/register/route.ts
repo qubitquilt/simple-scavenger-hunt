@@ -11,7 +11,7 @@ function shuffleArray(array: string[]) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { firstName, lastName } = await request.json()
+    const { firstName, lastName, eventId } = await request.json()
 
     if (!firstName || !lastName) {
       return NextResponse.json({ error: 'firstName and lastName are required' }, { status: 400 })
@@ -66,32 +66,56 @@ export async function POST(request: NextRequest) {
       userId = newUser.id
     }
 
-    // Fetch default event (first event)
-    const { data: events, error: eventsError } = await adminSupabase
-      .from('events')
-      .select('id')
-      .order('id')
-      .limit(1)
+    let targetEventId: string
 
-    if (eventsError) {
-      if (eventsError.code === '42501') {
-        return NextResponse.json({ error: 'Access denied: Insufficient permissions' }, { status: 403 })
+    if (eventId) {
+      // Verify event exists
+      const { data: event, error: eventError } = await adminSupabase
+        .from('events')
+        .select('id')
+        .eq('id', eventId)
+        .single()
+
+      if (eventError) {
+        if (eventError.code === 'PGRST116') {
+          return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+        }
+        if (eventError.code === '42501') {
+          return NextResponse.json({ error: 'Access denied: Insufficient permissions' }, { status: 403 })
+        }
+        console.error('Event check error:', eventError)
+        return NextResponse.json({ error: eventError.message }, { status: 500 })
       }
-      console.error('Events fetch error:', eventsError)
-      return NextResponse.json({ error: eventsError.message }, { status: 500 })
-    }
 
-    if (!events || events.length === 0) {
-      return NextResponse.json({ error: 'No events found' }, { status: 404 })
-    }
+      targetEventId = event.id
+    } else {
+      // Fetch default event (first event)
+      const { data: events, error: eventsError } = await adminSupabase
+        .from('events')
+        .select('id')
+        .order('id')
+        .limit(1)
 
-    const eventId = events[0].id
+      if (eventsError) {
+        if (eventsError.code === '42501') {
+          return NextResponse.json({ error: 'Access denied: Insufficient permissions' }, { status: 403 })
+        }
+        console.error('Events fetch error:', eventsError)
+        return NextResponse.json({ error: eventsError.message }, { status: 500 })
+      }
+
+      if (!events || events.length === 0) {
+        return NextResponse.json({ error: 'No events found' }, { status: 404 })
+      }
+
+      targetEventId = events[0].id
+    }
 
     // Fetch questions for the event
     const { data: questions, error: questionsError } = await adminSupabase
       .from('questions')
       .select('id')
-      .eq('event_id', eventId)
+      .eq('event_id', targetEventId)
 
     if (questionsError) {
       if (questionsError.code === '42501') {
@@ -113,7 +137,7 @@ export async function POST(request: NextRequest) {
       .from('progress')
       .select('id, question_order, completed')
       .eq('user_id', userId)
-      .eq('event_id', eventId)
+      .eq('event_id', targetEventId)
       .single()
 
     if (existingError && existingError.code !== 'PGRST116') {
@@ -149,7 +173,7 @@ export async function POST(request: NextRequest) {
         .from('progress')
         .insert({
           user_id: userId,
-          event_id: eventId,
+          event_id: targetEventId,
           question_order: shuffledOrder,
           completed: false
         })

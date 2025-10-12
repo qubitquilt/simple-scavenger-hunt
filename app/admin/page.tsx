@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useSession, signOut } from 'next-auth/react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Event, UserProgress, AdminMetrics } from '@/types/admin'
 import type { Question } from '@/types/question'
@@ -53,6 +53,10 @@ function AdminDashboard() {
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null)
   const [showEventForm, setShowEventForm] = useState<boolean>(false)
   const [showQuestionForm, setShowQuestionForm] = useState<boolean>(false)
+  const [slug, setSlug] = useState<string>('')
+  const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null)
+  const [slugLoading, setSlugLoading] = useState<boolean>(false)
+  const slugTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     loadEvents()
@@ -68,6 +72,40 @@ function AdminDashboard() {
       setMetrics(null)
     }
   }, [selectedEventId])
+
+  useEffect(() => {
+    setSlug(editingEvent?.slug || '')
+  }, [editingEvent])
+
+  useEffect(() => {
+    if (slugTimeoutRef.current) clearTimeout(slugTimeoutRef.current)
+    if (!slug) {
+      setSlugAvailable(null)
+      setSlugLoading(false)
+      return
+    }
+    if (editingEvent && slug === editingEvent.slug) {
+      setSlugAvailable(true)
+      setSlugLoading(false)
+      return
+    }
+    setSlugLoading(true)
+    slugTimeoutRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/admin/events/check-slug', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slug }),
+        })
+        const data = await res.json()
+        setSlugAvailable(data.available)
+      } catch {
+        setSlugAvailable(false)
+      } finally {
+        setSlugLoading(false)
+      }
+    }, 500)
+  }, [slug, editingEvent])
 
   const loadEvents = async () => {
     try {
@@ -110,9 +148,19 @@ function AdminDashboard() {
     }
   }
 
+  const formatSlug = (str: string): string => {
+    return str.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+  }
+
+  const handleSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatSlug(e.target.value)
+    setSlug(formatted)
+  }
+
   const handleCreateEvent = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
+    formData.append('slug', slug)
     try {
       const res = await fetch('/api/admin/events', {
         method: 'POST',
@@ -138,6 +186,7 @@ function AdminDashboard() {
     e.preventDefault()
     if (!editingEvent) return
     const formData = new FormData(e.currentTarget)
+    formData.append('slug', slug)
     try {
       const res = await fetch('/api/admin/events', {
         method: 'PUT',
@@ -376,11 +425,12 @@ function AdminDashboard() {
                           <div className="flex-1 min-w-0">
                             <h3 className="text-lg font-medium text-gray-900">{event.title}</h3>
                             <p className="text-sm text-gray-500 truncate">{event.description}</p>
+                            <p className="text-sm text-gray-500">Slug: {event.slug}</p>
                             <p className="text-sm text-gray-500">Date: {new Date(event.date).toLocaleDateString()}</p>
                           </div>
                           <div className="flex flex-col items-center space-y-2 ml-4 flex-shrink-0">
                             <QRGenerator
-                              value={`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}?eventId=${event.id}`}
+                              value={`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/events/${event.slug}`}
                               size={96}
                               className="border border-gray-200 rounded-md p-1 bg-white"
                               aria-label={`QR code for event ${event.title}`}
@@ -440,6 +490,27 @@ function AdminDashboard() {
                       />
                     </div>
                     <div>
+                      <label htmlFor="slug" className="block text-sm font-medium text-gray-700">
+                        Slug
+                      </label>
+                      <input
+                        type="text"
+                        id="slug"
+                        value={slug}
+                        onChange={handleSlugChange}
+                        required
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        aria-required="true"
+                      />
+                      {slugLoading ? (
+                        <p className="text-sm text-gray-500 mt-1">Checking availability...</p>
+                      ) : slugAvailable === true ? (
+                        <p className="text-sm text-green-600 mt-1">Available</p>
+                      ) : slugAvailable === false ? (
+                        <p className="text-sm text-red-600 mt-1">Unavailable</p>
+                      ) : null}
+                    </div>
+                    <div>
                       <label htmlFor="date" className="block text-sm font-medium text-gray-700">
                         Date
                       </label>
@@ -454,7 +525,8 @@ function AdminDashboard() {
                     <div className="flex space-x-3">
                       <button
                         type="submit"
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                        disabled={!slugAvailable}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
                       >
                         {editingEvent ? 'Update' : 'Create'}
                       </button>
@@ -463,6 +535,9 @@ function AdminDashboard() {
                         onClick={() => {
                           setShowEventForm(false)
                           setEditingEvent(null)
+                          setSlug('')
+                          setSlugAvailable(null)
+                          setSlugLoading(false)
                         }}
                         className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
                       >

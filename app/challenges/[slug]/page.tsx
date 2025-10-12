@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import { getUserId } from '@/utils/session'
 import type { Question } from '@/types/question'
+import type { Event } from '@/types/admin'
 import LoadingSpinner from '@/components/LoadingSpinner'
 
 const supabase = createClient(
@@ -22,9 +23,10 @@ interface AnswerResponse {
 export default function ChallengeDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const questionId = params.id as string
+  const eventSlug = params.slug as string
   const userId = getUserId()
 
+  const [event, setEvent] = useState<Event | null>(null)
   const [question, setQuestion] = useState<Question | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -34,32 +36,51 @@ export default function ChallengeDetailPage() {
   const [submission, setSubmission] = useState<string | File | null>(null)
 
   useEffect(() => {
-    if (!userId || !questionId) {
+    if (!userId || !eventSlug) {
       router.push('/register')
       return
     }
 
-    const fetchQuestion = async () => {
+    const fetchEventAndQuestion = async () => {
       try {
-        const response = await fetch(`/api/progress`)
-        if (!response.ok) {
+        setLoading(true)
+        setError(null)
+
+        // Fetch event
+        const eventResponse = await fetch(`/api/events?slug=${encodeURIComponent(eventSlug)}`)
+        if (!eventResponse.ok) {
+          if (eventResponse.status === 404) {
+            throw new Error('Event not found')
+          }
+          throw new Error('Failed to fetch event')
+        }
+        const { event: eventData } = await eventResponse.json()
+        setEvent(eventData)
+
+        // Fetch progress for this event
+        const progressResponse = await fetch(`/api/progress?eventId=${eventData.id}`)
+        if (!progressResponse.ok) {
           throw new Error('Failed to fetch progress')
         }
-        const data = await response.json()
-        const q = data.questions.find((q: Question) => q.id === questionId)
-        if (!q) {
-          throw new Error('Question not found')
+        const data = await progressResponse.json()
+
+        // Find the current question (first not answered or incorrect)
+        const currentQuestion = data.questions.find((q: any) => !q.answered || q.status === 'incorrect')
+        if (!currentQuestion) {
+          // All completed
+          router.push('/challenges')
+          return
         }
-        setQuestion(q)
+        setQuestion(currentQuestion)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load question')
+        setError(err instanceof Error ? err.message : 'Failed to load challenge')
       } finally {
         setLoading(false)
       }
     }
 
-    fetchQuestion()
-  }, [questionId, userId, router])
+    fetchEventAndQuestion()
+  }, [eventSlug, userId, router])
 
   const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSubmission(e.target.value)
@@ -91,7 +112,7 @@ export default function ChallengeDetailPage() {
       if (question.type === 'image' && submission instanceof File) {
         // Upload to Supabase storage
         const fileExt = submission.name.split('.').pop()
-        const fileName = `${Date.now()}-${userId}-${questionId}.${fileExt}`
+        const fileName = `${Date.now()}-${userId}-${question.id}.${fileExt}`
         const { data, error: uploadError } = await supabase.storage
           .from('challenge-images')
           .upload(fileName, submission, {
@@ -115,7 +136,7 @@ export default function ChallengeDetailPage() {
       const response = await fetch('/api/answers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ questionId, submission: submitData })
+        body: JSON.stringify({ questionId: question.id, submission: submitData })
       })
 
       if (!response.ok) {

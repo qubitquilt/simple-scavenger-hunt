@@ -3,7 +3,8 @@ jest.mock('@/lib/supabase', () => ({ supabase: { from: jest.fn(() => ({ select: 
 describe('GET /api/events', () => {
   it('returns events when supabase returns data', async () => {
     const mod = require('@/app/api/events/route')
-    const res = await mod.GET()
+    const request = { url: 'http://localhost/api/events' }
+    const res = await mod.GET(request)
     expect(res).toEqual({ events: [{ id: '1', title: 'E1' }] })
   })
 
@@ -11,7 +12,8 @@ describe('GET /api/events', () => {
     const sup = require('@/lib/supabase')
     sup.supabase.from.mockImplementation(() => ({ select: jest.fn().mockResolvedValue({ data: null, error: { message: 'boom' } }) }))
     const mod = require('@/app/api/events/route')
-    const res = await mod.GET()
+    const request = { url: 'http://localhost/api/events' }
+    const res = await mod.GET(request)
     expect(res).toEqual({ error: 'boom' })
   })
 })

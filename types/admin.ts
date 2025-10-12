@@ -3,6 +3,7 @@ import { Answer } from './answer';
 export interface Event {
   id: string;
   title: string;
+  slug: string;
   description: string;
   date: string; // ISO date string
   createdAt: string;

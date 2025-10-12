@@ -20,7 +20,7 @@ export async function GET() {
     const adminSupabase = createAdminSupabaseClient()
     const { data: eventsData, error } = await adminSupabase
       .from('events')
-      .select('id, title, description, date, created_at')
+      .select('id, title, slug, description, date, created_at')
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -31,6 +31,7 @@ export async function GET() {
     const typedEvents: Event[] = (eventsData || []).map((event) => ({
       id: event.id,
       title: event.title,
+      slug: event.slug,
       description: event.description || '',
       date: event.date ? new Date(event.date).toISOString() : '',
       createdAt: new Date(event.created_at).toISOString()
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { title, description, date } = await request.json()
+    const { title, slug, description, date } = await request.json()
 
     if (!title) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 })
@@ -66,6 +67,7 @@ export async function POST(request: NextRequest) {
       .from('events')
       .insert({
         title,
+        slug,
         description: description || null,
         date: parsedDate
       })
@@ -80,6 +82,7 @@ export async function POST(request: NextRequest) {
     const typedEvent: Event = {
       id: eventData.id,
       title: eventData.title,
+      slug: eventData.slug,
       description: eventData.description || '',
       date: eventData.date ? new Date(eventData.date).toISOString() : '',
       createdAt: new Date(eventData.created_at).toISOString()
@@ -98,7 +101,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { id, title, description, date } = await request.json()
+    const { id, title, slug, description, date } = await request.json()
 
     if (!id) {
       return NextResponse.json({ error: 'ID is required' }, { status: 400 })
@@ -110,6 +113,7 @@ export async function PUT(request: NextRequest) {
       .from('events')
       .update({
         title,
+        slug,
         description: description || null,
         date: parsedDate
       })
@@ -129,6 +133,7 @@ export async function PUT(request: NextRequest) {
     const typedEvent: Event = {
       id: eventData.id,
       title: eventData.title,
+      slug: eventData.slug,
       description: eventData.description || '',
       date: eventData.date ? new Date(eventData.date).toISOString() : '',
       createdAt: new Date(eventData.created_at).toISOString()

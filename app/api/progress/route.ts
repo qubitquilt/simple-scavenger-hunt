@@ -107,22 +107,45 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 401 })
     }
 
-    // Fetch default event (first event)
-    const { data: events, error: eventsError } = await supabase
-      .from('events')
-      .select('id')
-      .order('id')
-      .limit(1)
+    const { searchParams } = new URL(request.url)
+    const eventId = searchParams.get('eventId')
 
-    if (eventsError) {
-      return NextResponse.json({ error: eventsError.message }, { status: 500 })
+    let targetEventId: string
+
+    if (eventId) {
+      // Verify event exists
+      const { data: event, error: eventError } = await supabase
+        .from('events')
+        .select('id')
+        .eq('id', eventId)
+        .single()
+
+      if (eventError) {
+        if (eventError.code === 'PGRST116') {
+          return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+        }
+        return NextResponse.json({ error: eventError.message }, { status: 500 })
+      }
+
+      targetEventId = event.id
+    } else {
+      // Fetch default event (first event)
+      const { data: events, error: eventsError } = await supabase
+        .from('events')
+        .select('id')
+        .order('id')
+        .limit(1)
+
+      if (eventsError) {
+        return NextResponse.json({ error: eventsError.message }, { status: 500 })
+      }
+
+      if (!events || events.length === 0) {
+        return NextResponse.json({ error: 'No events found' }, { status: 404 })
+      }
+
+      targetEventId = events[0].id
     }
-
-    if (!events || events.length === 0) {
-      return NextResponse.json({ error: 'No events found' }, { status: 404 })
-    }
-
-    const eventId = events[0].id
 
     // Fetch progress
     const { data: progressData, error: progressError } = await supabase
@@ -143,7 +166,7 @@ export async function GET(request: NextRequest) {
     const progress: Progress = {
       id: progressData.id,
       userId,
-      eventId,
+      eventId: targetEventId,
       questionOrder: progressData.question_order as string[],
       completed: progressData.completed,
       createdAt: new Date().toISOString()
@@ -184,12 +207,12 @@ export async function GET(request: NextRequest) {
     )
 
     const typedQuestionsData = questionsData as { id: string; type: string; content: string; options: string | null; expected_answer: string; ai_threshold: number }[] || [];
-    const questions: (Question & { answered?: boolean; status?: 'pending' | 'correct' | 'incorrect'; aiScore?: number })[] = 
+    const questions: (Question & { answered?: boolean; status?: 'pending' | 'correct' | 'incorrect'; aiScore?: number })[] =
       typedQuestionsData.map((q: any) => {
         const answer = answersMap.get(q.id)
         return {
           id: q.id,
-          eventId: eventId,
+          eventId: targetEventId,
           type: q.type,
           content: q.content,
           options: q.options ? JSON.parse(q.options as unknown as string) : undefined,
