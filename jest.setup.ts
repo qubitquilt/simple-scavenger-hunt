@@ -7,9 +7,11 @@ declare var jest: any;
 // These are lightweight stand-ins for testing purposes.
 
 class MockRequest {
+  input: any;
+  init: any;
   constructor(input: any, init: any) {
-    (this as any).input = input;
-    (this as any).init = init;
+    this.input = input;
+    this.init = init;
   }
 }
 
@@ -17,17 +19,20 @@ if (typeof global.Request === 'undefined') {
   (global as any).Request = MockRequest;
 }
 if (typeof global.Response === 'undefined') {
-  (global as any).Response = class Response {
+  (global as any).Response = class MockResponse {
+    body: any;
+    init: any;
     constructor(body: any, init: any) {
-      (this as any).body = body;
-      (this as any).init = init;
+      this.body = body;
+      this.init = init;
     }
   }
 }
 if (typeof global.Headers === 'undefined') {
-  (global as any).Headers = class Headers {
+  (global as any).Headers = class MockHeaders {
+    map: any;
     constructor(init: any) {
-      (this as any).map = init || {};
+      this.map = init || {};
     }
   }
 }
