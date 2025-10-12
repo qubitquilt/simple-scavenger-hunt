@@ -6,15 +6,17 @@ declare var jest: any;
 // Provide Request/Response/Headers so server route modules can import next/server
 // These are lightweight stand-ins for testing purposes.
 
-if (typeof global.Request === 'undefined') {
-  (global as any).Request = class Request {
-    input: any;
-    init: any;
-    constructor(input: any, init: any) {
-      this.input = input;
-      this.init = init;
-    }
+class MockRequest {
+  input: any;
+  init: any;
+  constructor(input: any, init: any) {
+    this.input = input;
+    this.init = init;
   }
+}
+
+if (typeof global.Request === 'undefined') {
+  (global as any).Request = MockRequest;
 }
 if (typeof global.Response === 'undefined') {
   (global as any).Response = class Response {
