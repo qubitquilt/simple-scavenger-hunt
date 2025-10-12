@@ -7,11 +7,9 @@ declare var jest: any;
 // These are lightweight stand-ins for testing purposes.
 
 class MockRequest {
-  input: any;
-  init: any;
   constructor(input: any, init: any) {
-    this.input = input;
-    this.init = init;
+    (this as any).input = input;
+    (this as any).init = init;
   }
 }
 
