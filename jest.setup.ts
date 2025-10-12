@@ -44,7 +44,7 @@ jest.mock('next/server', () => ({
   },
   NextRequest: class NextRequest {},
   Headers: class Headers {
-    constructor(init: any) { this.map = init || {} }
+    constructor(init: any) { ;(this as any).map = init || {} }
   }
 }))
 
