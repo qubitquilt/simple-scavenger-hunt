@@ -5,9 +5,14 @@ import type { Event } from '@/types/admin'
 
 export async function GET(request: NextRequest) {
   try {
-    const adminSupabase = createAdminSupabaseClient()
     const { searchParams } = new URL(request.url)
     const eventId = searchParams.get('eventId')
+
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json({ error: 'Supabase admin client not configured' }, { status: 500 })
+    }
+
+    const adminSupabase = createAdminSupabaseClient()
 
     console.log('Service key loaded:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
     console.log('Key prefix:', process.env.SUPABASE_SERVICE_ROLE_KEY?.substring(0, 10) + '...');
@@ -37,12 +42,17 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const adminSupabase = createAdminSupabaseClient()
     const { eventId, type, content, options, expectedAnswer, aiThreshold } = await request.json()
 
     if (!eventId || !content || !expectedAnswer) {
       return NextResponse.json({ error: 'eventId, content, and expectedAnswer are required' }, { status: 400 })
     }
+
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json({ error: 'Supabase admin client not configured' }, { status: 500 })
+    }
+
+    const adminSupabase = createAdminSupabaseClient()
 
     // Verify event exists
     const { data: event } = await adminSupabase
@@ -83,12 +93,17 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const adminSupabase = createAdminSupabaseClient()
     const { id, eventId, type, content, options, expectedAnswer, aiThreshold } = await request.json()
 
     if (!id) {
       return NextResponse.json({ error: 'ID is required' }, { status: 400 })
     }
+
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json({ error: 'Supabase admin client not configured' }, { status: 500 })
+    }
+
+    const adminSupabase = createAdminSupabaseClient()
 
     const updateData: Record<string, any> = {
       type,
@@ -137,12 +152,17 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const adminSupabase = createAdminSupabaseClient()
     const { id } = await request.json()
 
     if (!id) {
       return NextResponse.json({ error: 'ID is required' }, { status: 400 })
     }
+
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json({ error: 'Supabase admin client not configured' }, { status: 500 })
+    }
+
+    const adminSupabase = createAdminSupabaseClient()
 
     const { error } = await adminSupabase
       .from('questions')

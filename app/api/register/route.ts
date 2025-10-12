@@ -13,11 +13,15 @@ export async function POST(request: NextRequest) {
   try {
     const { firstName, lastName } = await request.json()
 
-    const adminSupabase = createAdminSupabaseClient();
-
     if (!firstName || !lastName) {
       return NextResponse.json({ error: 'firstName and lastName are required' }, { status: 400 })
     }
+
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json({ error: 'Supabase admin client not configured' }, { status: 500 })
+    }
+
+    const adminSupabase = createAdminSupabaseClient();
 
 
     // Check if user exists by name
