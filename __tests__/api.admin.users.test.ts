@@ -3,6 +3,12 @@ jest.mock('@/lib/supabase', () => ({
     from: jest.fn().mockReturnThis(),
     select: jest.fn().mockReturnThis(),
     order: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+    maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
+    single: jest.fn().mockResolvedValue({ data: null, error: null }),
+    limit: jest.fn().mockReturnThis(),
+  }))
+}))
 
 
 beforeAll(() => {
@@ -10,13 +16,6 @@ beforeAll(() => {
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'fake_key';
 });
 
-
-    eq: jest.fn().mockReturnThis(),
-    maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
-    single: jest.fn().mockResolvedValue({ data: null, error: null }),
-    limit: jest.fn().mockReturnThis(),
-  }))
-}))
 
 const { GET } = require('@/app/api/admin/users/route')
 

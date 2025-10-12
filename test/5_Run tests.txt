@@ -1,0 +1,115 @@
+﻿2025-10-12T01:47:35.4452940Z ##[group]Run npm test
+2025-10-12T01:47:35.4453220Z [36;1mnpm test[0m
+2025-10-12T01:47:35.4486640Z shell: /usr/bin/bash -e {0}
+2025-10-12T01:47:35.4486893Z ##[endgroup]
+2025-10-12T01:47:35.5798000Z 
+2025-10-12T01:47:35.5798800Z > simple-scavenger-hunt@0.1.0 test
+2025-10-12T01:47:35.5799318Z > jest
+2025-10-12T01:47:35.5799492Z 
+2025-10-12T01:47:37.4910123Z PASS __tests__/api.admin.questions.test.ts
+2025-10-12T01:47:37.5063289Z   ● Console
+2025-10-12T01:47:37.5063964Z 
+2025-10-12T01:47:37.5064944Z     console.log
+2025-10-12T01:47:37.5065455Z       Service key loaded: true
+2025-10-12T01:47:37.5065755Z 
+2025-10-12T01:47:37.5066071Z       at log (app/api/admin/questions/route.ts:17:13)
+2025-10-12T01:47:37.5066455Z 
+2025-10-12T01:47:37.5066604Z     console.log
+2025-10-12T01:47:37.5066996Z       Key prefix: fake_key...
+2025-10-12T01:47:37.5067299Z 
+2025-10-12T01:47:37.5067603Z       at log (app/api/admin/questions/route.ts:18:13)
+2025-10-12T01:47:37.5067994Z 
+2025-10-12T01:47:37.6355144Z FAIL __tests__/api.admin.events.test.ts
+2025-10-12T01:47:37.6459847Z   ● Console
+2025-10-12T01:47:37.6460274Z 
+2025-10-12T01:47:37.6460457Z     console.log
+2025-10-12T01:47:37.6460890Z       Service key loaded: false
+2025-10-12T01:47:37.6461183Z 
+2025-10-12T01:47:37.6461443Z       at log (app/api/admin/events/route.ts:15:13)
+2025-10-12T01:47:37.6461788Z 
+2025-10-12T01:47:37.6461961Z     console.log
+2025-10-12T01:47:37.6462339Z       Key prefix: undefined...
+2025-10-12T01:47:37.6462600Z 
+2025-10-12T01:47:37.6462885Z       at log (app/api/admin/events/route.ts:16:13)
+2025-10-12T01:47:37.6463240Z 
+2025-10-12T01:47:37.6463622Z   ● admin events api › GET returns events
+2025-10-12T01:47:37.6463947Z 
+2025-10-12T01:47:37.6464229Z     expect(received).toEqual(expected) // deep equality
+2025-10-12T01:47:37.6464600Z 
+2025-10-12T01:47:37.6464760Z     - Expected  - 9
+2025-10-12T01:47:37.6465155Z     + Received  + 1
+2025-10-12T01:47:37.6465351Z 
+2025-10-12T01:47:37.6465487Z       Object {
+2025-10-12T01:47:37.6465803Z     -   "events": Array [
+2025-10-12T01:47:37.6466180Z     -     Object {
+2025-10-12T01:47:37.6466557Z     -       "createdAt": Any<String>,
+2025-10-12T01:47:37.6467019Z     -       "date": Any<String>,
+2025-10-12T01:47:37.6467453Z     -       "description": "",
+2025-10-12T01:47:37.6467827Z     -       "id": "1",
+2025-10-12T01:47:37.6468367Z     -       "title": "E",
+2025-10-12T01:47:37.6468711Z     -     },
+2025-10-12T01:47:37.6469010Z     -   ],
+2025-10-12T01:47:37.6469438Z     +   "error": "Supabase admin client not configured",
+2025-10-12T01:47:37.6469926Z       }
+2025-10-12T01:47:37.6470081Z 
+2025-10-12T01:47:37.6471079Z     [0m [90m 33 |[39m     [33m;[39m(createAdminSupabaseClient [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmockReturnValue(admin)
+2025-10-12T01:47:37.6472320Z      [90m 34 |[39m     [36mconst[39m res [33m=[39m [36mawait[39m [33mGET[39m()
+2025-10-12T01:47:37.6474751Z     [31m[1m>[22m[39m[90m 35 |[39m     expect(res)[33m.[39mtoEqual({ events[33m:[39m [{ id[33m:[39m [32m'1'[39m[33m,[39m title[33m:[39m [32m'E'[39m[33m,[39m description[33m:[39m [32m''[39m[33m,[39m date[33m:[39m expect[33m.[39many([33mString[39m)[33m,[39m createdAt[33m:[39m expect[33m.[39many([33mString[39m) }] })
+2025-10-12T01:47:37.6476595Z      [90m    |[39m                 [31m[1m^[22m[39m
+2025-10-12T01:47:37.6477127Z      [90m 36 |[39m   })
+2025-10-12T01:47:37.6477520Z      [90m 37 |[39m
+2025-10-12T01:47:37.6478560Z      [90m 38 |[39m   it([32m'POST returns 401 when not admin'[39m[33m,[39m [36masync[39m () [33m=>[39m {[0m
+2025-10-12T01:47:37.6479150Z 
+2025-10-12T01:47:37.6479511Z       at Object.toEqual (__tests__/api.admin.events.test.ts:35:17)
+2025-10-12T01:47:37.6479934Z 
+2025-10-12T01:47:37.7686551Z FAIL __tests__/api.admin.users.test.ts
+2025-10-12T01:47:37.7687720Z   ● admin users api › computes metrics correctly
+2025-10-12T01:47:37.7688306Z 
+2025-10-12T01:47:37.7688733Z     TypeError: Cannot read properties of undefined (reading 'length')
+2025-10-12T01:47:37.7689786Z 
+2025-10-12T01:47:37.7690618Z     [0m [90m 41 |[39m     [36mconst[39m req [33m=[39m { url[33m:[39m [32m'https://example.com/?eventId=e1'[39m }
+2025-10-12T01:47:37.7691787Z      [90m 42 |[39m     [36mconst[39m res [33m=[39m [36mawait[39m [33mGET[39m(req)
+2025-10-12T01:47:37.7692930Z     [31m[1m>[22m[39m[90m 43 |[39m     expect(res[33m.[39musers[33m.[39mlength)[33m.[39mtoBe([35m1[39m)
+2025-10-12T01:47:37.7693813Z      [90m    |[39m                      [31m[1m^[22m[39m
+2025-10-12T01:47:37.7695061Z      [90m 44 |[39m     expect(res[33m.[39mmetrics[33m.[39mtotalUsers)[33m.[39mtoBe([35m1[39m)
+2025-10-12T01:47:37.7695818Z      [90m 45 |[39m   })
+2025-10-12T01:47:37.7696290Z      [90m 46 |[39m })[0m
+2025-10-12T01:47:37.7696548Z 
+2025-10-12T01:47:37.7696901Z       at Object.length (__tests__/api.admin.users.test.ts:43:22)
+2025-10-12T01:47:37.7697308Z 
+2025-10-12T01:47:37.8916985Z FAIL __tests__/api.register.test.ts
+2025-10-12T01:47:37.8922459Z   ● POST /api/register › returns 404 when no events found
+2025-10-12T01:47:37.8968631Z 
+2025-10-12T01:47:37.8969310Z     expect(received).toEqual(expected) // deep equality
+2025-10-12T01:47:37.8970007Z 
+2025-10-12T01:47:37.8970412Z     - Expected  - 1
+2025-10-12T01:47:37.8970960Z     + Received  + 1
+2025-10-12T01:47:37.8971352Z 
+2025-10-12T01:47:37.8971676Z       Object {
+2025-10-12T01:47:37.8972276Z     -   "error": "No events found",
+2025-10-12T01:47:37.8973051Z     +   "error": "Supabase admin client not configured",
+2025-10-12T01:47:37.8973758Z       }
+2025-10-12T01:47:37.8974096Z 
+2025-10-12T01:47:37.8975540Z     [0m [90m 38 |[39m     [36mconst[39m req [33m=[39m { json[33m:[39m [36masync[39m () [33m=>[39m ({ firstName[33m:[39m [32m'A'[39m[33m,[39m lastName[33m:[39m [32m'B'[39m }) }
+2025-10-12T01:47:37.8977208Z      [90m 39 |[39m     [36mconst[39m res [33m=[39m [36mawait[39m [33mPOST[39m(req)
+2025-10-12T01:47:37.8978957Z     [31m[1m>[22m[39m[90m 40 |[39m     expect(res)[33m.[39mtoEqual({ error[33m:[39m [32m'No events found'[39m })
+2025-10-12T01:47:37.8980252Z      [90m    |[39m                 [31m[1m^[22m[39m
+2025-10-12T01:47:37.8981095Z      [90m 41 |[39m   })
+2025-10-12T01:47:37.8981773Z      [90m 42 |[39m })
+2025-10-12T01:47:37.8982473Z      [90m 43 |[39m[0m
+2025-10-12T01:47:37.8982934Z 
+2025-10-12T01:47:37.8983460Z       at Object.toEqual (__tests__/api.register.test.ts:40:17)
+2025-10-12T01:47:37.8984097Z 
+2025-10-12T01:47:37.9375138Z PASS __tests__/userFlow.test.tsx
+2025-10-12T01:47:38.0046841Z PASS __tests__/lib.auth.test.ts
+2025-10-12T01:47:38.1453391Z PASS __tests__/lib.supabase.test.ts
+2025-10-12T01:47:38.1959193Z PASS __tests__/middleware.test.ts
+2025-10-12T01:47:38.2435656Z PASS __tests__/api.events.test.ts
+2025-10-12T01:47:38.3452285Z PASS __tests__/utils.session.test.ts
+2025-10-12T01:47:38.3687974Z 
+2025-10-12T01:47:38.3691799Z Test Suites: 3 failed, 7 passed, 10 total
+2025-10-12T01:47:38.3692233Z Tests:       3 failed, 29 passed, 32 total
+2025-10-12T01:47:38.3692548Z Snapshots:   0 total
+2025-10-12T01:47:38.3692776Z Time:        1.989 s
+2025-10-12T01:47:38.3692982Z Ran all test suites.
+2025-10-12T01:47:38.4674921Z ##[error]Process completed with exit code 1.

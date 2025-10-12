@@ -3,12 +3,6 @@ jest.mock('@/lib/supabase', () => ({
     from: jest.fn().mockReturnThis(),
     select: jest.fn().mockReturnThis(),
     order: jest.fn().mockReturnThis(),
-
-beforeAll(() => {
-  process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://fake.supabase.co';
-  process.env.SUPABASE_SERVICE_ROLE_KEY = 'fake_key';
-});
-
     insert: jest.fn().mockReturnThis(),
     update: jest.fn().mockReturnThis(),
     delete: jest.fn().mockReturnThis(),
@@ -18,6 +12,11 @@ beforeAll(() => {
     limit: jest.fn().mockReturnThis(),
   }))
 }))
+
+beforeAll(() => {
+  process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://fake.supabase.co';
+  process.env.SUPABASE_SERVICE_ROLE_KEY = 'fake_key';
+});
 
 jest.mock('next-auth', () => ({ getServerSession: jest.fn() }))
 

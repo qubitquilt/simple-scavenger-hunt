@@ -1,0 +1,85 @@
+﻿2025-10-12T01:31:49.5018881Z ##[group]Run actions/checkout@v4
+2025-10-12T01:31:49.5019771Z with:
+2025-10-12T01:31:49.5020322Z   repository: qubitquilt/simple-scavenger-hunt
+2025-10-12T01:31:49.5021053Z   token: ***
+2025-10-12T01:31:49.5021465Z   ssh-strict: true
+2025-10-12T01:31:49.5021856Z   ssh-user: git
+2025-10-12T01:31:49.5022260Z   persist-credentials: true
+2025-10-12T01:31:49.5022709Z   clean: true
+2025-10-12T01:31:49.5023116Z   sparse-checkout-cone-mode: true
+2025-10-12T01:31:49.5023601Z   fetch-depth: 1
+2025-10-12T01:31:49.5023989Z   fetch-tags: false
+2025-10-12T01:31:49.5024395Z   show-progress: true
+2025-10-12T01:31:49.5024809Z   lfs: false
+2025-10-12T01:31:49.5025193Z   submodules: false
+2025-10-12T01:31:49.5025600Z   set-safe-directory: true
+2025-10-12T01:31:49.5026277Z ##[endgroup]
+2025-10-12T01:31:49.6085223Z Syncing repository: qubitquilt/simple-scavenger-hunt
+2025-10-12T01:31:49.6087018Z ##[group]Getting Git version info
+2025-10-12T01:31:49.6088096Z Working directory is '/home/runner/work/simple-scavenger-hunt/simple-scavenger-hunt'
+2025-10-12T01:31:49.6089605Z [command]/usr/bin/git version
+2025-10-12T01:31:49.6189265Z git version 2.51.0
+2025-10-12T01:31:49.6215653Z ##[endgroup]
+2025-10-12T01:31:49.6231287Z Temporarily overriding HOME='/home/runner/work/_temp/ad3ef57a-7b1d-4d01-bd13-f3e983b24cd5' before making global git config changes
+2025-10-12T01:31:49.6232809Z Adding repository directory to the temporary git global config as a safe directory
+2025-10-12T01:31:49.6236826Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/simple-scavenger-hunt/simple-scavenger-hunt
+2025-10-12T01:31:49.6274980Z Deleting the contents of '/home/runner/work/simple-scavenger-hunt/simple-scavenger-hunt'
+2025-10-12T01:31:49.6278151Z ##[group]Initializing the repository
+2025-10-12T01:31:49.6283393Z [command]/usr/bin/git init /home/runner/work/simple-scavenger-hunt/simple-scavenger-hunt
+2025-10-12T01:31:49.6429391Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-10-12T01:31:49.6430511Z hint: is subject to change. To configure the initial branch name to use in all
+2025-10-12T01:31:49.6431412Z hint: of your new repositories, which will suppress this warning, call:
+2025-10-12T01:31:49.6432316Z hint:
+2025-10-12T01:31:49.6432761Z hint: 	git config --global init.defaultBranch <name>
+2025-10-12T01:31:49.6433462Z hint:
+2025-10-12T01:31:49.6433990Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-10-12T01:31:49.6434857Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-10-12T01:31:49.6435527Z hint:
+2025-10-12T01:31:49.6435888Z hint: 	git branch -m <name>
+2025-10-12T01:31:49.6436316Z hint:
+2025-10-12T01:31:49.6436871Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2025-10-12T01:31:49.6449863Z Initialized empty Git repository in /home/runner/work/simple-scavenger-hunt/simple-scavenger-hunt/.git/
+2025-10-12T01:31:49.6460615Z [command]/usr/bin/git remote add origin https://github.com/qubitquilt/simple-scavenger-hunt
+2025-10-12T01:31:49.6496512Z ##[endgroup]
+2025-10-12T01:31:49.6497226Z ##[group]Disabling automatic garbage collection
+2025-10-12T01:31:49.6500725Z [command]/usr/bin/git config --local gc.auto 0
+2025-10-12T01:31:49.6528789Z ##[endgroup]
+2025-10-12T01:31:49.6529481Z ##[group]Setting up auth
+2025-10-12T01:31:49.6535188Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-10-12T01:31:49.6564636Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-10-12T01:31:49.6923461Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-10-12T01:31:49.6951539Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-10-12T01:31:49.7178939Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-10-12T01:31:49.7221901Z ##[endgroup]
+2025-10-12T01:31:49.7223097Z ##[group]Fetching the repository
+2025-10-12T01:31:49.7232141Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +28756fc8e20099d7f51cf8fe87d955c75a0e80d3:refs/remotes/pull/9/merge
+2025-10-12T01:31:50.0085334Z From https://github.com/qubitquilt/simple-scavenger-hunt
+2025-10-12T01:31:50.0086318Z  * [new ref]         28756fc8e20099d7f51cf8fe87d955c75a0e80d3 -> pull/9/merge
+2025-10-12T01:31:50.0116712Z ##[endgroup]
+2025-10-12T01:31:50.0117404Z ##[group]Determining the checkout info
+2025-10-12T01:31:50.0120617Z ##[endgroup]
+2025-10-12T01:31:50.0124642Z [command]/usr/bin/git sparse-checkout disable
+2025-10-12T01:31:50.0180391Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-10-12T01:31:50.0264206Z ##[group]Checking out the ref
+2025-10-12T01:31:50.0266224Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/9/merge
+2025-10-12T01:31:50.0305572Z Note: switching to 'refs/remotes/pull/9/merge'.
+2025-10-12T01:31:50.0307965Z 
+2025-10-12T01:31:50.0308858Z You are in 'detached HEAD' state. You can look around, make experimental
+2025-10-12T01:31:50.0310455Z changes and commit them, and you can discard any commits you make in this
+2025-10-12T01:31:50.0311492Z state without impacting any branches by switching back to a branch.
+2025-10-12T01:31:50.0312065Z 
+2025-10-12T01:31:50.0312427Z If you want to create a new branch to retain commits you create, you may
+2025-10-12T01:31:50.0313281Z do so (now or later) by using -c with the switch command. Example:
+2025-10-12T01:31:50.0313813Z 
+2025-10-12T01:31:50.0314145Z   git switch -c <new-branch-name>
+2025-10-12T01:31:50.0315008Z 
+2025-10-12T01:31:50.0315356Z Or undo this operation with:
+2025-10-12T01:31:50.0315873Z 
+2025-10-12T01:31:50.0316177Z   git switch -
+2025-10-12T01:31:50.0316542Z 
+2025-10-12T01:31:50.0317063Z Turn off this advice by setting config variable advice.detachedHead to false
+2025-10-12T01:31:50.0317675Z 
+2025-10-12T01:31:50.0318699Z HEAD is now at 28756fc Merge dca3e62cb5445138bca655d85a06fda02ccadce2 into a1fc6543fb19679e6c0b2f27c8e0ae8b0a756ed8
+2025-10-12T01:31:50.0321620Z ##[endgroup]
+2025-10-12T01:31:50.0354300Z [command]/usr/bin/git log -1 --format=%H
+2025-10-12T01:31:50.0378014Z 28756fc8e20099d7f51cf8fe87d955c75a0e80d3

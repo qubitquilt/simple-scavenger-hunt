@@ -1,0 +1,200 @@
+﻿2025-10-12T01:28:31.4376157Z Current runner version: '2.328.0'
+2025-10-12T01:28:31.4410847Z ##[group]Runner Image Provisioner
+2025-10-12T01:28:31.4412002Z Hosted Compute Agent
+2025-10-12T01:28:31.4412900Z Version: 20250912.392
+2025-10-12T01:28:31.4413957Z Commit: d921fda672a98b64f4f82364647e2f10b2267d0b
+2025-10-12T01:28:31.4415194Z Build Date: 2025-09-12T15:23:14Z
+2025-10-12T01:28:31.4416110Z ##[endgroup]
+2025-10-12T01:28:31.4417132Z ##[group]Operating System
+2025-10-12T01:28:31.4418207Z Ubuntu
+2025-10-12T01:28:31.4418942Z 24.04.3
+2025-10-12T01:28:31.4419771Z LTS
+2025-10-12T01:28:31.4420480Z ##[endgroup]
+2025-10-12T01:28:31.4421322Z ##[group]Runner Image
+2025-10-12T01:28:31.4422551Z Image: ubuntu-24.04
+2025-10-12T01:28:31.4423473Z Version: 20250929.60.1
+2025-10-12T01:28:31.4425208Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250929.60/images/ubuntu/Ubuntu2404-Readme.md
+2025-10-12T01:28:31.4428424Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250929.60
+2025-10-12T01:28:31.4430328Z ##[endgroup]
+2025-10-12T01:28:31.4432248Z ##[group]GITHUB_TOKEN Permissions
+2025-10-12T01:28:31.4434899Z Contents: read
+2025-10-12T01:28:31.4435723Z Metadata: read
+2025-10-12T01:28:31.4436626Z Packages: read
+2025-10-12T01:28:31.4437814Z ##[endgroup]
+2025-10-12T01:28:31.4440866Z Secret source: Actions
+2025-10-12T01:28:31.4441965Z Prepare workflow directory
+2025-10-12T01:28:31.4910107Z Prepare all required actions
+2025-10-12T01:28:31.4966963Z Getting action download info
+2025-10-12T01:28:31.7159511Z Download action repository 'actions/checkout@v4' (SHA:08eba0b27e820071cde6df949e0beb9ba4906955)
+2025-10-12T01:28:31.7911875Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+2025-10-12T01:28:32.0181927Z Complete job name: build
+2025-10-12T01:28:32.0833859Z ##[group]Run actions/checkout@v4
+2025-10-12T01:28:32.0834671Z with:
+2025-10-12T01:28:32.0835093Z   repository: qubitquilt/simple-scavenger-hunt
+2025-10-12T01:28:32.0835887Z   token: ***
+2025-10-12T01:28:32.0836284Z   ssh-strict: true
+2025-10-12T01:28:32.0836658Z   ssh-user: git
+2025-10-12T01:28:32.0837056Z   persist-credentials: true
+2025-10-12T01:28:32.0837684Z   clean: true
+2025-10-12T01:28:32.0838075Z   sparse-checkout-cone-mode: true
+2025-10-12T01:28:32.0838534Z   fetch-depth: 1
+2025-10-12T01:28:32.0838910Z   fetch-tags: false
+2025-10-12T01:28:32.0839287Z   show-progress: true
+2025-10-12T01:28:32.0839680Z   lfs: false
+2025-10-12T01:28:32.0840030Z   submodules: false
+2025-10-12T01:28:32.0840428Z   set-safe-directory: true
+2025-10-12T01:28:32.0841116Z ##[endgroup]
+2025-10-12T01:28:32.1894182Z Syncing repository: qubitquilt/simple-scavenger-hunt
+2025-10-12T01:28:32.1895878Z ##[group]Getting Git version info
+2025-10-12T01:28:32.1896741Z Working directory is '/home/runner/work/simple-scavenger-hunt/simple-scavenger-hunt'
+2025-10-12T01:28:32.1897993Z [command]/usr/bin/git version
+2025-10-12T01:28:32.1950162Z git version 2.51.0
+2025-10-12T01:28:32.1976521Z ##[endgroup]
+2025-10-12T01:28:32.1992698Z Temporarily overriding HOME='/home/runner/work/_temp/417f4c12-f40f-423c-a0df-6545c5ae9e9f' before making global git config changes
+2025-10-12T01:28:32.1995074Z Adding repository directory to the temporary git global config as a safe directory
+2025-10-12T01:28:32.1999554Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/simple-scavenger-hunt/simple-scavenger-hunt
+2025-10-12T01:28:32.2036995Z Deleting the contents of '/home/runner/work/simple-scavenger-hunt/simple-scavenger-hunt'
+2025-10-12T01:28:32.2041057Z ##[group]Initializing the repository
+2025-10-12T01:28:32.2045949Z [command]/usr/bin/git init /home/runner/work/simple-scavenger-hunt/simple-scavenger-hunt
+2025-10-12T01:28:32.2141900Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-10-12T01:28:32.2143602Z hint: is subject to change. To configure the initial branch name to use in all
+2025-10-12T01:28:32.2145178Z hint: of your new repositories, which will suppress this warning, call:
+2025-10-12T01:28:32.2146518Z hint:
+2025-10-12T01:28:32.2147567Z hint: 	git config --global init.defaultBranch <name>
+2025-10-12T01:28:32.2148614Z hint:
+2025-10-12T01:28:32.2149611Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-10-12T01:28:32.2151200Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-10-12T01:28:32.2152477Z hint:
+2025-10-12T01:28:32.2153128Z hint: 	git branch -m <name>
+2025-10-12T01:28:32.2153867Z hint:
+2025-10-12T01:28:32.2154847Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2025-10-12T01:28:32.2156863Z Initialized empty Git repository in /home/runner/work/simple-scavenger-hunt/simple-scavenger-hunt/.git/
+2025-10-12T01:28:32.2160219Z [command]/usr/bin/git remote add origin https://github.com/qubitquilt/simple-scavenger-hunt
+2025-10-12T01:28:32.2194881Z ##[endgroup]
+2025-10-12T01:28:32.2196075Z ##[group]Disabling automatic garbage collection
+2025-10-12T01:28:32.2199927Z [command]/usr/bin/git config --local gc.auto 0
+2025-10-12T01:28:32.2228248Z ##[endgroup]
+2025-10-12T01:28:32.2229439Z ##[group]Setting up auth
+2025-10-12T01:28:32.2235702Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-10-12T01:28:32.2266045Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-10-12T01:28:32.2538479Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-10-12T01:28:32.2568834Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-10-12T01:28:32.2784348Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-10-12T01:28:32.2823786Z ##[endgroup]
+2025-10-12T01:28:32.2825039Z ##[group]Fetching the repository
+2025-10-12T01:28:32.2833433Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +d1f5bff58abd52cede4ecf8b2883d64c04aa1e6a:refs/remotes/pull/9/merge
+2025-10-12T01:28:32.4786707Z From https://github.com/qubitquilt/simple-scavenger-hunt
+2025-10-12T01:28:32.4788289Z  * [new ref]         d1f5bff58abd52cede4ecf8b2883d64c04aa1e6a -> pull/9/merge
+2025-10-12T01:28:32.4818687Z ##[endgroup]
+2025-10-12T01:28:32.4819380Z ##[group]Determining the checkout info
+2025-10-12T01:28:32.4820945Z ##[endgroup]
+2025-10-12T01:28:32.4825646Z [command]/usr/bin/git sparse-checkout disable
+2025-10-12T01:28:32.4864538Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-10-12T01:28:32.4895923Z ##[group]Checking out the ref
+2025-10-12T01:28:32.4899522Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/9/merge
+2025-10-12T01:28:32.4986663Z Note: switching to 'refs/remotes/pull/9/merge'.
+2025-10-12T01:28:32.4987514Z 
+2025-10-12T01:28:32.4988110Z You are in 'detached HEAD' state. You can look around, make experimental
+2025-10-12T01:28:32.4989063Z changes and commit them, and you can discard any commits you make in this
+2025-10-12T01:28:32.4989911Z state without impacting any branches by switching back to a branch.
+2025-10-12T01:28:32.4990392Z 
+2025-10-12T01:28:32.4990714Z If you want to create a new branch to retain commits you create, you may
+2025-10-12T01:28:32.4991489Z do so (now or later) by using -c with the switch command. Example:
+2025-10-12T01:28:32.4991920Z 
+2025-10-12T01:28:32.4992108Z   git switch -c <new-branch-name>
+2025-10-12T01:28:32.4992424Z 
+2025-10-12T01:28:32.4992608Z Or undo this operation with:
+2025-10-12T01:28:32.4992893Z 
+2025-10-12T01:28:32.4993054Z   git switch -
+2025-10-12T01:28:32.4993284Z 
+2025-10-12T01:28:32.4993643Z Turn off this advice by setting config variable advice.detachedHead to false
+2025-10-12T01:28:32.4994535Z 
+2025-10-12T01:28:32.4995306Z HEAD is now at d1f5bff Merge 65008cf3838817b902ece07cf8b49d46c2336a71 into a1fc6543fb19679e6c0b2f27c8e0ae8b0a756ed8
+2025-10-12T01:28:32.4997255Z ##[endgroup]
+2025-10-12T01:28:32.5030231Z [command]/usr/bin/git log -1 --format=%H
+2025-10-12T01:28:32.5051732Z d1f5bff58abd52cede4ecf8b2883d64c04aa1e6a
+2025-10-12T01:28:32.5289749Z ##[group]Run actions/setup-node@v4
+2025-10-12T01:28:32.5290269Z with:
+2025-10-12T01:28:32.5290613Z   node-version: 18
+2025-10-12T01:28:32.5290977Z   cache: npm
+2025-10-12T01:28:32.5291324Z   always-auth: false
+2025-10-12T01:28:32.5291701Z   check-latest: false
+2025-10-12T01:28:32.5292229Z   token: ***
+2025-10-12T01:28:32.5292573Z ##[endgroup]
+2025-10-12T01:28:32.7160100Z Found in cache @ /opt/hostedtoolcache/node/18.20.8/x64
+2025-10-12T01:28:32.7164808Z ##[group]Environment details
+2025-10-12T01:28:34.9226583Z node: v18.20.8
+2025-10-12T01:28:34.9227179Z npm: 10.8.2
+2025-10-12T01:28:34.9227816Z yarn: 1.22.22
+2025-10-12T01:28:34.9229447Z ##[endgroup]
+2025-10-12T01:28:34.9252334Z [command]/opt/hostedtoolcache/node/18.20.8/x64/bin/npm config get cache
+2025-10-12T01:28:35.2489872Z /home/runner/.npm
+2025-10-12T01:28:35.3404563Z npm cache is not found
+2025-10-12T01:28:35.3520471Z ##[group]Run npm ci
+2025-10-12T01:28:35.3520916Z [36;1mnpm ci[0m
+2025-10-12T01:28:35.3563603Z shell: /usr/bin/bash -e {0}
+2025-10-12T01:28:35.3563925Z ##[endgroup]
+2025-10-12T01:28:39.7579647Z npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+2025-10-12T01:28:40.6167033Z npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+2025-10-12T01:28:42.1254516Z npm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead
+2025-10-12T01:28:42.1448292Z npm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead
+2025-10-12T01:28:42.5806170Z npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+2025-10-12T01:28:42.6747682Z npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+2025-10-12T01:28:44.7750426Z npm warn deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+2025-10-12T01:28:55.9085927Z 
+2025-10-12T01:28:55.9087165Z added 752 packages, and audited 753 packages in 20s
+2025-10-12T01:28:55.9088159Z 
+2025-10-12T01:28:55.9088513Z 184 packages are looking for funding
+2025-10-12T01:28:55.9089179Z   run `npm fund` for details
+2025-10-12T01:28:55.9841335Z 
+2025-10-12T01:28:55.9842170Z 1 critical severity vulnerability
+2025-10-12T01:28:55.9842640Z 
+2025-10-12T01:28:55.9842925Z To address all issues, run:
+2025-10-12T01:28:55.9843454Z   npm audit fix --force
+2025-10-12T01:28:55.9843786Z 
+2025-10-12T01:28:55.9844017Z Run `npm audit` for details.
+2025-10-12T01:28:56.0353297Z ##[group]Run npm run build
+2025-10-12T01:28:56.0353585Z [36;1mnpm run build[0m
+2025-10-12T01:28:56.0388039Z shell: /usr/bin/bash -e {0}
+2025-10-12T01:28:56.0388331Z ##[endgroup]
+2025-10-12T01:28:56.1741226Z 
+2025-10-12T01:28:56.1741789Z > simple-scavenger-hunt@0.1.0 build
+2025-10-12T01:28:56.1742334Z > next build
+2025-10-12T01:28:56.1742565Z 
+2025-10-12T01:28:56.7157955Z ⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache
+2025-10-12T01:28:56.7327591Z Attention: Next.js now collects completely anonymous telemetry regarding usage.
+2025-10-12T01:28:56.7328365Z This information is used to shape Next.js' roadmap and prioritize features.
+2025-10-12T01:28:56.7329254Z You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+2025-10-12T01:28:56.7329889Z https://nextjs.org/telemetry
+2025-10-12T01:28:56.7330053Z 
+2025-10-12T01:28:56.7866388Z   ▲ Next.js 14.2.5
+2025-10-12T01:28:56.7866749Z 
+2025-10-12T01:28:56.8415454Z    Creating an optimized production build ...
+2025-10-12T01:29:09.0975747Z  ✓ Compiled successfully
+2025-10-12T01:29:09.0988639Z    Linting and checking validity of types ...
+2025-10-12T01:29:13.2648515Z Failed to compile.
+2025-10-12T01:29:13.2651536Z 
+2025-10-12T01:29:13.2657163Z ./app/api/progress/route.ts:189:29
+2025-10-12T01:29:13.2658435Z Type error: Property 'expected_answer' does not exist on type 'Question'. Did you mean 'expectedAnswer'?
+2025-10-12T01:29:13.2659080Z 
+2025-10-12T01:29:13.2659881Z [0m [90m 187 |[39m           content[33m:[39m q[33m.[39mcontent[33m,[39m[0m
+2025-10-12T01:29:13.2661915Z [0m [90m 188 |[39m           options[33m:[39m q[33m.[39moptions [33m?[39m [33mJSON[39m[33m.[39mparse(q[33m.[39moptions [36mas[39m unknown [36mas[39m string) [33m:[39m undefined[33m,[39m[0m
+2025-10-12T01:29:13.2663765Z [0m[31m[1m>[22m[39m[90m 189 |[39m           expectedAnswer[33m:[39m q[33m.[39mexpected_answer[33m,[39m[0m
+2025-10-12T01:29:13.2664792Z [0m [90m     |[39m                             [31m[1m^[22m[39m[0m
+2025-10-12T01:29:13.2665793Z [0m [90m 190 |[39m           aiThreshold[33m:[39m q[33m.[39mai_threshold[33m,[39m[0m
+2025-10-12T01:29:13.2667108Z [0m [90m 191 |[39m           createdAt[33m:[39m [36mnew[39m [33mDate[39m()[33m.[39mtoISOString()[33m,[39m[0m
+2025-10-12T01:29:13.2668528Z [0m [90m 192 |[39m           answered[33m:[39m [33m![39m[33m![39manswer[33m,[39m[0m
+2025-10-12T01:29:13.3869383Z ##[error]Process completed with exit code 1.
+2025-10-12T01:29:13.3961156Z Post job cleanup.
+2025-10-12T01:29:13.4885729Z [command]/usr/bin/git version
+2025-10-12T01:29:13.4920394Z git version 2.51.0
+2025-10-12T01:29:13.4970766Z Temporarily overriding HOME='/home/runner/work/_temp/678510b3-9c4b-49b1-8be5-0b77431af978' before making global git config changes
+2025-10-12T01:29:13.4972258Z Adding repository directory to the temporary git global config as a safe directory
+2025-10-12T01:29:13.4976896Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/simple-scavenger-hunt/simple-scavenger-hunt
+2025-10-12T01:29:13.5009425Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-10-12T01:29:13.5041107Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-10-12T01:29:13.5265049Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-10-12T01:29:13.5285004Z http.https://github.com/.extraheader
+2025-10-12T01:29:13.5298472Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2025-10-12T01:29:13.5327650Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-10-12T01:29:13.5648157Z Cleaning up orphan processes
