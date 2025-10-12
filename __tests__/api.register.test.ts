@@ -3,6 +3,14 @@ jest.mock('@/lib/supabase', () => ({
     from: jest.fn().mockReturnThis(),
     select: jest.fn().mockReturnThis(),
     eq: jest.fn().mockReturnThis(),
+
+
+beforeAll(() => {
+  process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://fake.supabase.co';
+  process.env.SUPABASE_SERVICE_ROLE_KEY = 'fake_key';
+});
+
+
     single: jest.fn().mockResolvedValue({ data: null, error: null }),
     insert: jest.fn().mockReturnThis(),
     update: jest.fn().mockReturnThis(),
