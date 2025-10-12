@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No questions found for this event' }, { status: 404 })
     }
 
-    const questionIds = questions.map(q => q.id)
+    const questionIds = questions.map((q: { id: string }) => q.id)
     const shuffledOrder = shuffleArray([...questionIds])
 
     // Check if progress exists
