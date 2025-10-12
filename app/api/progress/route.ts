@@ -185,7 +185,7 @@ export async function GET(request: NextRequest) {
           eventId: eventId,
           type: q.type,
           content: q.content,
-          options: q.options ? JSON.parse(q.options) : undefined,
+          options: q.options ? JSON.parse(q.options as string) : undefined,
           expectedAnswer: q.expected_answer,
           aiThreshold: q.ai_threshold,
           createdAt: new Date().toISOString(),
