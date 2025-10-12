@@ -1,5 +1,7 @@
 import '@testing-library/jest-dom'
 
+declare var jest: any;
+
 // Polyfill minimal web globals required by Next server modules
 // Provide Request/Response/Headers so server route modules can import next/server
 // These are lightweight stand-ins for testing purposes.
