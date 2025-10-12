@@ -166,7 +166,8 @@ export async function GET(request: NextRequest) {
         content: true,
         options: true,
         expectedAnswer: true,
-        aiThreshold: true
+        aiThreshold: true,
+        hintEnabled: true
       }
     })
 
@@ -195,6 +196,7 @@ export async function GET(request: NextRequest) {
           options: q.options as Record<string, string> | undefined,
           expectedAnswer: q.expectedAnswer || '',
           aiThreshold: q.aiThreshold,
+          hintEnabled: q.hintEnabled,
           createdAt: new Date().toISOString(),
           answered: !!answer,
           status: answer?.status,

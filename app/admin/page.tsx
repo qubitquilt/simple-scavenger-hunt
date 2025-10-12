@@ -581,6 +581,7 @@ function AdminDashboard() {
                             )}
                             <p className="text-sm text-gray-500">Expected: {question.expectedAnswer}</p>
                             <p className="text-sm text-gray-500">AI Threshold: {question.aiThreshold}/10</p>
+                            <p className="text-sm text-gray-500">Hints: {question.hintEnabled ? 'Enabled' : 'Disabled'}</p>
                           </div>
                           <div className="ml-4 flex-shrink-0">
                             <button
@@ -670,6 +671,22 @@ function AdminDashboard() {
                         defaultValue={editingQuestion?.aiThreshold || 8}
                         className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                       />
+                    </div>
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        id="hintEnabled"
+                        name="hintEnabled"
+                        defaultChecked={editingQuestion?.hintEnabled || false}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        aria-describedby="hintEnabled-description"
+                      />
+                      <label htmlFor="hintEnabled" className="ml-2 block text-sm text-gray-900">
+                        Enable Hints
+                      </label>
+                      <span id="hintEnabled-description" className="sr-only">
+                        Allow users to request hints for this question
+                      </span>
                     </div>
                     {editingQuestion?.type === 'multiple_choice' && (
                       <div>

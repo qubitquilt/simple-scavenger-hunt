@@ -14,10 +14,9 @@ interface AnswerResponse {
   stats: { correctCount: number; totalCount: number }
 }
 
-export default function ChallengeDetailPage() {
-  const params = useParams()
+export default function ChallengeDetailPage({ params }: { params: { slug: string } }) {
   const router = useRouter()
-  const eventSlug = params.slug as string
+  const eventSlug = params.slug
   const userId = getUserId()
 
   const [event, setEvent] = useState<Event | null>(null)
@@ -28,6 +27,11 @@ export default function ChallengeDetailPage() {
   const [aiScore, setAiScore] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [submission, setSubmission] = useState<string | File | null>(null)
+  const [hint, setHint] = useState<string | null>(null)
+  const [hintLoading, setHintLoading] = useState(false)
+  const [hintError, setHintError] = useState<string | null>(null)
+  const [hintCount, setHintCount] = useState(0)
+  const [maxHints, setMaxHints] = useState(2)
 
   useEffect(() => {
     if (!userId || !eventSlug) {
@@ -158,6 +162,42 @@ export default function ChallengeDetailPage() {
     }
   }
 
+  const handleHintRequest = async () => {
+    if (!question || hintLoading || hintCount >= maxHints) return
+
+    setHintLoading(true)
+    setHintError(null)
+
+    try {
+      const response = await fetch('/api/hints', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ questionId: question.id })
+      })
+
+      if (!response.ok) {
+        const errData = await response.json()
+        throw new Error(errData.error || 'Failed to get hint')
+      }
+
+      const result = await response.json()
+      setHint(result.hint)
+      setHintCount(result.hintCount)
+      setMaxHints(result.maxHints)
+    } catch (err) {
+      setHintError(err instanceof Error ? err.message : 'Hint error')
+    } finally {
+      setHintLoading(false)
+    }
+  }
+
+  const handleHintKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      handleHintRequest()
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -276,6 +316,34 @@ export default function ChallengeDetailPage() {
           {error && (
             <div className="p-3 bg-red-100 text-red-800 rounded-md" role="alert">
               {error}
+            </div>
+          )}
+
+          {question.hintEnabled && (
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={handleHintRequest}
+                onKeyDown={handleHintKeyDown}
+                disabled={hintLoading || hintCount >= maxHints}
+                className="w-full bg-yellow-500 hover:bg-yellow-600 disabled:bg-yellow-300 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 disabled:cursor-not-allowed"
+                tabIndex={0}
+              >
+                {hintLoading ? 'Loading hint...' : hintCount >= maxHints ? `Max hints used (${hintCount}/${maxHints})` : `Need a hint? (${hintCount}/${maxHints})`}
+              </button>
+
+              {hint && (
+                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md" role="region" aria-labelledby="hint-heading">
+                  <h3 id="hint-heading" className="text-sm font-semibold text-yellow-800 mb-1">Hint:</h3>
+                  <p className="text-sm text-yellow-700">{hint}</p>
+                </div>
+              )}
+
+              {hintError && (
+                <div className="p-3 bg-red-100 text-red-800 rounded-md" role="alert">
+                  {hintError}
+                </div>
+              )}
             </div>
           )}
 

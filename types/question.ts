@@ -6,6 +6,7 @@ export interface Question {
   options?: Record<string, string>;
   expectedAnswer: string;
   aiThreshold: number;
+  hintEnabled: boolean;
   createdAt: string;
 }
 
