@@ -198,7 +198,7 @@ Explanation: [brief explanation]`
     }
 
     const totalQuestions = allAnswers?.length || 0
-    const correctCount = allAnswers?.filter(a => a.status === 'correct').length || 0
+    const correctCount = allAnswers?.filter((a: { status: string }) => a.status === 'correct').length || 0
 
     let completed = false
     if (totalQuestions > 0 && correctCount === totalQuestions) {
