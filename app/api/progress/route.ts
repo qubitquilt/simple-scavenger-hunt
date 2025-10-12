@@ -151,8 +151,24 @@ export async function GET(request: NextRequest) {
       createdAt: progressData.createdAt.toISOString()
     }
 
+    // Fetch answers for this progress
+    const answersData = await prisma.answer.findMany({
+      where: { progressId: progress.id },
+      select: {
+        questionId: true,
+        status: true,
+        aiScore: true
+      }
+    })
+
+    // Compute stats
+    const completedCount = answersData.filter(a => a.status === 'correct').length
+    const totalCount = progress.questionOrder.length
+    const stats = { completedCount, totalCount }
+
     if (progress.completed) {
-      return NextResponse.json({ progress, questions: [] })
+      console.log('Returning completed progress response with stats:', { hasStats: !!stats, stats })
+      return NextResponse.json({ progress, questions: [], stats })
     }
 
     // Fetch questions in order with full details
@@ -168,16 +184,6 @@ export async function GET(request: NextRequest) {
         expectedAnswer: true,
         aiThreshold: true,
         hintEnabled: true
-      }
-    })
-
-    // Fetch answers for this progress
-    const answersData = await prisma.answer.findMany({
-      where: { progressId: progress.id },
-      select: {
-        questionId: true,
-        status: true,
-        aiScore: true
       }
     })
 
@@ -204,14 +210,11 @@ export async function GET(request: NextRequest) {
         }
       })
 
-    // Compute completed count
-    const completedCount = questions.filter(q => q.status === 'correct').length
-    const totalCount = questions.length
-
-    return NextResponse.json({ 
-      progress, 
-      questions, 
-      stats: { completedCount, totalCount } 
+    console.log('Returning non-completed progress response with stats:', { hasStats: !!stats, stats })
+    return NextResponse.json({
+      progress,
+      questions,
+      stats
     })
   } catch (error) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

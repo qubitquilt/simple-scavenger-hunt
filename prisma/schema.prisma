@@ -35,7 +35,7 @@ model Event {
 
 model Question {
   id             String       @id @default(uuid()) @db.Uuid
-  eventId        String
+  eventId        String @db.Uuid
   type           QuestionType @map("type")
   content        String
   options        Json?
@@ -51,8 +51,8 @@ model Question {
 
 model Progress {
   id            String   @id @default(uuid()) @db.Uuid
-  userId        String
-  eventId       String
+  userId        String @db.Uuid
+  eventId       String @db.Uuid
   questionOrder Json     @map("question_order")
   completed     Boolean  @default(false)
   createdAt     DateTime @default(now()) @map("created_at")
@@ -66,8 +66,8 @@ model Progress {
 
 model Answer {
   id         String       @id @default(uuid()) @db.Uuid
-  progressId String
-  questionId String
+  progressId String @db.Uuid
+  questionId String @db.Uuid
   submission Json?
   aiScore    Int?
   status     AnswerStatus @default(pending)

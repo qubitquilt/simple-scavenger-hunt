@@ -6,7 +6,7 @@ CREATE TYPE "AnswerStatus" AS ENUM ('pending', 'correct', 'incorrect');
 
 -- CreateTable
 CREATE TABLE "users" (
-    "id" TEXT NOT NULL DEFAULT gen_random_uuid(),
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "first_name" TEXT NOT NULL,
     "last_name" TEXT NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -16,8 +16,9 @@ CREATE TABLE "users" (
 
 -- CreateTable
 CREATE TABLE "events" (
-    "id" TEXT NOT NULL DEFAULT gen_random_uuid(),
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "title" TEXT NOT NULL,
+    "slug" TEXT NOT NULL DEFAULT 'default-slug',
     "description" TEXT,
     "date" TIMESTAMP(3) NOT NULL DEFAULT '2025-10-14 00:00:00 +00:00',
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -27,8 +28,8 @@ CREATE TABLE "events" (
 
 -- CreateTable
 CREATE TABLE "questions" (
-    "id" TEXT NOT NULL DEFAULT gen_random_uuid(),
-    "event_id" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "event_id" UUID NOT NULL,
     "type" "QuestionType" NOT NULL,
     "content" TEXT NOT NULL,
     "options" JSONB,
@@ -41,9 +42,9 @@ CREATE TABLE "questions" (
 
 -- CreateTable
 CREATE TABLE "progress" (
-    "id" TEXT NOT NULL DEFAULT gen_random_uuid(),
-    "user_id" TEXT NOT NULL,
-    "event_id" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "user_id" UUID NOT NULL,
+    "event_id" UUID NOT NULL,
     "question_order" JSONB NOT NULL,
     "completed" BOOLEAN NOT NULL DEFAULT false,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -53,9 +54,9 @@ CREATE TABLE "progress" (
 
 -- CreateTable
 CREATE TABLE "answers" (
-    "id" TEXT NOT NULL DEFAULT gen_random_uuid(),
-    "progress_id" TEXT NOT NULL,
-    "question_id" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "progress_id" UUID NOT NULL,
+    "question_id" UUID NOT NULL,
     "submission" JSONB,
     "aiScore" INTEGER,
     "status" "AnswerStatus" NOT NULL DEFAULT 'pending',
@@ -63,6 +64,9 @@ CREATE TABLE "answers" (
 
     CONSTRAINT "answers_pkey" PRIMARY KEY ("id")
 );
+
+-- CreateIndex
+CREATE UNIQUE INDEX "events_slug_key" ON "events"("slug");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "progress_user_id_event_id_key" ON "progress"("user_id", "event_id");
@@ -96,36 +100,26 @@ CREATE POLICY "Public read questions" ON "questions" FOR SELECT USING (true);
 -- Users can insert their own record (assuming auth later, for now allow insert)
 CREATE POLICY "Users can insert own" ON "users" FOR INSERT WITH CHECK (true);
 CREATE POLICY "Users can read own" ON "users" FOR SELECT USING (true);
+CREATE POLICY "Users can update own" ON "users" FOR UPDATE USING (true);
 
 -- Progress: Users can insert/update own
-CREATE POLICY "Users insert own progress" ON "progress" FOR INSERT WITH CHECK (auth.uid()::text = "user_id"::text);
-CREATE POLICY "Users update own progress" ON "progress" FOR UPDATE USING (auth.uid()::text = "user_id"::text);
-CREATE POLICY "Users read own progress" ON "progress" FOR SELECT USING (auth.uid()::text = "user_id"::text);
+CREATE POLICY "Users insert own progress" ON "progress" FOR INSERT WITH CHECK (true);
+CREATE POLICY "Users update own progress" ON "progress" FOR UPDATE USING (true);
+CREATE POLICY "Users read own progress" ON "progress" FOR SELECT USING (true);
 
 -- Answers: Users can insert own via progress
-CREATE POLICY "Users insert own answers" ON "answers" FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM "progress" WHERE "progress"."id" = "answers"."progress_id" AND auth.uid()::text = "progress"."user_id"::text));
-CREATE POLICY "Users read own answers" ON "answers" FOR SELECT USING (EXISTS (SELECT 1 FROM "progress" WHERE "progress"."id" = "answers"."progress_id" AND auth.uid()::text = "progress"."user_id"::text));
+CREATE POLICY "Users insert own answers" ON "answers" FOR INSERT WITH CHECK (true);
+CREATE POLICY "Users read own answers" ON "answers" FOR SELECT USING (true);
 
 -- Seed data: Sample event
-INSERT INTO "events" ("title", "description") VALUES
-('QubitQuilt Scavenger Hunt', 'An exciting scavenger hunt event on October 14, 2025');
+INSERT INTO "events" ("id", "title", "description") VALUES
+('123e4567-e89b-12d3-a456-426614174000', 'QubitQuilt Scavenger Hunt', 'An exciting scavenger hunt event on October 14, 2025');
 
--- Get the event ID (assuming first event)
-DO $$
-DECLARE
-  event_id TEXT;
-BEGIN
-  SELECT "id" INTO event_id FROM "events" LIMIT 1;
+-- Sample questions
+INSERT INTO "questions" ("event_id", "type", "content", "options", "expected_answer", "ai_threshold") VALUES
+('123e4567-e89b-12d3-a456-426614174000', 'text', 'What is Artificial Intelligence?', NULL, 'A branch of computer science that aims to create intelligent machines', 8),
+('123e4567-e89b-12d3-a456-426614174000', 'multiple_choice', 'Which of the following is a programming language?', '{"A": "Python", "B": "Chocolate", "C": "Apple", "D": "Car"}', 'A', 8),
+('123e4567-e89b-12d3-a456-426614174000', 'image', 'Upload a photo of a quantum computer diagram', NULL, 'Image of quantum computer', 7),
+('123e4567-e89b-12d3-a456-426614174000', 'text', 'Explain the concept of machine learning in one sentence.', NULL, 'Machine learning is a subset of AI where systems learn from data to improve performance.', 8),
+('123e4567-e89b-12d3-a456-426614174000', 'multiple_choice', 'What does AI stand for?', '{"A": "Artificial Intelligence", "B": "Amazing Ideas", "C": "Auto Innovation", "D": "All Incorrect"}', 'A', 9);
 
-  -- Sample questions
-  INSERT INTO "questions" ("event_id", "type", "content", "options", "expected_answer", "ai_threshold") VALUES
-  (event_id, 'text', 'What is Artificial Intelligence?', NULL, 'A branch of computer science that aims to create intelligent machines', 8),
-  (event_id, 'multiple_choice', 'Which of the following is a programming language?', '{"A": "Python", "B": "Chocolate", "C": "Apple", "D": "Car"}', 'A', 8),
-  (event_id, 'image', 'Upload a photo of a quantum computer diagram', NULL, 'Image of quantum computer', 7),
-  (event_id, 'text', 'Explain the concept of machine learning in one sentence.', NULL, 'Machine learning is a subset of AI where systems learn from data to improve performance.', 8),
-  (event_id, 'multiple_choice', 'What does AI stand for?', '{"A": "Artificial Intelligence", "B": "Amazing Ideas", "C": "Auto Innovation", "D": "All Incorrect"}', 'A', 9);
-END $$;
-
-GRANT USAGE ON SCHEMA public TO service_role;
-
-GRANT SELECT ON ALL TABLES IN SCHEMA public TO service_role;

@@ -16,6 +16,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'eventId is required' }, { status: 400 })
     }
 
+    // Validate eventId is a valid UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    if (!uuidRegex.test(eventId)) {
+      return NextResponse.json({ error: 'Invalid eventId format' }, { status: 400 })
+    }
+
     const usersData = await prisma.user.findMany({
       where: {
         progress: {

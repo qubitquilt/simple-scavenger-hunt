@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       content,
       options,
       expectedAnswer,
-      aiThreshold: aiThreshold || 8,
+      aiThreshold: Number(aiThreshold) || 8,
     }
 
     const data = await prisma.question.create({
@@ -85,7 +85,7 @@ export async function PUT(request: NextRequest) {
       content,
       options,
       expectedAnswer,
-      aiThreshold: aiThreshold || 8,
+      aiThreshold: Number(aiThreshold) || 8,
     }
 
     if (eventId) {

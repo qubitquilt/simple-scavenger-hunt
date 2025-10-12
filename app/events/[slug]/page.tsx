@@ -11,7 +11,7 @@ interface ProgressData {
     id: string
     completed: boolean
   }
-  stats: {
+  stats?: {
     completedCount: number
     totalCount: number
   }
@@ -26,6 +26,10 @@ export default function EventDetailPage() {
   const [event, setEvent] = useState<Event | null>(null)
   const [progress, setProgress] = useState<ProgressData | null>(null)
   const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    console.log('Progress state updated:', progress)
+  }, [progress])
   const [registering, setRegistering] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
@@ -58,6 +62,7 @@ export default function EventDetailPage() {
           const progressResponse = await fetch(`/api/progress?eventId=${eventData.id}`)
           if (progressResponse.ok) {
             const progressData = await progressResponse.json()
+            console.log('Fetched progress data in useEffect for event', eventData.id, ':', progressData)
             setProgress(progressData)
           }
           // If 404, user is not registered - that's expected
@@ -104,6 +109,7 @@ export default function EventDetailPage() {
       const progressResponse = await fetch(`/api/progress?eventId=${event.id}`)
       if (progressResponse.ok) {
         const progressData = await progressResponse.json()
+        console.log('Fetched progress data after registration for event', event.id, ':', progressData)
         setProgress(progressData)
       }
     } catch (err) {
@@ -176,9 +182,9 @@ export default function EventDetailPage() {
             <div className="bg-green-50 border border-green-200 rounded-md p-4">
               <h2 className="text-lg font-semibold text-green-800 mb-2">You're Registered!</h2>
               <p className="text-green-700">
-                Progress: {progress.stats.completedCount}/{progress.stats.totalCount} challenges completed
+                Progress: {progress?.stats?.completedCount ?? 0}/{progress?.stats?.totalCount ?? 0} challenges completed
               </p>
-              {progress.progress.completed && (
+              {progress?.progress?.completed && (
                 <p className="text-green-700 font-semibold">🎉 Event completed!</p>
               )}
             </div>

@@ -108,6 +108,7 @@ Explanation: [brief explanation]`
       messages = [{ role: 'user', content: prompt }]
     }
 
+    console.log('API Key Loaded:', !!process.env.OPENROUTER_API_KEY ? 'Yes (masked)' : 'No');
     const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -122,6 +123,8 @@ Explanation: [brief explanation]`
     })
 
     if (!openRouterResponse.ok) {
+      const responseText = await openRouterResponse.text();
+      console.log('OpenRouter Response:', responseText);
       throw new Error(`OpenRouter API error: ${openRouterResponse.statusText}`)
     }
 
