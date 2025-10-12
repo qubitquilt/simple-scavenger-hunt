@@ -18,3 +18,5 @@ export interface Progress {
   completed: boolean;
   createdAt: string;
 }
+
+export type { CreateQuestion, UpdateQuestion } from '../lib/validation';

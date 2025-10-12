@@ -254,23 +254,36 @@ export default function ChallengeDetailPage({ params }: { params: { slug: string
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {isMc && question.options && (
-            <div role="radiogroup" aria-labelledby="question-content">
+            <fieldset role="radiogroup" aria-labelledby="mc-question-label">
+              <legend id="mc-question-label" className="sr-only">
+                Select one answer
+              </legend>
               {Object.entries(question.options).map(([key, option]) => (
-                <label key={key} className="flex items-center p-3 bg-gray-50 rounded-md cursor-pointer hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                <div
+                  key={key}
+                  className="flex items-center p-3 bg-gray-50 rounded-md hover:bg-gray-100 focus-within:outline-none focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2"
+                >
                   <input
+                    id={`option-${key}`}
                     type="radio"
                     name="mc-answer"
                     value={key}
                     checked={submission === key}
                     onChange={(e) => handleMcChange(e.target.value)}
-                    className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                     required
+                    disabled={submitting}
                     aria-label={`Option ${key}: ${option}`}
                   />
-                  <span className="text-sm text-gray-900">{option}</span>
-                </label>
+                  <label
+                    htmlFor={`option-${key}`}
+                    className="ml-3 block text-sm text-gray-900 cursor-pointer select-none"
+                  >
+                    {option}
+                  </label>
+                </div>
               ))}
-            </div>
+            </fieldset>
           )}
 
           {isTextOrImage && !isMc && (

@@ -7,16 +7,8 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Event, UserProgress, AdminMetrics } from '@/types/admin'
 import type { Question } from '@/types/question'
+import MultiChoiceQuestionForm from '@/components/admin/MultiChoiceQuestionForm'
 import QRGenerator from '@/components/QRGenerator'
-
-
-
-
-
-
-
-
-
 
 export default function AdminPage() {
   const { data: session, status } = useSession()
@@ -53,10 +45,19 @@ function AdminDashboard() {
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null)
   const [showEventForm, setShowEventForm] = useState<boolean>(false)
   const [showQuestionForm, setShowQuestionForm] = useState<boolean>(false)
+  const [currentType, setCurrentType] = useState<'text' | 'multiple_choice' | 'image'>('text')
   const [slug, setSlug] = useState<string>('')
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null)
   const [slugLoading, setSlugLoading] = useState<boolean>(false)
   const slugTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  useEffect(() => {
+    if (editingQuestion) {
+      setCurrentType(editingQuestion.type as 'text' | 'multiple_choice' | 'image')
+    } else {
+      setCurrentType('text')
+    }
+  }, [editingQuestion])
 
   useEffect(() => {
     loadEvents()
@@ -237,15 +238,12 @@ function AdminDashboard() {
       const { question: newQuestion } = await res.json()
       setQuestions(prev => [...prev, newQuestion])
       setShowQuestionForm(false)
+      setCurrentType('text')
       setError(null)
+      await loadQuestions()
     } catch (err) {
       setError('Failed to create question')
     }
-  }
-
-  const handleEditQuestion = (question: Question) => {
-    setEditingQuestion(question)
-    setShowQuestionForm(true)
   }
 
   const handleUpdateQuestion = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -263,10 +261,51 @@ function AdminDashboard() {
       setQuestions(prev => prev.map(q => q.id === updatedQuestion.id ? updatedQuestion : q))
       setEditingQuestion(null)
       setShowQuestionForm(false)
+      setCurrentType('text')
       setError(null)
+      await loadQuestions()
     } catch (err) {
       setError('Failed to update question')
     }
+  }
+
+  const handleMcQuestionSubmit = async (data: any) => {
+    try {
+      const method = editingQuestion ? 'PUT' : 'POST'
+      const body = editingQuestion
+        ? { id: editingQuestion.id, ...data }
+        : data
+      const res = await fetch('/api/admin/questions', {
+        method,
+        body: JSON.stringify(body),
+        headers: { 'Content-Type': 'application/json' },
+      })
+      if (!res.ok) throw new Error(`Failed to ${editingQuestion ? 'update' : 'create'} question`)
+      const { question } = await res.json()
+      if (editingQuestion) {
+        setQuestions(prev => prev.map(q => q.id === question.id ? question : q))
+      } else {
+        setQuestions(prev => [...prev, question])
+      }
+      setShowQuestionForm(false)
+      setEditingQuestion(null)
+      setCurrentType('text')
+      setError(null)
+      await loadQuestions()
+    } catch (err: any) {
+      setError(`Failed to ${editingQuestion ? 'update' : 'create'} question: ${err.message}`)
+    }
+  }
+
+  const handleMcCancel = () => {
+    setShowQuestionForm(false)
+    setEditingQuestion(null)
+    setCurrentType('text')
+  }
+
+  const handleEditQuestion = (question: Question) => {
+    setEditingQuestion(question)
+    setShowQuestionForm(true)
   }
 
   const handleDeleteQuestion = async (id: string) => {
@@ -280,6 +319,7 @@ function AdminDashboard() {
       if (!res.ok) throw new Error('Failed to delete question')
       setQuestions(prev => prev.filter(q => q.id !== id))
       setError(null)
+      await loadQuestions()
     } catch (err) {
       setError('Failed to delete question')
     }
@@ -288,6 +328,8 @@ function AdminDashboard() {
   const handleLogout = () => {
     signOut({ callbackUrl: '/admin/login' })
   }
+
+  const isMcMode = currentType === 'multiple_choice'
 
   if (loading && activeTab === 'metrics') {
     return <div className="min-h-screen bg-gray-50 p-8">Loading...</div>
@@ -556,7 +598,11 @@ function AdminDashboard() {
                 <h2 className="text-lg font-medium text-gray-900">Questions</h2>
                 {selectedEventId && (
                   <button
-                    onClick={() => setShowQuestionForm(true)}
+                    onClick={() => {
+                      setShowQuestionForm(true)
+                      setEditingQuestion(null)
+                      setCurrentType('text')
+                    }}
                     className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                     aria-label="Create new question"
                   >
@@ -611,113 +657,120 @@ function AdminDashboard() {
               {showQuestionForm && selectedEventId && (
                 <div className="bg-white p-6 rounded-lg shadow">
                   <h3 className="text-lg font-medium mb-4">{editingQuestion ? 'Edit Question' : 'Create Question'}</h3>
-                  <form onSubmit={editingQuestion ? handleUpdateQuestion : handleCreateQuestion} className="space-y-4">
-                    <input type="hidden" name="eventId" value={selectedEventId} />
-                    <div>
-                      <label htmlFor="type" className="block text-sm font-medium text-gray-700">
-                        Type
-                      </label>
-                      <select
-                        id="type"
-                        name="type"
-                        required
-                        defaultValue={editingQuestion?.type || 'text'}
-                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                        aria-required="true"
-                      >
-                        <option value="text">Text</option>
-                        <option value="multiple_choice">Multiple Choice</option>
-                        <option value="image">Image</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label htmlFor="content" className="block text-sm font-medium text-gray-700">
-                        Content
-                      </label>
-                      <textarea
-                        id="content"
-                        name="content"
-                        required
-                        defaultValue={editingQuestion?.content || ''}
-                        rows={3}
-                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                        aria-required="true"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="expectedAnswer" className="block text-sm font-medium text-gray-700">
-                        Expected Answer
-                      </label>
-                      <input
-                        type="text"
-                        id="expectedAnswer"
-                        name="expectedAnswer"
-                        required
-                        defaultValue={editingQuestion?.expectedAnswer || ''}
-                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                        aria-required="true"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="aiThreshold" className="block text-sm font-medium text-gray-700">
-                        AI Threshold (0-10)
-                      </label>
-                      <input
-                        type="number"
-                        id="aiThreshold"
-                        name="aiThreshold"
-                        min="0"
-                        max="10"
-                        defaultValue={editingQuestion?.aiThreshold || 8}
-                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        id="hintEnabled"
-                        name="hintEnabled"
-                        defaultChecked={editingQuestion?.hintEnabled || false}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                        aria-describedby="hintEnabled-description"
-                      />
-                      <label htmlFor="hintEnabled" className="ml-2 block text-sm text-gray-900">
-                        Enable Hints
-                      </label>
-                      <span id="hintEnabled-description" className="sr-only">
-                        Allow users to request hints for this question
-                      </span>
-                    </div>
-                    {editingQuestion?.type === 'multiple_choice' && (
+                  {isMcMode ? (
+                    <MultiChoiceQuestionForm
+                      initialData={editingQuestion || undefined}
+                      eventId={selectedEventId}
+                      onSubmit={handleMcQuestionSubmit}
+                      onCancel={handleMcCancel}
+                    />
+                  ) : (
+                    <form onSubmit={editingQuestion ? handleUpdateQuestion : handleCreateQuestion} className="space-y-4">
+                      <input type="hidden" name="eventId" value={selectedEventId} />
+                      <input type="hidden" name="type" value={currentType} />
+                      {editingQuestion ? (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Type</label>
+                          <p className="mt-1 text-sm text-gray-500">{currentType}</p>
+                        </div>
+                      ) : (
+                        <div>
+                          <label htmlFor="type-select" className="block text-sm font-medium text-gray-700">
+                            Type
+                          </label>
+                          <select
+                            id="type-select"
+                            required
+                            value={currentType}
+                            onChange={(e) => setCurrentType(e.target.value as 'text' | 'multiple_choice' | 'image')}
+                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                            aria-required="true"
+                          >
+                            <option value="text">Text</option>
+                            <option value="multiple_choice">Multiple Choice</option>
+                            <option value="image">Image</option>
+                          </select>
+                        </div>
+                      )}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">Options (JSON: {`{"A": "Option A", ...}`})</label>
+                        <label htmlFor="content" className="block text-sm font-medium text-gray-700">
+                          Content
+                        </label>
                         <textarea
-                          name="options"
+                          id="content"
+                          name="content"
+                          required
+                          defaultValue={editingQuestion?.content || ''}
                           rows={3}
-                          defaultValue={editingQuestion?.options ? JSON.stringify(editingQuestion.options) : ''}
+                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                          aria-required="true"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="expectedAnswer" className="block text-sm font-medium text-gray-700">
+                          Expected Answer
+                        </label>
+                        <input
+                          type="text"
+                          id="expectedAnswer"
+                          name="expectedAnswer"
+                          required
+                          defaultValue={editingQuestion?.expectedAnswer || ''}
+                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                          aria-required="true"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="aiThreshold" className="block text-sm font-medium text-gray-700">
+                          AI Threshold (0-10)
+                        </label>
+                        <input
+                          type="number"
+                          id="aiThreshold"
+                          name="aiThreshold"
+                          min="0"
+                          max="10"
+                          defaultValue={editingQuestion?.aiThreshold || 8}
                           className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                         />
                       </div>
-                    )}
-                    <div className="flex space-x-3">
-                      <button
-                        type="submit"
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                      >
-                        {editingQuestion ? 'Update' : 'Create'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowQuestionForm(false)
-                          setEditingQuestion(null)
-                        }}
-                        className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </form>
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id="hintEnabled"
+                          name="hintEnabled"
+                          defaultChecked={editingQuestion?.hintEnabled || false}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          aria-describedby="hintEnabled-description"
+                        />
+                        <label htmlFor="hintEnabled" className="ml-2 block text-sm text-gray-900">
+                          Enable Hints
+                        </label>
+                        <span id="hintEnabled-description" className="sr-only">
+                          Allow users to request hints for this question
+                        </span>
+                      </div>
+                      <div className="flex space-x-3">
+                        <button
+                          type="submit"
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                        >
+                          {editingQuestion ? 'Update' : 'Create'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowQuestionForm(false)
+                            setEditingQuestion(null)
+                            setCurrentType('text')
+                          }}
+                          className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  )}
                 </div>
               )}
             </div>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import type { Question } from '@/types/question'
 import type { Event } from '@/types/admin'
+import { createQuestionSchema, updateQuestionSchema } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,15 +31,18 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { eventId, type, content, options, expectedAnswer, aiThreshold } = await request.json()
+    const body = await request.json()
+    const result = createQuestionSchema.safeParse(body)
 
-    if (!eventId || !content || !expectedAnswer) {
-      return NextResponse.json({ error: 'eventId, content, and expectedAnswer are required' }, { status: 400 })
+    if (!result.success) {
+      return NextResponse.json({ error: 'Validation failed', details: result.error.issues }, { status: 400 })
     }
+
+    const validatedData = result.data
 
     // Verify event exists
     const event = await prisma.event.findUnique({
-      where: { id: eventId },
+      where: { id: validatedData.eventId },
       select: { id: true }
     })
 
@@ -46,17 +50,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 })
     }
 
-    const questionData = {
-      eventId,
-      type,
-      content,
-      options,
-      expectedAnswer,
-      aiThreshold: Number(aiThreshold) || 8,
-    }
-
     const data = await prisma.question.create({
-      data: questionData
+      data: validatedData
     })
 
     const typedQuestion: Question = {
@@ -74,32 +69,26 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const { id, eventId, type, content, options, expectedAnswer, aiThreshold } = await request.json()
+    const body = await request.json()
+    const result = updateQuestionSchema.safeParse(body)
 
-    if (!id) {
-      return NextResponse.json({ error: 'ID is required' }, { status: 400 })
+    if (!result.success) {
+      return NextResponse.json({ error: 'Validation failed', details: result.error.issues }, { status: 400 })
     }
 
-    const updateData: Record<string, any> = {
-      type,
-      content,
-      options,
-      expectedAnswer,
-      aiThreshold: Number(aiThreshold) || 8,
-    }
+    const validatedData = result.data
+    const { id, ...updateData } = validatedData
 
-    if (eventId) {
+    if (updateData.eventId) {
       // Verify event exists
       const event = await prisma.event.findUnique({
-        where: { id: eventId },
+        where: { id: updateData.eventId },
         select: { id: true }
       })
 
       if (!event) {
         return NextResponse.json({ error: 'Event not found' }, { status: 404 })
       }
-
-      updateData.eventId = eventId
     }
 
     const data = await prisma.question.update({
