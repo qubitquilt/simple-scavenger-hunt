@@ -1,16 +1,13 @@
-jest.mock('@/lib/supabase', () => ({
-  createAdminSupabaseClient: jest.fn(() => ({
-    from: jest.fn().mockReturnThis(),
-    select: jest.fn().mockReturnThis(),
-    order: jest.fn().mockReturnThis(),
-    insert: jest.fn().mockReturnThis(),
-    update: jest.fn().mockReturnThis(),
-    delete: jest.fn().mockReturnThis(),
-    eq: jest.fn().mockReturnThis(),
-    maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
-    single: jest.fn().mockResolvedValue({ data: null, error: null }),
-    limit: jest.fn().mockReturnThis(),
-  }))
+jest.mock('@/lib/prisma', () => ({
+  prisma: {
+    event: {
+      findMany: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      findUnique: jest.fn(),
+      delete: jest.fn()
+    }
+  }
 }))
 
 beforeAll(() => {
@@ -20,9 +17,9 @@ beforeAll(() => {
 
 jest.mock('next-auth', () => ({ getServerSession: jest.fn() }))
 
-const { GET, POST, PUT, DELETE } = require('@/app/api/admin/events/route')
-const { createAdminSupabaseClient } = require('@/lib/supabase')
-const { getServerSession } = require('next-auth')
+const { GET: adminEventsGET, POST: adminEventsPOST, PUT: adminEventsPUT, DELETE: adminEventsDELETE } = require('@/app/api/admin/events/route')
+const { prisma: adminEventsPrisma } = require('@/lib/prisma')
+const { getServerSession: adminEventsGetServerSession } = require('next-auth')
 
 describe('admin events api', () => {
   beforeEach(() => {
@@ -30,41 +27,37 @@ describe('admin events api', () => {
   })
 
   it('GET returns events', async () => {
-    const admin = {
-      from: jest.fn().mockReturnThis(),
-      select: jest.fn().mockReturnThis(),
-      order: jest.fn().mockResolvedValue({ data: [{ id: '1', title: 'E', date: new Date().toISOString(), created_at: new Date().toISOString() }], error: null }),
-    }
-    ;(createAdminSupabaseClient as jest.Mock).mockReturnValue(admin)
-    const res = await GET()
+    const mockEvent = { id: '1', title: 'E', date: new Date(), createdAt: new Date() }
+    adminEventsPrisma.event.findMany.mockResolvedValue([mockEvent])
+    const res = await adminEventsGET()
     expect(res).toEqual({ events: [{ id: '1', title: 'E', description: '', date: expect.any(String), createdAt: expect.any(String) }] })
   })
 
   it('POST returns 401 when not admin', async () => {
-    ;(getServerSession as jest.Mock).mockResolvedValue({ user: { admin: false } })
+    ;(adminEventsGetServerSession as jest.Mock).mockResolvedValue({ user: { admin: false } })
     const req = { json: async () => ({ title: 't' }) }
-    const res = await POST(req)
+    const res = await adminEventsPOST(req)
     expect(res).toEqual({ error: 'Unauthorized' })
   })
 
   it('POST returns 400 when title missing', async () => {
-    ;(getServerSession as jest.Mock).mockResolvedValue({ user: { admin: true } })
+    ;(adminEventsGetServerSession as jest.Mock).mockResolvedValue({ user: { admin: true } })
     const req = { json: async () => ({ title: '' }) }
-    const res = await POST(req)
+    const res = await adminEventsPOST(req)
     expect(res).toEqual({ error: 'Title is required' })
   })
 
   it('PUT returns 400 when id missing', async () => {
-    ;(getServerSession as jest.Mock).mockResolvedValue({ user: { admin: true } })
+    ;(adminEventsGetServerSession as jest.Mock).mockResolvedValue({ user: { admin: true } })
     const req = { json: async () => ({}) }
-    const res = await PUT(req)
+    const res = await adminEventsPUT(req)
     expect(res).toEqual({ error: 'ID is required' })
   })
 
   it('DELETE returns 400 when id missing', async () => {
-    ;(getServerSession as jest.Mock).mockResolvedValue({ user: { admin: true } })
+    ;(adminEventsGetServerSession as jest.Mock).mockResolvedValue({ user: { admin: true } })
     const req = { json: async () => ({}) }
-    const res = await DELETE(req)
+    const res = await adminEventsDELETE(req)
     expect(res).toEqual({ error: 'ID is required' })
   })
 })

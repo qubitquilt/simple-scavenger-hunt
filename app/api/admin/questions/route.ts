@@ -1,41 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createAdminSupabaseClient } from '@/lib/supabase'
+import { prisma } from '@/lib/prisma'
 import type { Question } from '@/types/question'
 import type { Event } from '@/types/admin'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const eventId = searchParams.get('eventId')
 
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      return NextResponse.json({ error: 'Supabase admin client not configured' }, { status: 500 })
-    }
+    const questions = await prisma.question.findMany({
+      where: eventId ? { eventId } : {},
+      orderBy: { createdAt: 'desc' }
+    })
 
-    const adminSupabase = createAdminSupabaseClient()
-
-    console.log('Service key loaded:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
-    console.log('Key prefix:', process.env.SUPABASE_SERVICE_ROLE_KEY?.substring(0, 10) + '...');
-
-    let query = adminSupabase
-      .from('questions')
-      .select('*')
-      .order('created_at', { ascending: false })
-
-    if (eventId) {
-      query = query.eq('event_id', eventId)
-    }
-
-    const { data: questions, error } = await query
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-
-    const typedQuestions: Question[] = questions || []
+    const typedQuestions: Question[] = questions.map(q => ({
+      ...q,
+      options: q.options as Record<string, string> | undefined,
+      expectedAnswer: q.expectedAnswer || '',
+      createdAt: q.createdAt.toISOString()
+    }))
     return NextResponse.json({ questions: typedQuestions })
   } catch (error) {
-    console.log('Supabase error:', error);
+    console.error('Database error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -48,45 +36,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'eventId, content, and expectedAnswer are required' }, { status: 400 })
     }
 
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      return NextResponse.json({ error: 'Supabase admin client not configured' }, { status: 500 })
-    }
-
-    const adminSupabase = createAdminSupabaseClient()
-
     // Verify event exists
-    const { data: event } = await adminSupabase
-      .from('events')
-      .select('id')
-      .eq('id', eventId)
-      .single()
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+      select: { id: true }
+    })
 
     if (!event) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 })
     }
 
     const questionData = {
-      event_id: eventId,
+      eventId,
       type,
       content,
-      options: options ? JSON.stringify(options) : null,
-      expected_answer: expectedAnswer,
-      ai_threshold: aiThreshold || 8,
+      options,
+      expectedAnswer,
+      aiThreshold: aiThreshold || 8,
     }
 
-    const { data, error } = await adminSupabase
-      .from('questions')
-      .insert(questionData)
-      .select()
-      .single()
+    const data = await prisma.question.create({
+      data: questionData
+    })
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    const typedQuestion: Question = {
+      ...data,
+      options: data.options as Record<string, string> | undefined,
+      expectedAnswer: data.expectedAnswer || '',
+      createdAt: data.createdAt.toISOString()
     }
-
-    const typedQuestion: Question = data
     return NextResponse.json({ question: typedQuestion }, { status: 201 })
   } catch (error) {
+    console.error('Database error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -99,53 +80,45 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'ID is required' }, { status: 400 })
     }
 
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      return NextResponse.json({ error: 'Supabase admin client not configured' }, { status: 500 })
-    }
-
-    const adminSupabase = createAdminSupabaseClient()
-
     const updateData: Record<string, any> = {
       type,
       content,
-      options: options ? JSON.stringify(options) : null,
-      expected_answer: expectedAnswer,
-      ai_threshold: aiThreshold || 8,
+      options,
+      expectedAnswer,
+      aiThreshold: aiThreshold || 8,
     }
 
     if (eventId) {
       // Verify event exists
-      const { data: event } = await adminSupabase
-        .from('events')
-        .select('id')
-        .eq('id', eventId)
-        .single()
+      const event = await prisma.event.findUnique({
+        where: { id: eventId },
+        select: { id: true }
+      })
 
       if (!event) {
         return NextResponse.json({ error: 'Event not found' }, { status: 404 })
       }
 
-      updateData.event_id = eventId
+      updateData.eventId = eventId
     }
 
-    const { data, error } = await adminSupabase
-      .from('questions')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single()
+    const data = await prisma.question.update({
+      where: { id },
+      data: updateData
+    })
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    const typedQuestion: Question = {
+      ...data,
+      options: data.options as Record<string, string> | undefined,
+      expectedAnswer: data.expectedAnswer || '',
+      createdAt: data.createdAt.toISOString()
     }
-
-    if (!data) {
-      return NextResponse.json({ error: 'Question not found' }, { status: 404 })
-    }
-
-    const typedQuestion: Question = data
     return NextResponse.json({ question: typedQuestion })
   } catch (error) {
+    console.error('Database error:', error)
+    if (error instanceof Error && error.message.includes('Record to update not found')) {
+      return NextResponse.json({ error: 'Question not found' }, { status: 404 })
+    }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -158,23 +131,16 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'ID is required' }, { status: 400 })
     }
 
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      return NextResponse.json({ error: 'Supabase admin client not configured' }, { status: 500 })
-    }
-
-    const adminSupabase = createAdminSupabaseClient()
-
-    const { error } = await adminSupabase
-      .from('questions')
-      .delete()
-      .eq('id', id)
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
+    await prisma.question.delete({
+      where: { id }
+    })
 
     return NextResponse.json({ message: 'Question deleted successfully' })
   } catch (error) {
+    console.error('Database error:', error)
+    if (error instanceof Error && error.message.includes('Record to delete does not exist')) {
+      return NextResponse.json({ error: 'Question not found' }, { status: 404 })
+    }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

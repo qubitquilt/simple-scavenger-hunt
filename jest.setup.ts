@@ -52,3 +52,6 @@ jest.mock('next/server', () => ({
 // Provide a default mock for getServerSession from next-auth
 // so routes that import it won't throw; individual tests can override this mock in-suite.
 jest.mock('next-auth', () => ({ getServerSession: jest.fn() }))
+
+// Suppress console.error during tests to clean up output from expected database errors
+jest.spyOn(console, 'error').mockImplementation(() => {})

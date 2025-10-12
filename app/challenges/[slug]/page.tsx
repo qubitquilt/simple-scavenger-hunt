@@ -2,16 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { createClient } from '@supabase/supabase-js'
 import { getUserId } from '@/utils/session'
 import type { Question } from '@/types/question'
 import type { Event } from '@/types/admin'
 import LoadingSpinner from '@/components/LoadingSpinner'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 interface AnswerResponse {
   status: 'correct' | 'incorrect' | 'pending'
@@ -110,25 +104,14 @@ export default function ChallengeDetailPage() {
     try {
       let submitData: string | { url: string }
       if (question.type === 'image' && submission instanceof File) {
-        // Upload to Supabase storage
-        const fileExt = submission.name.split('.').pop()
-        const fileName = `${Date.now()}-${userId}-${question.id}.${fileExt}`
-        const { data, error: uploadError } = await supabase.storage
-          .from('challenge-images')
-          .upload(fileName, submission, {
-            cacheControl: '3600',
-            upsert: false
-          })
-
-        if (uploadError || !data) {
-          throw new Error(uploadError?.message || 'Upload failed')
-        }
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('challenge-images')
-          .getPublicUrl(fileName)
-
-        submitData = { url: publicUrl }
+        // Convert file to base64 data URL
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve(reader.result as string)
+          reader.onerror = reject
+          reader.readAsDataURL(submission)
+        })
+        submitData = { url: base64 }
       } else {
         submitData = submission as string
       }

@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createAdminSupabaseClient } from '@/lib/supabase'
+import { prisma } from '@/lib/prisma'
 import type { UserProgress, AdminMetrics } from '@/types/admin'
 import type { User } from '@/types/user'
 import type { Answer } from '@/types/answer'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,54 +16,36 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'eventId is required' }, { status: 400 })
     }
 
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      return NextResponse.json({ error: 'Supabase admin client not configured' }, { status: 500 })
-    }
+    const usersData = await prisma.user.findMany({
+      where: {
+        progress: {
+          some: {
+            eventId,
+            ...(completed !== undefined && { completed })
+          }
+        }
+      },
+      include: {
+        progress: {
+          where: { eventId },
+          include: {
+            answers: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    })
 
-    const adminSupabase = createAdminSupabaseClient()
-
-    let query = adminSupabase
-      .from('users')
-      .select(`
-        id,
-        first_name,
-        last_name,
-        progress!inner (
-          id,
-          event_id,
-          completed,
-          created_at,
-          answers (
-            id,
-            question_id,
-            status,
-            created_at
-          )
-        )
-      `)
-      .eq('progress.event_id', eventId)
-
-    if (completed !== undefined) {
-      query = query.eq('progress.completed', completed)
-    }
-
-    console.log('Users query executed')
-    const { data: usersData, error } = await query.order('created_at', { ascending: false })
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-
-    const users: UserProgress[] = (usersData || []).map(user => {
+    const users: UserProgress[] = usersData.map(user => {
       const progress = user.progress[0]
-      const mappedAnswers: Answer[] = (progress.answers || []).map((a: any) => ({
+      const mappedAnswers: Answer[] = (progress.answers || []).map(a => ({
         id: a.id,
         progressId: progress.id,
-        questionId: a.question_id,
-        submission: null,
-        aiScore: undefined,
+        questionId: a.questionId,
+        submission: a.submission as any,
+        aiScore: a.aiScore || undefined,
         status: a.status,
-        createdAt: a.created_at,
+        createdAt: a.createdAt.toISOString(),
       }))
       const completedQuestions = mappedAnswers.filter(a => a.status === 'correct').length
       const totalQuestions = mappedAnswers.length
@@ -69,14 +53,14 @@ export async function GET(request: NextRequest) {
       return {
         id: user.id,
         userId: user.id,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        eventId: progress.event_id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        eventId: progress.eventId,
         eventTitle: '', // Would need to join with events if needed
         completed: progress.completed,
         completedQuestions,
         totalQuestions,
-        createdAt: progress.created_at,
+        createdAt: progress.createdAt.toISOString(),
         answers: mappedAnswers,
       }
     })
@@ -111,6 +95,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ users, metrics })
   } catch (error) {
+    console.error('Database error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

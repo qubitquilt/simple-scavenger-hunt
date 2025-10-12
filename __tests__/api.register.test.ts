@@ -1,20 +1,25 @@
-jest.mock('@/lib/supabase', () => ({
-  createAdminSupabaseClient: jest.fn(() => ({
-    from: jest.fn().mockReturnThis(),
-    select: jest.fn().mockReturnThis(),
-    eq: jest.fn().mockReturnThis(),
-
-
-    single: jest.fn().mockResolvedValue({ data: null, error: null }),
-    insert: jest.fn().mockReturnThis(),
-    update: jest.fn().mockReturnThis(),
-    order: jest.fn().mockReturnThis(),
-    limit: jest.fn().mockReturnThis(),
-    maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null })
-  }))
+jest.mock('@/lib/prisma', () => ({
+  prisma: {
+    user: {
+      findFirst: jest.fn(),
+      create: jest.fn()
+    },
+    event: {
+      findUnique: jest.fn(),
+      findFirst: jest.fn()
+    },
+    question: {
+      findMany: jest.fn()
+    },
+    progress: {
+      findUnique: jest.fn(),
+      update: jest.fn(),
+      create: jest.fn()
+    }
+  }
 }))
 
-const { POST } = require('@/app/api/register/route')
+const { POST: registerPOST } = require('@/app/api/register/route')
 
 describe('POST /api/register', () => {
 
@@ -31,26 +36,17 @@ describe('POST /api/register', () => {
 
 
 
-    const res = await POST(req)
+    const res = await registerPOST(req)
     expect(res).toEqual({ error: 'firstName and lastName are required' })
   })
 
   it('returns 404 when no events found', async () => {
-    const admin = {
-      from: jest.fn().mockReturnThis(),
-      select: jest.fn().mockReturnThis(),
-      order: jest.fn().mockReturnThis(),
-      limit: jest.fn().mockResolvedValue({ data: [], error: null }),
-      eq: jest.fn().mockReturnThis(),
-      // first single() call (existing user) -> null, second single() call (after insert) -> new user id
-      single: jest.fn().mockResolvedValueOnce({ data: null, error: null }).mockResolvedValueOnce({ data: { id: 'u1' }, error: null }),
-      insert: jest.fn().mockReturnThis(),
-      update: jest.fn().mockReturnThis(),
-      maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
-    }
-    ;(require('@/lib/supabase').createAdminSupabaseClient as jest.Mock).mockReturnValue(admin)
+    const { prisma: registerPrisma } = require('@/lib/prisma')
+    registerPrisma.user.findFirst.mockResolvedValue(null)
+    registerPrisma.user.create.mockResolvedValue({ id: 'u1' })
+    registerPrisma.event.findFirst.mockResolvedValue(null)
     const req = { json: async () => ({ firstName: 'A', lastName: 'B' }) }
-    const res = await POST(req)
+    const res = await registerPOST(req)
     expect(res).toEqual({ error: 'No events found' })
   })
 })

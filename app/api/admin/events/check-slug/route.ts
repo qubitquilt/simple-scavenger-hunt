@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { createAdminSupabaseClient } from '@/lib/supabase'
+import { prisma } from '@/lib/prisma'
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,21 +16,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Slug is required and must be a string' }, { status: 400 })
     }
 
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      return NextResponse.json({ error: 'Supabase admin client not configured' }, { status: 500 })
-    }
-
-    const adminSupabase = createAdminSupabaseClient()
-    const { data: existingEvent, error } = await adminSupabase
-      .from('events')
-      .select('id')
-      .eq('slug', slug)
-      .maybeSingle()
-
-    if (error) {
-      console.error('Unexpected error in POST /api/admin/events/check-slug:', error)
-      return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-    }
+    const existingEvent = await prisma.event.findUnique({
+      where: { slug },
+      select: { id: true }
+    })
 
     const available = !existingEvent
     return NextResponse.json({ available })

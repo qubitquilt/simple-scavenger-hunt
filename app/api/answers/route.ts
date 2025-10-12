@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { prisma } from '@/lib/prisma'
 import type { AnswerSubmission } from '@/types/answer'
 import type { Question } from '@/types/question'
 
@@ -21,39 +21,36 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch progress to get progressId and eventId
-    const { data: progressData, error: progressError } = await supabase
-      .from('progress')
-      .select('id, event_id')
-      .eq('user_id', userId)
-      .single()
-
-    if (progressError) {
-      return NextResponse.json({ error: progressError.message }, { status: 500 })
-    }
+    const progressData = await prisma.progress.findFirst({
+      where: { userId },
+      select: { id: true, eventId: true }
+    })
 
     if (!progressData) {
       return NextResponse.json({ error: 'No progress found for user' }, { status: 404 })
     }
 
-    const { id: progressId, event_id: eventId } = progressData
+    const { id: progressId, eventId } = progressData
 
     // Fetch question
-    const { data: questionData, error: questionError } = await supabase
-      .from('questions')
-      .select('type, expected_answer, ai_threshold, content')
-      .eq('id', questionId)
-      .eq('event_id', eventId)
-      .single()
-
-    if (questionError) {
-      return NextResponse.json({ error: questionError.message }, { status: 500 })
-    }
+    const questionData = await prisma.question.findFirst({
+      where: {
+        id: questionId,
+        eventId
+      },
+      select: {
+        type: true,
+        expectedAnswer: true,
+        aiThreshold: true,
+        content: true
+      }
+    })
 
     if (!questionData) {
       return NextResponse.json({ error: 'Question not found' }, { status: 404 })
     }
 
-    const { type, expected_answer: expectedAnswer, ai_threshold: aiThreshold, content } = questionData
+    const { type, expectedAnswer, aiThreshold, content } = questionData
 
     let status: 'correct' | 'incorrect' | 'pending' = 'pending'
     let aiScore: number | null = null
@@ -62,16 +59,17 @@ export async function POST(request: NextRequest) {
     let storedSubmission: string | object = typeof submission === 'string' ? submission : { url: submission.url }
 
     // Check if answer already exists
-    const { data: existingAnswer, error: existingError } = await supabase
-      .from('answers')
-      .select('id, status, ai_score')
-      .eq('progress_id', progressId)
-      .eq('question_id', questionId)
-      .single()
-
-    if (existingError && existingError.code !== 'PGRST116') {
-      return NextResponse.json({ error: existingError.message }, { status: 500 })
-    }
+    const existingAnswer = await prisma.answer.findFirst({
+      where: {
+        progressId,
+        questionId
+      },
+      select: {
+        id: true,
+        status: true,
+        aiScore: true
+      }
+    })
 
     // AI analysis for all types: text, multiple_choice, image
     let messages: any[] = []
@@ -149,10 +147,10 @@ Explanation: [brief explanation]`
 
     // Insert or update answer
     const answerData = {
-      progress_id: progressId,
-      question_id: questionId,
+      progressId,
+      questionId,
       submission: storedSubmission,
-      ai_score: aiScore,
+      aiScore,
       status
     }
 
@@ -160,59 +158,41 @@ Explanation: [brief explanation]`
 
     if (existingAnswer) {
       // Update
-      const { data: updatedAnswer, error: updateError } = await supabase
-        .from('answers')
-        .update(answerData)
-        .eq('id', existingAnswer.id)
-        .select('id')
-        .single()
-
-      if (updateError) {
-        return NextResponse.json({ error: updateError.message }, { status: 500 })
-      }
-
-      answerId = updatedAnswer!.id
+      const updatedAnswer = await prisma.answer.update({
+        where: { id: existingAnswer.id },
+        data: answerData,
+        select: { id: true }
+      })
+      answerId = updatedAnswer.id
     } else {
       // Insert
-      const { data: newAnswer, error: insertError } = await supabase
-        .from('answers')
-        .insert(answerData)
-        .select('id')
-        .single()
-
-      if (insertError) {
-        return NextResponse.json({ error: insertError.message }, { status: 500 })
-      }
-
-      answerId = newAnswer!.id
+      const newAnswer = await prisma.answer.create({
+        data: answerData,
+        select: { id: true }
+      })
+      answerId = newAnswer.id
     }
 
     // Check if all questions completed
-    const { data: allAnswers, error: allAnswersError } = await supabase
-      .from('answers')
-      .select('status')
-      .eq('progress_id', progressId)
+    const allAnswers = await prisma.answer.findMany({
+      where: { progressId },
+      select: { status: true }
+    })
 
-    if (allAnswersError) {
-      return NextResponse.json({ error: allAnswersError.message }, { status: 500 })
-    }
-
-    const totalQuestions = allAnswers?.length || 0
-    const correctCount = allAnswers?.filter((a: { status: string }) => a.status === 'correct').length || 0
+    const totalQuestions = allAnswers.length
+    const correctCount = allAnswers.filter(a => a.status === 'correct').length
 
     let completed = false
     if (totalQuestions > 0 && correctCount === totalQuestions) {
       completed = true
       // Update progress
-      const { error: completeError } = await supabase
-        .from('progress')
-        .update({ completed: true })
-        .eq('id', progressId)
-
-      if (completeError) {
-        console.error('Failed to update progress completed:', completeError)
+      await prisma.progress.update({
+        where: { id: progressId },
+        data: { completed: true }
+      }).catch(error => {
+        console.error('Failed to update progress completed:', error)
         // Don't fail the request
-      }
+      })
     }
 
     return NextResponse.json({

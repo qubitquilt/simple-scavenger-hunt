@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { prisma } from '@/lib/prisma'
 import type { Progress, Question } from '@/types/question'
 import type { Answer } from '@/types/answer'
+
+export const dynamic = 'force-dynamic'
 
 function shuffleArray(array: string[]) {
   for (let i = array.length - 1; i > 0; i--) {
@@ -26,71 +28,53 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch questions for the event
-    const { data: questions, error: questionsError } = await supabase
-      .from('questions')
-      .select('id')
-      .eq('event_id', eventId)
-
-    if (questionsError) {
-      return NextResponse.json({ error: questionsError.message }, { status: 500 })
-    }
+    const questions = await prisma.question.findMany({
+      where: { eventId },
+      select: { id: true }
+    })
 
     if (!questions || questions.length === 0) {
       return NextResponse.json({ error: 'No questions found for this event' }, { status: 404 })
     }
 
-    const questionIds = questions.map((q: { id: string }) => q.id)
+    const questionIds = questions.map(q => q.id)
     const shuffledOrder = shuffleArray([...questionIds])
 
     // Check if progress exists
-    const { data: existingProgress, error: existingError } = await supabase
-      .from('progress')
-      .select('id, question_order, completed')
-      .eq('user_id', userId)
-      .eq('event_id', eventId)
-      .single()
-
-    if (existingError && existingError.code !== 'PGRST116') { // PGRST116 is no rows
-      return NextResponse.json({ error: existingError.message }, { status: 500 })
-    }
+    const existingProgress = await prisma.progress.findUnique({
+      where: {
+        userId_eventId: {
+          userId,
+          eventId
+        }
+      }
+    })
 
     let progressId: string
 
     if (existingProgress) {
       // Update existing
-      const { data: updatedProgress, error: updateError } = await supabase
-        .from('progress')
-        .update({ 
-          question_order: shuffledOrder,
-          completed: false 
-        })
-        .eq('id', existingProgress.id)
-        .select()
-        .single()
-
-      if (updateError) {
-        return NextResponse.json({ error: updateError.message }, { status: 500 })
-      }
-
-      progressId = updatedProgress!.id
+      const updatedProgress = await prisma.progress.update({
+        where: { id: existingProgress.id },
+        data: {
+          questionOrder: shuffledOrder,
+          completed: false
+        },
+        select: { id: true }
+      })
+      progressId = updatedProgress.id
     } else {
       // Create new
-      const { data: newProgress, error: createError } = await supabase
-        .from('progress')
-        .insert({ 
-          user_id: userId,
-          event_id: eventId,
-          question_order: shuffledOrder,
-          completed: false 
-        })
-        .select()
-        .single()
-
-      if (createError) {
-        return NextResponse.json({ error: createError.message }, { status: 500 })
-      }
-
-      progressId = newProgress!.id
+      const newProgress = await prisma.progress.create({
+        data: {
+          userId,
+          eventId,
+          questionOrder: shuffledOrder,
+          completed: false
+        },
+        select: { id: true }
+      })
+      progressId = newProgress.id
     }
 
     return NextResponse.json({ progressId, questionOrder: shuffledOrder })
@@ -114,50 +98,45 @@ export async function GET(request: NextRequest) {
 
     if (eventId) {
       // Verify event exists
-      const { data: event, error: eventError } = await supabase
-        .from('events')
-        .select('id')
-        .eq('id', eventId)
-        .single()
+      const event = await prisma.event.findUnique({
+        where: { id: eventId },
+        select: { id: true }
+      })
 
-      if (eventError) {
-        if (eventError.code === 'PGRST116') {
-          return NextResponse.json({ error: 'Event not found' }, { status: 404 })
-        }
-        return NextResponse.json({ error: eventError.message }, { status: 500 })
+      if (!event) {
+        return NextResponse.json({ error: 'Event not found' }, { status: 404 })
       }
 
       targetEventId = event.id
     } else {
       // Fetch default event (first event)
-      const { data: events, error: eventsError } = await supabase
-        .from('events')
-        .select('id')
-        .order('id')
-        .limit(1)
+      const event = await prisma.event.findFirst({
+        orderBy: { id: 'asc' },
+        select: { id: true }
+      })
 
-      if (eventsError) {
-        return NextResponse.json({ error: eventsError.message }, { status: 500 })
-      }
-
-      if (!events || events.length === 0) {
+      if (!event) {
         return NextResponse.json({ error: 'No events found' }, { status: 404 })
       }
 
-      targetEventId = events[0].id
+      targetEventId = event.id
     }
 
     // Fetch progress
-    const { data: progressData, error: progressError } = await supabase
-      .from('progress')
-      .select('id, question_order, completed')
-      .eq('user_id', userId)
-      .eq('event_id', eventId)
-      .single()
-
-    if (progressError && progressError.code !== 'PGRST116') {
-      return NextResponse.json({ error: progressError.message }, { status: 500 })
-    }
+    const progressData = await prisma.progress.findUnique({
+      where: {
+        userId_eventId: {
+          userId,
+          eventId: targetEventId
+        }
+      },
+      select: {
+        id: true,
+        questionOrder: true,
+        completed: true,
+        createdAt: true
+      }
+    })
 
     if (!progressData) {
       return NextResponse.json({ error: 'No progress found for user' }, { status: 404 })
@@ -167,9 +146,9 @@ export async function GET(request: NextRequest) {
       id: progressData.id,
       userId,
       eventId: targetEventId,
-      questionOrder: progressData.question_order as string[],
+      questionOrder: progressData.questionOrder as string[],
       completed: progressData.completed,
-      createdAt: new Date().toISOString()
+      createdAt: progressData.createdAt.toISOString()
     }
 
     if (progress.completed) {
@@ -177,51 +156,49 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch questions in order with full details
-    const { data: questionsData, error: questionsError } = await supabase
-      .from('questions')
-      .select('id, type, content, options, expected_answer, ai_threshold')
-      .in('id', progress.questionOrder)
-
-    if (questionsError) {
-      return NextResponse.json({ error: questionsError.message }, { status: 500 })
-    }
+    const questionsData = await prisma.question.findMany({
+      where: {
+        id: { in: progress.questionOrder }
+      },
+      select: {
+        id: true,
+        type: true,
+        content: true,
+        options: true,
+        expectedAnswer: true,
+        aiThreshold: true
+      }
+    })
 
     // Fetch answers for this progress
-    const { data: answersData, error: answersError } = await supabase
-      .from('answers')
-      .select('question_id, status, ai_score')
-      .eq('progress_id', progress.id)
+    const answersData = await prisma.answer.findMany({
+      where: { progressId: progress.id },
+      select: {
+        questionId: true,
+        status: true,
+        aiScore: true
+      }
+    })
 
-    if (answersError) {
-      return NextResponse.json({ error: answersError.message }, { status: 500 })
-    }
-
-    interface AnswerMapValue {
-      status: string;
-      aiScore: number;
-    }
-
-    const typedAnswersData = answersData as { question_id: string; status: string; ai_score: number }[] || [];
-    const answersMap = new Map<string, AnswerMapValue>(
-      typedAnswersData.map(a => [a.question_id, { status: a.status, aiScore: a.ai_score }])
+    const answersMap = new Map(
+      answersData.map(a => [a.questionId, { status: a.status, aiScore: a.aiScore }])
     )
 
-    const typedQuestionsData = questionsData as { id: string; type: string; content: string; options: string | null; expected_answer: string; ai_threshold: number }[] || [];
     const questions: (Question & { answered?: boolean; status?: 'pending' | 'correct' | 'incorrect'; aiScore?: number })[] =
-      typedQuestionsData.map((q: any) => {
+      questionsData.map(q => {
         const answer = answersMap.get(q.id)
         return {
           id: q.id,
           eventId: targetEventId,
           type: q.type,
           content: q.content,
-          options: q.options ? JSON.parse(q.options as unknown as string) : undefined,
-          expectedAnswer: q.expected_answer,
-          aiThreshold: q.ai_threshold,
+          options: q.options as Record<string, string> | undefined,
+          expectedAnswer: q.expectedAnswer || '',
+          aiThreshold: q.aiThreshold,
           createdAt: new Date().toISOString(),
           answered: !!answer,
-          status: answer?.status as 'pending' | 'correct' | 'incorrect' | undefined,
-          aiScore: answer?.aiScore
+          status: answer?.status,
+          aiScore: answer?.aiScore || undefined
         }
       })
 

@@ -1,20 +1,19 @@
-jest.mock('@/lib/supabase', () => ({
-  createAdminSupabaseClient: jest.fn(() => ({
-    from: jest.fn().mockReturnThis(),
-    select: jest.fn().mockReturnThis(),
-    order: jest.fn().mockReturnThis(),
-    eq: jest.fn().mockReturnThis(),
-    insert: jest.fn().mockReturnThis(),
-    update: jest.fn().mockReturnThis(),
-    delete: jest.fn().mockReturnThis(),
-    single: jest.fn().mockResolvedValue({ data: null, error: null }),
-    maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
-    limit: jest.fn().mockReturnThis(),
-  }))
+jest.mock('@/lib/prisma', () => ({
+  prisma: {
+    question: {
+      findMany: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn()
+    },
+    event: {
+      findUnique: jest.fn()
+    }
+  }
 }))
 
-const { GET, POST, PUT, DELETE } = require('@/app/api/admin/questions/route')
-const { createAdminSupabaseClient } = require('@/lib/supabase')
+const { GET: adminQuestionsGET, POST: adminQuestionsPOST, PUT: adminQuestionsPUT, DELETE: adminQuestionsDELETE } = require('@/app/api/admin/questions/route')
+const { prisma: adminQuestionsPrisma } = require('@/lib/prisma')
 
 describe('admin questions api', () => {
   beforeAll(() => {
@@ -23,56 +22,35 @@ describe('admin questions api', () => {
   });
 
   it('GET returns questions filtered by eventId', async () => {
-    const admin = {
-      from: jest.fn().mockReturnThis(),
-      select: jest.fn().mockReturnThis(),
-      order: jest.fn().mockReturnThis(),
-      // when awaited the query should resolve to our desired data
-      _result: { data: [{ id: 'q1' }], error: null },
-      then(resolve): any { resolve(this._result); return { catch: () => {} } },
-      eq: jest.fn().mockReturnThis(),
-      limit: jest.fn().mockReturnThis(),
-      single: jest.fn().mockResolvedValue({ data: null, error: null }),
-    }
-    ;(createAdminSupabaseClient as jest.Mock).mockReturnValue(admin)
+    const mockQuestion = { id: 'q1', eventId: 'ev1', type: 'text', content: 'c', expectedAnswer: 'e', aiThreshold: 8, createdAt: new Date() }
+    adminQuestionsPrisma.question.findMany.mockResolvedValue([mockQuestion])
     const fakeReq = { url: 'https://example.com/?eventId=ev1' }
-    const res = await GET(fakeReq)
-    expect(res).toEqual({ questions: [{ id: 'q1' }] })
+    const res = await adminQuestionsGET(fakeReq)
+    expect(res).toEqual({ questions: [{ id: 'q1', eventId: 'ev1', type: 'text', content: 'c', expectedAnswer: 'e', aiThreshold: 8, options: undefined, createdAt: expect.any(String) }] })
   })
 
   it('POST validates required fields', async () => {
     const req = { json: async () => ({ eventId: '', content: '', expectedAnswer: '' }) }
-    const res = await POST(req)
+    const res = await adminQuestionsPOST(req)
     expect(res).toEqual({ error: 'eventId, content, and expectedAnswer are required' })
   })
 
   it('POST returns 404 when event not found', async () => {
-    const admin = {
-      from: jest.fn().mockReturnThis(),
-      select: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      single: jest.fn().mockResolvedValue({ data: null, error: null }),
-      insert: jest.fn().mockReturnThis(),
-      update: jest.fn().mockReturnThis(),
-      delete: jest.fn().mockReturnThis(),
-      order: jest.fn().mockReturnThis(),
-      maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
-    }
-    ;(createAdminSupabaseClient as jest.Mock).mockReturnValue(admin)
+    adminQuestionsPrisma.event.findUnique.mockResolvedValue(null)
     const req = { json: async () => ({ eventId: 'ev1', content: 'c', expectedAnswer: 'e' }) }
-    const res = await POST(req)
+    const res = await adminQuestionsPOST(req)
     expect(res).toEqual({ error: 'Event not found' })
   })
 
   it('PUT requires id', async () => {
     const req = { json: async () => ({}) }
-    const res = await PUT(req)
+    const res = await adminQuestionsPUT(req)
     expect(res).toEqual({ error: 'ID is required' })
   })
 
   it('DELETE requires id', async () => {
     const req = { json: async () => ({}) }
-    const res = await DELETE(req)
+    const res = await adminQuestionsDELETE(req)
     expect(res).toEqual({ error: 'ID is required' })
   })
 })
