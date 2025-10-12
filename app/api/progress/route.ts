@@ -173,24 +173,31 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: answersError.message }, { status: 500 })
     }
 
-    const answersMap = new Map(
-      answersData?.map((a: { question_id: string; status: string; ai_score: number }) => [a.question_id, { status: a.status, aiScore: a.ai_score }]) || []
+    interface AnswerMapValue {
+      status: string;
+      aiScore: number;
+    }
+
+    const typedAnswersData = answersData as { question_id: string; status: string; ai_score: number }[] || [];
+    const answersMap = new Map<string, AnswerMapValue>(
+      typedAnswersData.map(a => [a.question_id, { status: a.status, aiScore: a.ai_score }])
     )
 
+    const typedQuestionsData = questionsData as { id: string; type: string; content: string; options: string | null; expected_answer: string; ai_threshold: number }[] || [];
     const questions: (Question & { answered?: boolean; status?: 'pending' | 'correct' | 'incorrect'; aiScore?: number })[] = 
-      (questionsData || []).map((q: Question) => {
+      typedQuestionsData.map((q: any) => {
         const answer = answersMap.get(q.id)
         return {
           id: q.id,
           eventId: eventId,
           type: q.type,
           content: q.content,
-          options: q.options ? JSON.parse(q.options as string) : undefined,
+          options: q.options ? JSON.parse(q.options as unknown as string) : undefined,
           expectedAnswer: q.expected_answer,
           aiThreshold: q.ai_threshold,
           createdAt: new Date().toISOString(),
           answered: !!answer,
-          status: answer?.status,
+          status: answer?.status as 'pending' | 'correct' | 'incorrect' | undefined,
           aiScore: answer?.aiScore
         }
       })

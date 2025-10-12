@@ -13,6 +13,11 @@ jest.mock('@/lib/supabase', () => ({
   }))
 }))
 
+beforeAll(() => {
+  process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://fake.supabase.co';
+  process.env.SUPABASE_SERVICE_ROLE_KEY = 'fake_key';
+});
+
 jest.mock('next-auth', () => ({ getServerSession: jest.fn() }))
 
 const { GET, POST, PUT, DELETE } = require('@/app/api/admin/events/route')

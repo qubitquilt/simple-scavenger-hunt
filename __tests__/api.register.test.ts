@@ -3,6 +3,8 @@ jest.mock('@/lib/supabase', () => ({
     from: jest.fn().mockReturnThis(),
     select: jest.fn().mockReturnThis(),
     eq: jest.fn().mockReturnThis(),
+
+
     single: jest.fn().mockResolvedValue({ data: null, error: null }),
     insert: jest.fn().mockReturnThis(),
     update: jest.fn().mockReturnThis(),
@@ -15,8 +17,20 @@ jest.mock('@/lib/supabase', () => ({
 const { POST } = require('@/app/api/register/route')
 
 describe('POST /api/register', () => {
+
+
+  beforeAll(() => {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://fake.supabase.co';
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'fake_key';
+  });
+
+
   it('returns 400 when missing names', async () => {
     const req = { json: async () => ({ firstName: '', lastName: '' }) }
+
+
+
+
     const res = await POST(req)
     expect(res).toEqual({ error: 'firstName and lastName are required' })
   })

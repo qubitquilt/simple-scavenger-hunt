@@ -10,6 +10,13 @@ jest.mock('@/lib/supabase', () => ({
   }))
 }))
 
+
+beforeAll(() => {
+  process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://fake.supabase.co';
+  process.env.SUPABASE_SERVICE_ROLE_KEY = 'fake_key';
+});
+
+
 const { GET } = require('@/app/api/admin/users/route')
 
 describe('admin users api', () => {

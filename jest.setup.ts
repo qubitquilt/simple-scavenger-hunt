@@ -5,35 +5,36 @@ declare var jest: any;
 // Polyfill minimal web globals required by Next server modules
 // Provide Request/Response/Headers so server route modules can import next/server
 // These are lightweight stand-ins for testing purposes.
+class MockRequest {
+  input: any;
+  init: any;
+  constructor(input: any, init: any) {
+    (this as any).input = input;
+    (this as any).init = init;
+  }
+}
 
-if (typeof global.Request === 'undefined') {
-  (global as any).Request = class Request {
-    input: any;
-    init: any;
-    constructor(input: any, init: any) {
-      this.input = input;
-      this.init = init;
-    }
+(global as any).Request = MockRequest;
+
+class MockResponse {
+  body: any;
+  init: any;
+  constructor(body: any, init: any) {
+    this.body = body;
+    this.init = init;
   }
 }
-if (typeof global.Response === 'undefined') {
-  (global as any).Response = class Response {
-    body: any;
-    init: any;
-    constructor(body: any, init: any) {
-      this.body = body;
-      this.init = init;
-    }
+
+(global as any).Response = MockResponse;
+
+class MockHeaders {
+  map: any;
+  constructor(init: any) {
+    this.map = init || {};
   }
 }
-if (typeof global.Headers === 'undefined') {
-  (global as any).Headers = class Headers {
-    map: any;
-    constructor(init: any) {
-      this.map = init || {};
-    }
-  }
-}
+
+(global as any).Headers = MockHeaders;
 
 // Mock next/server NextResponse.json used by route handlers
 // Export a NextResponse with a json helper; also export NextRequest/Headers if needed
