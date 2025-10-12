@@ -18,19 +18,16 @@ if (typeof global.Request === 'undefined') {
 }
 if (typeof global.Response === 'undefined') {
   (global as any).Response = class Response {
-    body: any;
-    init: any;
     constructor(body: any, init: any) {
-      this.body = body;
-      this.init = init;
+      (this as any).body = body;
+      (this as any).init = init;
     }
   }
 }
 if (typeof global.Headers === 'undefined') {
   (global as any).Headers = class Headers {
-    map: any;
     constructor(init: any) {
-      this.map = init || {};
+      (this as any).map = init || {};
     }
   }
 }
