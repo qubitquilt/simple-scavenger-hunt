@@ -35,20 +35,7 @@ class MockHeaders {
 }
 
 (global as any).Headers = MockHeaders;
-  constructor(body: any, init: any) {
-    this.body = body;
-    this.init = init;
-  }
-}
 
-global.Response = MockResponse;
-
-class MockHeaders {
-  map: any;
-  constructor(init: any) {
-    this.map = init || {};
-  }
-}
 // Mock next/server NextResponse.json used by route handlers
 // Export a NextResponse with a json helper; also export NextRequest/Headers if needed
 jest.mock('next/server', () => ({
