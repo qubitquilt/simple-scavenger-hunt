@@ -17,6 +17,11 @@ const { GET, POST, PUT, DELETE } = require('@/app/api/admin/questions/route')
 const { createAdminSupabaseClient } = require('@/lib/supabase')
 
 describe('admin questions api', () => {
+  beforeAll(() => {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://fake.supabase.co';
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'fake_key';
+  });
+
   it('GET returns questions filtered by eventId', async () => {
     const admin = {
       from: jest.fn().mockReturnThis(),

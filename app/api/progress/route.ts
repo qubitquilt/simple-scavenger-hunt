@@ -197,7 +197,7 @@ export async function GET(request: NextRequest) {
           aiThreshold: q.ai_threshold,
           createdAt: new Date().toISOString(),
           answered: !!answer,
-          status: answer?.status,
+          status: answer?.status as 'pending' | 'correct' | 'incorrect' | undefined,
           aiScore: answer?.aiScore
         }
       })
