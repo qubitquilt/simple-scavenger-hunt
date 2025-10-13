@@ -91,14 +91,15 @@ export default function MultiChoiceQuestionForm({
             <input
               id={`options-${key}`}
               type="text"
+              data-testid={`option-${key.toLowerCase()}-input`}
               {...register(`options.${key}` as const)}
               className="flex-1 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              aria-invalid={!!errors.options?.[key]}
-              aria-describedby={errors.options?.[key] ? `options-${key}-error` : undefined}
+              aria-invalid={!!(errors as any).options?.[key]}
+              aria-describedby={(errors as any).options?.[key] ? `options-${key}-error` : undefined}
             />
-            {errors.options?.[key] && (
+            {(errors as any).options?.[key] && (
               <p id={`options-${key}-error`} className="text-sm text-red-500">
-                {errors.options[key]?.message}
+                {(errors as any).options[key]?.message}
               </p>
             )}
           </div>

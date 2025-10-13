@@ -112,21 +112,14 @@ export const bufferValidationSchema = z.object({
   size: z.number(),
   allowedFormats: z.array(z.string()),
   maxFileSize: z.number(),
-}).refine((data) => {
-  const getExtFromMime = (mime: string) => {
-    if (mime === 'image/jpeg') return 'jpg'
-    if (mime === 'image/png') return 'png'
-    if (mime === 'image/gif') return 'gif'
-    return null
-  }
-  const ext = getExtFromMime(data.mimeType)
-  return ext && data.allowedFormats.includes(ext)
-}, {
-  message: 'Invalid file format',
-  path: ['mimeType'],
-}).refine((data) => data.size <= data.maxFileSize, {
-  message: 'File too large',
-  path: ['size'],
 })
+  .refine((data) => data.allowedFormats.includes(data.mimeType), {
+    message: 'Invalid file format',
+    path: ['mimeType'],
+  })
+  .refine((data) => data.size <= data.maxFileSize, {
+    message: 'File too large',
+    path: ['size'],
+  })
 
 export type ImageUpload = z.infer<typeof imageUploadSchema>

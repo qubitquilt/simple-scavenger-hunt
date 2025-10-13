@@ -5,7 +5,6 @@ import type { Question } from '@/types/question'
 import storage from '@/lib/storage'
 import { imageUploadSchema, bufferValidationSchema } from '@/lib/validation'
 import type { AnswerSubmission } from '@/types/answer'
-import type { Question } from '@/types/question'
 
 const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif']
 const defaultMaxFileSize = 5 * 1024 * 1024 // 5MB
@@ -24,25 +23,40 @@ export async function POST(request: NextRequest) {
     let submission: string | { url: string }
     let progressId: string
     let eventId: string
-let uploadedUrl: string | null = null
-let type: Question['type']
-let expectedAnswer: string
-let aiThreshold: number
-let content: string
-const contentType = request.headers.get('content-type') || ''
+    let type: Question['type']
+    let expectedAnswer: string
+    let aiThreshold: number
+    let content: string
+    const contentType = request.headers.get('content-type') || ''
     const isImageUpload = contentType.includes('multipart/form-data')
+
+    // Removed excessive logging - only log in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Content-Type:', `"${contentType}"`)
+      console.log('isImageUpload:', isImageUpload)
+    }
 
     if (isImageUpload) {
       const formData = await request.formData()
       const file = formData.get('file') as File
       questionId = formData.get('questionId') as string
 
+      // Removed excessive logging - only log in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('File:', !!file, 'questionId:', questionId)
+      }
+
       if (!file || !questionId) {
         return NextResponse.json({ error: 'File and questionId are required for image upload' }, { status: 400 })
       }
 
       const validation = imageUploadSchema.safeParse({ file, questionId })
+      // Removed excessive logging - only log in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Image upload validation success:', validation.success)
+      }
       if (!validation.success) {
+        console.log('Validation errors:', validation.error?.issues)
         return NextResponse.json({ error: 'Invalid input' }, { status: 400 })
       }
 
@@ -51,6 +65,10 @@ const contentType = request.headers.get('content-type') || ''
         where: { userId },
         select: { id: true, eventId: true }
       })
+      // Removed excessive logging - only log in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Progress fetched:', !!progressData, 'eventId:', progressData?.eventId)
+      }
 
       if (!progressData) {
         return NextResponse.json({ error: 'No progress found for user' }, { status: 404 })
@@ -74,6 +92,10 @@ const contentType = request.headers.get('content-type') || ''
           maxFileSize: true,
         } satisfies Prisma.QuestionSelect
       })
+      // Removed excessive logging - only log in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Question fetched:', !!questionValidationData, 'type:', questionValidationData?.type)
+      }
 
       if (!questionValidationData || questionValidationData.type !== 'image') {
         return NextResponse.json({ error: 'Image question not found' }, { status: 404 })
@@ -81,18 +103,22 @@ const contentType = request.headers.get('content-type') || ''
 
       const { type: qType, expectedAnswer: qExpected, aiThreshold: qAi, content: qContent, allowedFormats, maxFileSize } = questionValidationData
 
-type = qType
-expectedAnswer = qExpected
-aiThreshold = qAi || 0
-content = qContent
+      if (!qExpected) {
+        return NextResponse.json({ error: 'Question missing expected answer' }, { status: 404 })
+      }
+
+      type = qType
+      expectedAnswer = qExpected
+      aiThreshold = qAi || 0
+      content = qContent || ''
 
       // Parse allowedFormats
       let questionAllowedFormats: string[]
       if (typeof allowedFormats === 'string') {
         questionAllowedFormats = allowedFormats.split(',').map(f => f.trim())
-} else if (Array.isArray(allowedFormats)) {
-  questionAllowedFormats = allowedFormats as string[]
-} else {
+      } else if (Array.isArray(allowedFormats)) {
+        questionAllowedFormats = allowedFormats as string[]
+      } else {
         questionAllowedFormats = allowedMimeTypes
       }
 
@@ -110,9 +136,17 @@ content = qContent
         allowedFormats: questionAllowedFormats,
         maxFileSize: questionMaxFileSize
       })
-
+      // Removed excessive logging - only log in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Buffer validation success:', bufferValidation.success)
+      }
       if (!bufferValidation.success) {
+        console.log('Buffer validation errors:', bufferValidation.error?.issues)
         return NextResponse.json({ error: 'File validation failed: ' + bufferValidation.error.issues[0].message }, { status: 400 })
+      }
+      // Removed excessive logging - only log in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Passed buffer validation, about to fetch event for eventId:', eventId)
       }
 
       // Fetch event slug
@@ -196,14 +230,14 @@ content = qContent
 
       const { type: qType, expectedAnswer: qExpected, aiThreshold: qAi, content: qContent } = questionData
 
-type = qType
-expectedAnswer = qExpected
-aiThreshold = qAi || 0
-content = qContent
+      if (!qExpected) {
+        return NextResponse.json({ error: 'Question missing expected answer' }, { status: 404 })
+      }
+
       type = qType
       expectedAnswer = qExpected
-      aiThreshold = qAi
-      content = qContent
+      aiThreshold = qAi || 0
+      content = qContent || ''
     }
 
     let status: 'correct' | 'incorrect' | 'pending' = 'pending'
@@ -232,13 +266,7 @@ content = qContent
     const imageUrl = typeof submission === 'string' ? submission : submission.url
 
     if (type === 'image') {
-      const prompt = `The challenge is: "${content}". The expected description is: "${expectedAnswer}". Analyze the image at URL: ${imageUrl} to see if it matches the expected answer. Rate the similarity on a scale of 0 to 10. Provide a brief explanation of why you gave that score.
-
-Respond in this exact format:
-
-Score: [number 0-10]
-
-Explanation: [brief explanation]`
+      const prompt = `The challenge is: "${content}". The expected description is: "${expectedAnswer}". Analyze the image at URL: ${imageUrl} to see if it matches the expected answer. Rate the similarity on a scale of 0 to 10. Provide a brief explanation of why you gave that score.\n\nRespond in this exact format:\n\nScore: [number 0-10]\n\nExplanation: [brief explanation]`
 
       messages = [{
         role: 'user',
@@ -251,18 +279,15 @@ Explanation: [brief explanation]`
       // text or multiple_choice
       const answerType = type === 'multiple_choice' ? 'multiple choice selection' : 'text answer'
       const userInputTerm = type === 'multiple_choice' ? 'selection' : 'answer'
-      const prompt = `The challenge is a ${answerType}: "${content}". The expected ${userInputTerm} is: "${expectedAnswer}". The user's ${userInputTerm}: "${submission}". Rate the similarity between the user's ${userInputTerm} and the expected one on a scale of 0 to 10. Provide a brief explanation of why you gave that score.
-
-Respond in this exact format:
-
-Score: [number 0-10]
-
-Explanation: [brief explanation]`
+      const prompt = `The challenge is a ${answerType}: "${content}". The expected ${userInputTerm} is: "${expectedAnswer}". The user's ${userInputTerm}: "${submission}". Rate the similarity between the user's ${userInputTerm} and the expected one on a scale of 0 to 10. Provide a brief explanation of why you gave that score.\n\nRespond in this exact format:\n\nScore: [number 0-10]\n\nExplanation: [brief explanation]`
 
       messages = [{ role: 'user', content: prompt }]
     }
 
-    console.log('API Key Loaded:', !!process.env.OPENROUTER_API_KEY ? 'Yes (masked)' : 'No');
+    // Removed excessive logging - only log in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('API Key Loaded:', !!process.env.OPENROUTER_API_KEY ? 'Yes (masked)' : 'No');
+    }
     const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -300,6 +325,16 @@ Explanation: [brief explanation]`
       status = 'correct'
     } else {
       status = 'incorrect'
+    }
+
+    // Removed excessive logging - only log in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('AI response parsed, aiScore:', aiScore, 'status:', status)
+    }
+
+    // Removed excessive logging - only log in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('About to start transaction, progressId:', progressId, 'questionId:', questionId)
     }
 
     // Insert or update answer in transaction

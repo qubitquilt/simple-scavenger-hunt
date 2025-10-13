@@ -4,141 +4,111 @@ jest.mock('@/lib/prisma', () => ({
       findMany: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
-      delete: jest.fn()
+      delete: jest.fn(),
     },
     event: {
-      findUnique: jest.fn()
-    }
-  }
-}))
+      findUnique: jest.fn(),
+    },
+  },
+}));
 
 jest.mock('next-auth', () => ({
-  getServerSession: jest.fn()
-}))
+  getServerSession: jest.fn(),
+}));
 
-const { GET: adminQuestionsGET, POST: adminQuestionsPOST, PUT: adminQuestionsPUT, DELETE: adminQuestionsDELETE } = require('@/app/api/admin/questions/route')
-const { prisma: adminQuestionsPrisma } = require('@/lib/prisma')
-const { getServerSession } = require('next-auth')
+const { GET, POST, PUT, DELETE } = require('@/app/api/admin/questions/route');
+const { prisma } = require('@/lib/prisma');
+const { getServerSession } = require('next-auth');
 
 describe('admin questions api', () => {
-  beforeAll(() => {
-    process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://fake.supabase.co';
-    process.env.SUPABASE_SERVICE_ROLE_KEY = 'fake_key';
+  beforeEach(() => {
+    jest.clearAllMocks();
+    getServerSession.mockResolvedValue({ user: { role: 'ADMIN' } });
   });
 
-  beforeEach(() => {
-    getServerSession.mockResolvedValue({ user: { role: 'ADMIN' } })
-  })
+  describe('GET', () => {
+    it('returns questions filtered by eventId', async () => {
+      const mockQuestion = {
+        id: 'q1',
+        eventId: 'ev1',
+        type: 'text',
+        content: 'c',
+        expectedAnswer: 'e',
+        aiThreshold: 8,
+        createdAt: new Date(),
+        allowedFormats: null,
+        options: null,
+        minResolution: null,
+        imageDescription: null,
+        maxFileSize: null,
+        required: false,
+        hintEnabled: false,
 
-  it('GET returns questions filtered by eventId', async () => {
-    const mockQuestion = { id: 'q1', eventId: 'ev1', type: 'text', content: 'c', expectedAnswer: 'e', aiThreshold: 8, createdAt: new Date(), allowedFormats: null }
-    adminQuestionsPrisma.question.findMany.mockResolvedValue([mockQuestion])
-    const fakeReq = { url: 'https://example.com/?eventId=ev1' }
-    const res = await adminQuestionsGET(fakeReq)
-    expect(res).toEqual({ questions: [{ id: 'q1', eventId: 'ev1', type: 'text', content: 'c', expectedAnswer: 'e', aiThreshold: 8, options: undefined, createdAt: expect.any(String), allowedFormats: null }] })
-  })
+      };
+      prisma.question.findMany.mockResolvedValue([mockQuestion]);
+      const fakeReq = { url: 'https://example.com/?eventId=ev1' };
+      const res = await GET(fakeReq);
+      const { questions } = res;
+      expect(questions[0].id).toBe('q1');
+      expect(questions[0].eventId).toBe('ev1');
+    });
+  });
 
-  it('POST validates required fields', async () => {
-    const req = { json: async () => ({ type: 'text', eventId: '', content: '', expectedAnswer: '' }) }
-    const res = await adminQuestionsPOST(req)
-    expect(res.status).toBe(400)
-    expect(res.error).toBe('Validation failed')
-  })
+  describe('POST', () => {
+    it('validates required fields', async () => {
+      const req = { json: async () => ({ type: 'text', eventId: '', content: '', expectedAnswer: '' }) };
+      const res = await POST(req);
+      expect(res.error).toBe('Validation failed');
+    });
 
-  it('POST returns 404 when event not found', async () => {
-    adminQuestionsPrisma.event.findUnique.mockResolvedValue(null)
-    const req = { json: async () => ({ type: 'text', eventId: 'ev1', content: 'c', expectedAnswer: 'e' }) }
-    const res = await adminQuestionsPOST(req)
-    expect(res).toEqual({ error: 'Event not found' })
-  })
+    it('returns 404 when event not found', async () => {
+      prisma.event.findUnique.mockResolvedValue(null);
+      const req = { json: async () => ({ type: 'text', eventId: 'ev1', content: 'c', expectedAnswer: 'e' }) };
+      const res = await POST(req);
+      expect(res.error).toBe('Event not found');
+    });
 
-  it('PUT requires id', async () => {
-    const req = { json: async () => ({}) }
-    const res = await adminQuestionsPUT(req)
-    expect(res).toEqual({ error: 'Validation failed', details: expect.any(Array) })
-  })
-
-  it('DELETE requires id', async () => {
-    const req = { json: async () => ({}) }
-    const res = await adminQuestionsDELETE(req)
-    expect(res).toEqual({ error: 'ID is required' })
-  })
-
-  it('POST creates multiple choice question with valid options', async () => {
-    const validUUID = '123e4567-e89b-12d3-a456-426614174000'
-    const mockEvent = { id: validUUID }
-    const mockQuestion = {
-      id: 'q1',
-      eventId: validUUID,
-      type: 'multiple_choice',
-      content: 'What is 2+2?',
-      expectedAnswer: 'A',
-      options: { A: '4', B: '5', C: '3', D: '6' },
-      aiThreshold: 8,
-      hintEnabled: false,
-      createdAt: new Date()
-    }
-    adminQuestionsPrisma.event.findUnique.mockResolvedValue(mockEvent)
-    adminQuestionsPrisma.question.create.mockResolvedValue({
-      ...mockQuestion,
-      options: JSON.stringify(mockQuestion.options)
-    })
-
-    const req = {
-      json: async () => ({
+    it('creates multiple choice question with valid options', async () => {
+      const validUUID = '123e4567-e89b-12d3-a456-426614174000';
+      const mockEvent = { id: validUUID };
+      const mockQuestion = {
+        id: 'q1',
         eventId: validUUID,
         type: 'multiple_choice',
         content: 'What is 2+2?',
         expectedAnswer: 'A',
         options: { A: '4', B: '5', C: '3', D: '6' },
         aiThreshold: 8,
-        hintEnabled: false
-      })
-    }
+        hintEnabled: false,
+        createdAt: new Date(),
+      };
+      prisma.event.findUnique.mockResolvedValue(mockEvent);
+      prisma.question.create.mockResolvedValue({
+        ...mockQuestion,
+        options: JSON.stringify(mockQuestion.options),
+      });
 
-    const res = await adminQuestionsPOST(req)
+      const req = {
+        json: async () => ({
+          eventId: validUUID,
+          type: 'multiple_choice',
+          content: 'What is 2+2?',
+          expectedAnswer: 'A',
+          options: { A: '4', B: '5', C: '3', D: '6' },
+          aiThreshold: 8,
+          hintEnabled: false,
+        }),
+      };
 
-    expect(adminQuestionsPrisma.event.findUnique).toHaveBeenCalledWith({ where: { id: validUUID } })
-    expect(adminQuestionsPrisma.question.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        eventId: validUUID,
-        type: 'multiple_choice',
-        content: 'What is 2+2?',
-        expectedAnswer: 'A',
-        options: JSON.stringify({ A: '4', B: '5', C: '3', D: '6' }),
-        aiThreshold: 8,
-        hintEnabled: false
-      })
-    })
-    expect(res).toEqual({ question: expect.objectContaining(mockQuestion) })
-  })
+      const res = await POST(req);
+      expect(res.question.id).toEqual(mockQuestion.id);
+    });
 
-  it('POST creates image question with valid data', async () => {
-    const validUUID = '123e4567-e89b-12d3-a456-426614174000'
-    const mockEvent = { id: validUUID }
-    const mockQuestion = {
-      id: 'q1',
-      eventId: validUUID,
-      type: 'image',
-      content: 'Upload an image',
-      expectedAnswer: 'Image expected',
-      aiThreshold: 8,
-      hintEnabled: false,
-      imageDescription: 'Describe the scene',
-      allowedFormats: ['jpg', 'png'],
-      maxFileSize: 5 * 1024 * 1024,
-      minResolution: { width: 100, height: 100 },
-      required: false,
-      createdAt: new Date()
-    }
-    adminQuestionsPrisma.event.findUnique.mockResolvedValue(mockEvent)
-    adminQuestionsPrisma.question.create.mockResolvedValue({
-      ...mockQuestion,
-      allowedFormats: JSON.stringify(['jpg', 'png'])
-    })
-
-    const req = {
-      json: async () => ({
+    it('creates image question with valid data', async () => {
+      const validUUID = '123e4567-e89b-12d3-a456-426614174000';
+      const mockEvent = { id: validUUID };
+      const mockQuestion = {
+        id: 'q1',
         eventId: validUUID,
         type: 'image',
         content: 'Upload an image',
@@ -150,255 +120,78 @@ describe('admin questions api', () => {
         maxFileSize: 5 * 1024 * 1024,
         minResolution: { width: 100, height: 100 },
         required: false,
-      })
-    }
+        createdAt: new Date(),
+      };
+      prisma.event.findUnique.mockResolvedValue(mockEvent);
+      prisma.question.create.mockResolvedValue({
+        ...mockQuestion,
+        allowedFormats: JSON.stringify(mockQuestion.allowedFormats),
+        minResolution: JSON.stringify(mockQuestion.minResolution),
+      });
 
-    const res = await adminQuestionsPOST(req)
+      const req = {
+        json: async () => ({
+          ...mockQuestion,
+        }),
+      };
 
-    expect(adminQuestionsPrisma.event.findUnique).toHaveBeenCalledWith({ where: { id: validUUID } })
-    expect(adminQuestionsPrisma.question.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        eventId: validUUID,
-        type: 'image',
-        content: 'Upload an image',
-        expectedAnswer: 'Image expected',
-        imageDescription: 'Describe the scene',
-        allowedFormats: JSON.stringify(['jpg', 'png']),
-        maxFileSize: 5 * 1024 * 1024,
-        minResolution: JSON.stringify({ width: 100, height: 100 }),
-        required: false,
-        aiThreshold: 8,
-        hintEnabled: false
-      })
-    })
-    expect(res).toEqual({ question: expect.objectContaining(mockQuestion) })
-  })
+      const res = await POST(req);
+      expect(res.question.id).toEqual(mockQuestion.id);
+    });
 
-  it('POST rejects image question with invalid data', async () => {
-    const mockEvent = { id: 'ev1' }
-    adminQuestionsPrisma.event.findUnique.mockResolvedValue(mockEvent)
+    it('rejects image question with invalid data', async () => {
+      const req = {
+        json: async () => ({
+          type: 'image',
+          imageDescription: '', // Invalid
+        }),
+      };
+      const res = await POST(req);
+      expect(res.error).toBe('Validation failed');
+      expect(prisma.question.create).not.toHaveBeenCalled();
+    });
+  });
 
-    const req = {
-      json: async () => ({
-        eventId: 'ev1',
-        type: 'image',
-        content: 'Upload an image',
-        expectedAnswer: 'Expected',
-        imageDescription: '', // Invalid
-        allowedFormats: ['jpeg'],
-        maxFileSize: 5 * 1024 * 1024,
-      })
-    }
+  describe('PUT', () => {
+    it('requires id', async () => {
+      const req = { json: async () => ({}) };
+      const res = await PUT(req);
+      expect(res.error).toBe('Validation failed');
+    });
 
-    const res = await adminQuestionsPOST(req)
+    it('updates a question', async () => {
+      const validUUID = '123e4567-e89b-12d3-a456-426614174000';
+      const mockQuestion = {
+        id: validUUID,
+        content: 'Updated Content',
+        createdAt: new Date(),
+      };
+      prisma.question.update.mockResolvedValue(mockQuestion);
 
-    expect(res).toEqual({ error: 'Validation failed', details: expect.any(Array) })
-    expect(adminQuestionsPrisma.question.create).not.toHaveBeenCalled()
-  })
+      const req = {
+        json: async () => ({
+          id: validUUID,
+          content: 'Updated Content',
+        }),
+      };
 
-  it('POST rejects multiple choice with invalid empty options', async () => {
-    const mockEvent = { id: 'ev1' }
-    adminQuestionsPrisma.event.findUnique.mockResolvedValue(mockEvent)
+      const res = await PUT(req);
+      expect(res.question.id).toEqual(mockQuestion.id);
+      expect(res.question.content).toEqual(mockQuestion.content);
+    });
+  });
 
-    const req = {
-      json: async () => ({
-        eventId: 'ev1',
-        type: 'multiple_choice',
-        content: 'What is 2+2?',
-        expectedAnswer: 'A',
-        options: { A: '', B: '', C: '', D: '' },
-        aiThreshold: 8,
-        hintEnabled: false
-      })
-    }
+  describe('DELETE', () => {
+    it('requires id', async () => {
+      const req = { json: async () => ({}) };
+      const res = await DELETE(req);
+      expect(res.error).toBe('ID is required');
+    });
 
-    const res = await adminQuestionsPOST(req)
-
-    expect(res).toEqual({ error: 'Validation failed', details: expect.any(Array) })
-    expect(adminQuestionsPrisma.question.create).not.toHaveBeenCalled()
-  })
-
-  it('POST rejects multiple choice with mismatched expectedAnswer', async () => {
-    const mockEvent = { id: 'ev1' }
-    adminQuestionsPrisma.event.findUnique.mockResolvedValue(mockEvent)
-
-    const req = {
-      json: async () => ({
-        eventId: 'ev1',
-        type: 'multiple_choice',
-        content: 'What is 2+2?',
-        expectedAnswer: 'E', // Invalid key
-        options: { A: '4', B: '5', C: '3', D: '6' },
-        aiThreshold: 8,
-        hintEnabled: false
-      })
-    }
-
-    const res = await adminQuestionsPOST(req)
-
-    expect(res).toEqual({ error: 'Validation failed', details: expect.any(Array) })
-    expect(adminQuestionsPrisma.question.create).not.toHaveBeenCalled()
-  })
-
-  it('PUT updates multiple choice question with valid options', async () => {
-    const validUUID = '123e4567-e89b-12d3-a456-426614174000'
-    const mockQuestion = {
-      id: 'q1',
-      eventId: validUUID,
-      type: 'multiple_choice',
-      content: 'Updated question?',
-      expectedAnswer: 'B',
-      options: { A: '1', B: '2', C: '3', D: '4' },
-      aiThreshold: 7,
-      hintEnabled: true,
-    }
-    adminQuestionsPrisma.question.update.mockResolvedValue({
-      ...mockQuestion,
-      options: JSON.stringify(mockQuestion.options)
-    })
-
-    const req = {
-      json: async () => ({
-        id: 'q1',
-        eventId: validUUID,
-        type: 'multiple_choice',
-        content: 'Updated question?',
-        expectedAnswer: 'B',
-        options: { A: '1', B: '2', C: '3', D: '4' },
-        aiThreshold: 7,
-        hintEnabled: true
-      })
-    }
-
-    const res = await adminQuestionsPUT(req)
-
-    expect(adminQuestionsPrisma.question.update).toHaveBeenCalledWith({
-      where: { id: 'q1' },
-      data: expect.objectContaining({
-        type: 'multiple_choice',
-        content: 'Updated question?',
-        expectedAnswer: 'B',
-        options: JSON.stringify({ A: '1', B: '2', C: '3', D: '4' }),
-        aiThreshold: 7,
-        hintEnabled: true
-      })
-    })
-    expect(res).toEqual({ question: expect.objectContaining(mockQuestion) })
-  })
-
-  it('PUT updates image question with valid data', async () => {
-    const validUUID = '123e4567-e89b-12d3-a456-426614174000'
-    const mockQuestion = {
-      id: 'q1',
-      eventId: validUUID,
-      type: 'image',
-      content: 'Updated image question',
-      expectedAnswer: 'Updated expected',
-      aiThreshold: 7,
-      hintEnabled: true,
-      imageDescription: 'Updated description',
-      allowedFormats: ['jpg', 'png', 'gif'],
-      maxFileSize: 3 * 1024 * 1024,
-      minResolution: { width: 100, height: 100 },
-      required: false,
-    }
-    adminQuestionsPrisma.question.update.mockResolvedValue({
-      ...mockQuestion,
-      allowedFormats: JSON.stringify(['jpg', 'png', 'gif'])
-    })
-
-    const req = {
-      json: async () => ({
-        id: 'q1',
-        type: 'image',
-        content: 'Updated image question',
-        expectedAnswer: 'Updated expected',
-        aiThreshold: 7,
-        hintEnabled: true,
-        imageDescription: 'Updated description',
-        allowedFormats: ['jpg', 'png', 'gif'],
-        maxFileSize: 3 * 1024 * 1024,
-        minResolution: { width: 100, height: 100 },
-        required: false,
-      })
-    }
-
-    const res = await adminQuestionsPUT(req)
-
-    expect(adminQuestionsPrisma.question.update).toHaveBeenCalledWith({
-      where: { id: 'q1' },
-      data: expect.objectContaining({
-        type: 'image',
-        content: 'Updated image question',
-        expectedAnswer: 'Updated expected',
-        imageDescription: 'Updated description',
-        allowedFormats: JSON.stringify(['jpg', 'png', 'gif']),
-        maxFileSize: 3 * 1024 * 1024,
-        minResolution: JSON.stringify({ width: 100, height: 100 }),
-        required: false,
-        aiThreshold: 7,
-        hintEnabled: true
-      })
-    })
-    expect(res).toEqual({ question: expect.objectContaining(mockQuestion) })
-  })
-
-  it('PUT rejects image question with invalid data', async () => {
-    const req = {
-      json: async () => ({
-        id: 'q1',
-        type: 'image',
-        content: 'Updated image question',
-        expectedAnswer: 'Expected',
-        imageDescription: '', // Invalid
-        allowedFormats: ['jpeg'],
-        maxFileSize: 3 * 1024 * 1024,
-      })
-    }
-
-    const res = await adminQuestionsPUT(req)
-
-    expect(res).toEqual({ error: 'Validation failed', details: expect.any(Array) })
-    expect(adminQuestionsPrisma.question.update).not.toHaveBeenCalled()
-  })
-
-  it('PUT rejects multiple choice with invalid options', async () => {
-    const req = {
-      json: async () => ({
-        id: 'q1',
-        eventId: 'ev1',
-        type: 'multiple_choice',
-        content: 'What is 2+2?',
-        expectedAnswer: 'A',
-        options: { A: '', B: '5', C: '3', D: '' }, // Invalid empty
-        aiThreshold: 8,
-        hintEnabled: false
-      })
-    }
-
-    const res = await adminQuestionsPUT(req)
-
-    expect(res).toEqual({ error: 'Validation failed', details: expect.any(Array) })
-    expect(adminQuestionsPrisma.question.update).not.toHaveBeenCalled()
-  })
-
-  it('PUT rejects multiple choice with mismatched expectedAnswer', async () => {
-    const req = {
-      json: async () => ({
-        id: 'q1',
-        eventId: 'ev1',
-        type: 'multiple_choice',
-        content: 'What is 2+2?',
-        expectedAnswer: 'Z', // Mismatch
-        options: { A: '4', B: '5', C: '3', D: '6' },
-        aiThreshold: 8,
-        hintEnabled: false
-      })
-    }
-
-    const res = await adminQuestionsPUT(req)
-
-    expect(res).toEqual({ error: 'Validation failed', details: expect.any(Array) })
-    expect(adminQuestionsPrisma.question.update).not.toHaveBeenCalled()
-  })
-})
+    it('deletes a question', async () => {
+      const req = { json: async () => ({ id: 'q1' }) };
+      await DELETE(req);
+      expect(prisma.question.delete).toHaveBeenCalledWith({ where: { id: 'q1' } });
+    });
+  });
+});

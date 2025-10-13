@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
       maxFileSize: (data as any).maxFileSize,
       required: (data as any).required,
       options: data.type === 'multiple_choice' && data.options ? JSON.parse(data.options as string) : undefined,
-      createdAt: data.createdAt.toISOString(),
+      createdAt: new Date(data.createdAt).toISOString(),
       allowedFormats: parseAllowedFormats(data.allowedFormats),
       minResolution: data.type === 'image' && data.minResolution ? JSON.parse(data.minResolution as string) : (null as any),
     } as Question
@@ -176,8 +176,10 @@ export async function PUT(request: NextRequest) {
       ...data,
       options: data.options as Record<string, string> | undefined,
       expectedAnswer: data.expectedAnswer || '',
-      createdAt: data.createdAt.toISOString(),
+      createdAt: new Date(data.createdAt).toISOString(),
       allowedFormats: parseAllowedFormats(data.allowedFormats),
+      minResolution: data.type === 'image' && data.minResolution ? JSON.parse(data.minResolution as string) : undefined,
+      imageDescription: data.imageDescription || undefined,
     }
     return NextResponse.json({ question: typedQuestion })
   } catch (error) {

@@ -17,10 +17,9 @@ interface AnswerResponse {
 
 export default function ChallengeDetailPage({ params }: { params: { slug: string } }) {
   const router = useRouter()
-  const eventSlug = params.slug
+  const questionId = params.slug
   const userId = getUserId()
 
-  const [event, setEvent] = useState<Event | null>(null)
   const [question, setQuestion] = useState<Question | null>(null)
   const [progress, setProgress] = useState<Progress | null>(null)
   const [loading, setLoading] = useState(true)
@@ -36,53 +35,70 @@ export default function ChallengeDetailPage({ params }: { params: { slug: string
   const [maxHints, setMaxHints] = useState(2)
 
   useEffect(() => {
-    if (!userId || !eventSlug) {
+    if (!userId || !questionId) {
       router.push('/register')
       return
     }
 
-    const fetchEventAndQuestion = async () => {
+    let isMounted = true
+
+    const fetchQuestionAndProgress = async () => {
+      console.log('fetchQuestionAndProgress started', { userId, questionId })
       try {
+        console.log('Before if (!userId || !questionId)')
+        if (!userId || !questionId || !isMounted) {
+          console.log('Early return due to missing userId or questionId or unmounted')
+          return
+        }
+        console.log('Passed early return check')
+
         setLoading(true)
         setError(null)
+        console.log('Set loading true')
 
-        // Fetch event
-        const eventResponse = await fetch(`/api/events?slug=${encodeURIComponent(eventSlug)}`)
-        if (!eventResponse.ok) {
-          if (eventResponse.status === 404) {
-            throw new Error('Event not found')
-          }
-          throw new Error('Failed to fetch event')
-        }
-        const { event: eventData } = await eventResponse.json()
-        setEvent(eventData)
-
-        // Fetch progress for this event
-        const progressResponse = await fetch(`/api/progress?eventId=${eventData.id}`)
+        // Fetch progress (assuming single event)
+        console.log('Before fetch /api/progress')
+        const progressResponse = await fetch('/api/progress')
+        console.log('After fetch, response ok:', progressResponse.ok)
         if (!progressResponse.ok) {
           throw new Error('Failed to fetch progress')
         }
         const data = await progressResponse.json()
-        const progress = data.progress || { completed: false }
+        console.log('Fetched detail progress data:', data)
 
-        // Find the current question (first not answered or incorrect)
-        const currentQuestion = data.questions.find((q: any) => !q.answered || q.status === 'incorrect')
-        if (!currentQuestion) {
-          // All completed
-          router.push('/challenges')
+        // Find the specific question by id
+        console.log('Before find question, data.questions:', data.questions)
+        const currentQuestion = data.questions.find((q: any) => q.id === questionId)
+        console.log('Found currentQuestion:', currentQuestion)
+        if (!currentQuestion || currentQuestion.answered) {
+          console.log('Pushing to /challenges due to !currentQuestion or answered')
+          // Question completed or not found
+          if (isMounted) router.push('/challenges')
           return
         }
-        setProgress(progress)
-        setQuestion(currentQuestion)
+
+        if (isMounted) {
+          setProgress(data.progress || null)
+          setQuestion(currentQuestion)
+          console.log('Set question and progress')
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load challenge')
+        console.error('Error in fetchQuestionAndProgress:', err)
+        if (isMounted) {
+          setError(err instanceof Error ? err.message : 'Failed to load challenge')
+        }
       } finally {
-        setLoading(false)
+        console.log('Finally: setting loading false')
+        if (isMounted) setLoading(false)
       }
     }
 
-    fetchEventAndQuestion()
-  }, [eventSlug, userId, router])
+    fetchQuestionAndProgress()
+
+    return () => {
+      isMounted = false
+    }
+  }, [questionId, userId, router])
 
   const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSubmission(e.target.value)
@@ -330,7 +346,7 @@ export default function ChallengeDetailPage({ params }: { params: { slug: string
           {isImage && (
             <ImageQuestionComponent
               question={question}
-              progress={progress || { completed: false }}
+              progress={progress}
               onAnswer={handleImageAnswer}
             />
           )}

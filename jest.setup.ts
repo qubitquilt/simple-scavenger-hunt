@@ -55,3 +55,17 @@ jest.mock('next-auth', () => ({ getServerSession: jest.fn() }))
 
 // Suppress console.error during tests to clean up output from expected database errors
 jest.spyOn(console, 'error').mockImplementation(() => {})
+
+// Mock URL.createObjectURL and revokeObjectURL for JSDOM compatibility in tests
+const mockCreateObjectURL = jest.fn((file: File) => `mock-url-for-${file.name}`)
+const mockRevokeObjectURL = jest.fn()
+
+Object.defineProperty(URL, 'createObjectURL', {
+  value: mockCreateObjectURL,
+  writable: true,
+})
+
+Object.defineProperty(URL, 'revokeObjectURL', {
+  value: mockRevokeObjectURL,
+  writable: true,
+})

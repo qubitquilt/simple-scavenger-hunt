@@ -1,12 +1,11 @@
-import { NextRequest } from 'next/server'
-import { POST } from '@/app/api/answers/route'
+
 
 // Mock validation
 jest.mock('@/lib/validation', () => ({
   imageUploadSchema: { safeParse: jest.fn(() => ({ success: true })) },
   bufferValidationSchema: { safeParse: jest.fn(() => ({ success: true })) },
 }))
-
+  
 // Mock prisma
 jest.mock('@/lib/prisma', () => ({
   prisma: {
@@ -28,19 +27,23 @@ jest.mock('@/lib/prisma', () => ({
     },
   },
 }))
-
+  
 // Mock storage
 jest.mock('@/lib/storage', () => ({
+  __esModule: true,
   default: {
     uploadImage: jest.fn(),
     cleanupImage: jest.fn(),
   },
 }))
-
+  
 // Mock fetch for AI
 const mockFetch = jest.fn()
 global.fetch = mockFetch
-
+  
+import { NextRequest } from 'next/server'
+import { POST } from '@/app/api/answers/route'
+  
 const mockPrisma = jest.requireMock('@/lib/prisma').prisma
 const mockStorage = jest.requireMock('@/lib/storage').default
 
@@ -58,6 +61,7 @@ describe('POST /api/answers for image submission', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
+    process.env.OPENROUTER_API_KEY = 'test-key'
     mockPrisma.question.findFirst.mockResolvedValue({
       id: 'q1',
       type: 'image',
@@ -78,6 +82,7 @@ describe('POST /api/answers for image submission', () => {
     mockPrisma.answer.findMany.mockResolvedValue([{ status: 'correct' }])
     mockPrisma.answer.create.mockResolvedValue({ id: 'a1' })
     mockPrisma.progress.update.mockResolvedValue({ id: 'p1', completed: true })
+    mockPrisma.$transaction = jest.fn((txFn) => txFn(mockPrisma))
     mockFetch.mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({
@@ -196,10 +201,10 @@ describe('POST /api/answers for image submission', () => {
     formData.append('questionId', 'q1')
 
     const req = mockReq(formData)
-    req.cookies.get.mockReturnValueOnce(undefined)
-
+    ;(req.cookies.get as jest.Mock).mockReturnValueOnce(undefined)
+    
     const res = await POST(req)
-
+    
     expect(res).toEqual({ error: 'User ID is required' })
   })
 })

@@ -45,6 +45,10 @@ export default function ChallengesPage() {
           throw new Error('Failed to fetch progress')
         }
         const result: ProgressResponse = await response.json()
+        // Removed excessive logging - only log in development
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Fetched progress data:', result)
+        }
         setData(result)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred')
@@ -91,7 +95,7 @@ export default function ChallengesPage() {
     )
   }
 
-  if (data.progress.completed) {
+  if (data?.progress?.completed) {
     router.push('/complete')
     return null
   }

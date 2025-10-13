@@ -55,8 +55,14 @@ describe('MultiChoiceQuestionForm', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
+    const mockRegister = jest.fn((name: string) => ({
+      ref: jest.fn(),
+      onChange: jest.fn(),
+      onBlur: jest.fn(),
+      name,
+    }))
     require('react-hook-form').useForm.mockReturnValue({
-      register: jest.fn(() => ({ onChange: jest.fn(), onBlur: jest.fn(), name: 'field' })),
+      register: mockRegister,
       handleSubmit: jest.fn((fn) => async (e: any) => {
         e.preventDefault()
         const data = {
@@ -91,35 +97,42 @@ describe('MultiChoiceQuestionForm', () => {
   })
 
   it('shows validation errors on submit with invalid data', async () => {
-    const mockHandleSubmit = jest.fn((fn) => async (e: any) => {
-      e.preventDefault()
-      require('@/lib/validation').createQuestionSchema.safeParse.mockReturnValue({
-        success: false,
-        error: { issues: [{ message: 'Content required' }] },
-      })
-      const data = { content: '', expectedAnswer: '', options: { A: '', B: '', C: '', D: '' } }
-      require('react-hook-form').useForm.mockReturnValue({
-        ...require('react-hook-form').useForm(),
-        formState: {
-          errors: {
-            content: { message: 'Content required' },
-            expectedAnswer: { message: 'Expected answer required' },
-            options: { A: { message: 'Option A required' } },
-          },
-          isDirty: true,
-        },
-      })
-      return fn(data)
-    })
+    const mockFormState = {
+      errors: {
+        content: { message: 'Content required' },
+        expectedAnswer: { message: 'Expected answer required' },
+        options: { A: { message: 'Option A required' } },
+      },
+      isDirty: true,
+    }
+  
     require('react-hook-form').useForm.mockReturnValue({
-      handleSubmit: mockHandleSubmit,
-      ...require('react-hook-form').useForm(),
+      register: jest.fn((name: string) => ({
+        ref: jest.fn(),
+        onChange: jest.fn(),
+        onBlur: jest.fn(),
+        name,
+      })),
+      handleSubmit: jest.fn((fn) => async (e: any) => {
+        e.preventDefault()
+        // Simulate validation failure, don't call onSubmit
+        return
+      }),
+      formState: mockFormState,
+      watch: jest.fn(() => ({ A: '', B: '', C: '', D: '' })),
+      setValue: jest.fn(),
+      trigger: jest.fn(() => Promise.resolve(false)),
     })
-
+  
+    require('@/lib/validation').createQuestionSchema.safeParse.mockReturnValue({
+      success: false,
+      error: { issues: [{ message: 'Content required' }] },
+    })
+  
     render(<MultiChoiceQuestionForm {...defaultProps} />)
-
+  
     await mockUser.click(screen.getByRole('button', { name: /submit/i }))
-
+  
     await waitFor(() => {
       expect(screen.getByText(/content required/i)).toBeInTheDocument()
       expect(screen.getByText(/expected answer required/i)).toBeInTheDocument()
@@ -155,22 +168,45 @@ describe('MultiChoiceQuestionForm', () => {
   })
 
   it('updates expectedAnswer options dynamically when options change', async () => {
-    render(<MultiChoiceQuestionForm {...defaultProps} />)
+    const { rerender } = render(<MultiChoiceQuestionForm {...defaultProps} />)
 
-    const optionAInput = screen.getByLabelText(/a/i)
-    const optionBInput = screen.getByLabelText(/b/i)
+    const optionAInput = screen.getByTestId('option-a-input')
+    const optionBInput = screen.getByTestId('option-b-input')
 
     await mockUser.type(optionAInput, 'Option A text')
     await mockUser.type(optionBInput, 'Option B text')
 
-    // Trigger watch update simulation
-    fireEvent.change(optionAInput, { target: { value: 'Option A text' } })
-    fireEvent.change(optionBInput, { target: { value: 'Option B text' } })
+    // Update mock to simulate watch returning new values
+    const updatedWatch = jest.fn(() => ({ A: 'Option A text', B: 'Option B text', C: '', D: '' }))
+    require('react-hook-form').useForm.mockReturnValue({
+      register: jest.fn((name) => ({ onChange: jest.fn(), onBlur: jest.fn(), name })),
+      handleSubmit: jest.fn((fn) => async (e: any) => {
+        e.preventDefault()
+        const data = {
+          eventId: 'test-event',
+          type: 'multiple_choice',
+          content: '',
+          expectedAnswer: '',
+          options: { A: 'Option A text', B: 'Option B text', C: '', D: '' },
+          aiThreshold: 8,
+          hintEnabled: false,
+        }
+        require('@/lib/validation').createQuestionSchema.safeParse.mockReturnValue({ success: true, data })
+        return fn(data)
+      }),
+      formState: { errors: {}, isDirty: false },
+      watch: updatedWatch,
+      setValue: jest.fn(),
+      trigger: jest.fn(() => Promise.resolve(true)),
+    })
 
-    const select = screen.getByRole('combobox', { name: /expected answer/i })
+    rerender(<MultiChoiceQuestionForm {...defaultProps} />)
+
     await waitFor(() => {
-      expect(select).toHaveTextContent('A: Option A text')
-      expect(select).toHaveTextContent('B: Option B text')
+      const optionA = screen.getByRole('option', { name: /A: Option A text/i })
+      expect(optionA).toBeInTheDocument()
+      const optionB = screen.getByRole('option', { name: /B: Option B text/i })
+      expect(optionB).toBeInTheDocument()
     })
   })
 
@@ -195,26 +231,51 @@ describe('MultiChoiceQuestionForm', () => {
         expectedAnswer: 'C', // Mismatch
       },
     }
-
-    require('@/lib/validation').createQuestionSchema.safeParse.mockReturnValue({
-      success: false,
-      error: { issues: [{ message: 'Expected answer must match an option key' }] },
-    })
-
-    render(<MultiChoiceQuestionForm {...invalidData} />)
-
-    // Assuming formState errors include root or expectedAnswer error
+  
     const mockFormState = {
       errors: {
         expectedAnswer: { message: 'Expected answer must match an option key' },
       },
       isDirty: false,
     }
+  
+    const mockRegister = jest.fn((name: string) => ({
+      ref: jest.fn(),
+      onChange: jest.fn(),
+      onBlur: jest.fn(),
+      name,
+    }))
+  
+    const mockWatch = jest.fn(() => ({ A: 'Valid', B: 'Valid', C: '', D: '' }))
+  
     require('react-hook-form').useForm.mockReturnValue({
-      ...require('react-hook-form').useForm(),
+      register: mockRegister,
+      handleSubmit: jest.fn((fn) => async (e: any) => {
+        e.preventDefault()
+        const data = {
+          eventId: 'test-event',
+          type: 'multiple_choice',
+          content: '',
+          expectedAnswer: 'C',
+          options: { A: 'Valid', B: 'Valid', C: '', D: '' },
+          aiThreshold: 8,
+          hintEnabled: false,
+        }
+        return fn(data)
+      }),
       formState: mockFormState,
+      watch: mockWatch,
+      setValue: jest.fn(),
+      trigger: jest.fn(() => Promise.resolve(false)),
     })
-
+  
+    require('@/lib/validation').createQuestionSchema.safeParse.mockReturnValue({
+      success: false,
+      error: { issues: [{ message: 'Expected answer must match an option key' }] },
+    })
+  
+    render(<MultiChoiceQuestionForm {...invalidData} />)
+  
     expect(screen.getByText(/expected answer must match an option key/i)).toBeInTheDocument()
   })
 })

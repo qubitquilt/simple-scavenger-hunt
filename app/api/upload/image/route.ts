@@ -148,14 +148,20 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ url }, { status: 201 })
   } catch (error) {
-    console.error('Image upload error:', error)
+    // Only log error for debugging purposes - not in production
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Image upload error:', error)
+    }
 
     // Cleanup partial file if it was created
     if (filePath) {
       try {
         await fs.unlink(filePath)
       } catch (unlinkError) {
-        console.error('Failed to cleanup partial file:', unlinkError)
+        // Silently ignore cleanup errors as they're not critical
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Failed to cleanup partial file:', unlinkError)
+        }
       }
     }
 
