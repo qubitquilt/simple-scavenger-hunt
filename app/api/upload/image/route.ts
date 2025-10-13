@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { imageUploadSchema } from '@/lib/validation'
 import fs from 'fs/promises'
 import path from 'path'
@@ -29,12 +27,11 @@ function parseAllowedFormats(allowedFormats: any): string[] {
 export async function POST(request: NextRequest) {
   let filePath: string | null = null
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    const userId = request.cookies.get('userId')?.value
+
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    const userId = session.user.id
 
     const formData = await request.formData()
     const file = formData.get('file') as File

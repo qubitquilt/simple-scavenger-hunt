@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session || (session.user as any).role !== 'ADMIN') {
+    if (!session || !(session.user as any).admin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -95,8 +95,9 @@ export async function POST(request: NextRequest) {
       createData.minResolution = JSON.stringify(validatedData.minResolution)
     }
 
+    const { required, ...questionData } = createData
     const data = await prisma.question.create({
-      data: createData
+      data: questionData
     })
 
     const typedQuestion = {
@@ -108,8 +109,8 @@ export async function POST(request: NextRequest) {
       aiThreshold: data.aiThreshold,
       hintEnabled: data.hintEnabled,
       imageDescription: data.imageDescription,
-      maxFileSize: (data as any).maxFileSize,
-      required: (data as any).required,
+      maxFileSize: data.maxFileSize,
+      required: (validatedData as any).required ?? false,
       options: data.type === 'multiple_choice' && data.options ? JSON.parse(data.options as string) : undefined,
       createdAt: new Date(data.createdAt).toISOString(),
       allowedFormats: parseAllowedFormats(data.allowedFormats),
@@ -125,7 +126,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session || (session.user as any).role !== 'ADMIN') {
+    if (!session || !(session.user as any).admin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -194,7 +195,7 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session || (session.user as any).role !== 'ADMIN') {
+    if (!session || !(session.user as any).admin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

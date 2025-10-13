@@ -210,7 +210,6 @@ export async function GET(request: NextRequest) {
         }
       })
 
-    console.log('Returning non-completed progress response with stats:', { hasStats: !!stats, stats })
     return NextResponse.json({
       progress,
       questions,

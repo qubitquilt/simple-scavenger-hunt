@@ -12,3 +12,4 @@ cov-report
 coverage/
 .kilocode
 .opencode
+public/uploads/*
