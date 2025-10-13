@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { prisma, Prisma } from '@/lib/prisma'
+import storage from '@/lib/storage'
+import { imageUploadSchema, bufferValidationSchema } from '@/lib/validation'
 import type { AnswerSubmission } from '@/types/answer'
 import type { Question } from '@/types/question'
+
+const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif']
+const defaultMaxFileSize = 5 * 1024 * 1024 // 5MB
 
 
 export async function POST(request: NextRequest) {
@@ -12,45 +17,177 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 401 })
     }
 
-    const body: AnswerSubmission & { progressId?: string } = await request.json()
+    let questionId: string
+    let submission: string | { url: string }
+    let progressId: string
+    let eventId: string
+    let uploadedUrl: string | null = null
+    const contentType = request.headers.get('content-type') || ''
+    const isImageUpload = contentType.includes('multipart/form-data')
 
-    const { questionId, submission } = body
+    if (isImageUpload) {
+      const formData = await request.formData()
+      const file = formData.get('file') as File
+      questionId = formData.get('questionId') as string
 
-    if (!questionId || submission === undefined || submission === null) {
-      return NextResponse.json({ error: 'questionId and submission are required' }, { status: 400 })
-    }
-
-    // Fetch progress to get progressId and eventId
-    const progressData = await prisma.progress.findFirst({
-      where: { userId },
-      select: { id: true, eventId: true }
-    })
-
-    if (!progressData) {
-      return NextResponse.json({ error: 'No progress found for user' }, { status: 404 })
-    }
-
-    const { id: progressId, eventId } = progressData
-
-    // Fetch question
-    const questionData = await prisma.question.findFirst({
-      where: {
-        id: questionId,
-        eventId
-      },
-      select: {
-        type: true,
-        expectedAnswer: true,
-        aiThreshold: true,
-        content: true
+      if (!file || !questionId) {
+        return NextResponse.json({ error: 'File and questionId are required for image upload' }, { status: 400 })
       }
-    })
 
-    if (!questionData) {
-      return NextResponse.json({ error: 'Question not found' }, { status: 404 })
+      const validation = imageUploadSchema.safeParse({ file, questionId })
+      if (!validation.success) {
+        return NextResponse.json({ error: 'Invalid input' }, { status: 400 })
+      }
+
+      // Fetch progress
+      const progressData = await prisma.progress.findFirst({
+        where: { userId },
+        select: { id: true, eventId: true }
+      })
+
+      if (!progressData) {
+        return NextResponse.json({ error: 'No progress found for user' }, { status: 404 })
+      }
+
+      progressId = progressData.id
+      eventId = progressData.eventId
+
+      // Fetch question for validation and common fields
+      const questionValidationData = await prisma.question.findFirst({
+        where: {
+          id: questionId,
+          eventId
+        },
+        select: {
+          type: true,
+          expectedAnswer: true,
+          aiThreshold: true,
+          content: true,
+          allowedFormats: true,
+          maxFileSize: true,
+        } satisfies Prisma.QuestionSelect
+      })
+
+      if (!questionValidationData || questionValidationData.type !== 'image') {
+        return NextResponse.json({ error: 'Image question not found' }, { status: 404 })
+      }
+
+      const { type: qType, expectedAnswer: qExpected, aiThreshold: qAi, content: qContent, allowedFormats, maxFileSize } = questionValidationData
+
+      // Parse allowedFormats
+      let questionAllowedFormats: string[]
+      if (typeof allowedFormats === 'string') {
+        questionAllowedFormats = allowedFormats.split(',').map(f => f.trim())
+      } else if (Array.isArray(allowedFormats)) {
+        questionAllowedFormats = allowedFormats
+      } else {
+        questionAllowedFormats = allowedMimeTypes
+      }
+
+      const questionMaxFileSize = maxFileSize || defaultMaxFileSize
+
+      // Get buffer
+      const arrayBuffer = await file.arrayBuffer()
+      const buffer = Buffer.from(arrayBuffer)
+
+      // Buffer validation
+      const bufferValidation = bufferValidationSchema.safeParse({
+        buffer,
+        mimeType: file.type,
+        size: file.size,
+        allowedFormats: questionAllowedFormats,
+        maxFileSize: questionMaxFileSize
+      })
+
+      if (!bufferValidation.success) {
+        return NextResponse.json({ error: 'File validation failed: ' + bufferValidation.error.issues[0].message }, { status: 400 })
+      }
+
+      // Fetch event slug
+      const event = await prisma.event.findUnique({
+        where: { id: eventId },
+        select: { slug: true }
+      })
+
+      if (!event) {
+        return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+      }
+
+      const { slug: eventSlug } = event
+
+      // Determine extension
+      let ext: string
+      switch (file.type) {
+        case 'image/jpeg':
+          ext = 'jpg'
+          break
+        case 'image/png':
+          ext = 'png'
+          break
+        case 'image/gif':
+          ext = 'gif'
+          break
+        default:
+          return NextResponse.json({ error: 'Unsupported image format' }, { status: 400 })
+      }
+
+      // Upload
+      const { url } = await storage.uploadImage(buffer, ext, questionId, eventSlug)
+      uploadedUrl = url
+      submission = { url }
+
+      // Set common variables
+      type = qType
+      expectedAnswer = qExpected
+      aiThreshold = qAi
+      content = qContent
+    } else {
+      const body: AnswerSubmission & { progressId?: string } = await request.json()
+      const { questionId: qId, submission: sub } = body
+      questionId = qId
+      submission = sub
+
+      if (!questionId || submission === undefined || submission === null) {
+        return NextResponse.json({ error: 'questionId and submission are required' }, { status: 400 })
+      }
+
+      // Fetch progress
+      const progressData = await prisma.progress.findFirst({
+        where: { userId },
+        select: { id: true, eventId: true }
+      })
+
+      if (!progressData) {
+        return NextResponse.json({ error: 'No progress found for user' }, { status: 404 })
+      }
+
+      progressId = progressData.id
+      eventId = progressData.eventId
+
+      // Fetch question
+      const questionData = await prisma.question.findFirst({
+        where: {
+          id: questionId,
+          eventId
+        },
+        select: {
+          type: true,
+          expectedAnswer: true,
+          aiThreshold: true,
+          content: true
+        }
+      })
+
+      if (!questionData) {
+        return NextResponse.json({ error: 'Question not found' }, { status: 404 })
+      }
+
+      const { type: qType, expectedAnswer: qExpected, aiThreshold: qAi, content: qContent } = questionData
+      type = qType
+      expectedAnswer = qExpected
+      aiThreshold = qAi
+      content = qContent
     }
-
-    const { type, expectedAnswer, aiThreshold, content } = questionData
 
     let status: 'correct' | 'incorrect' | 'pending' = 'pending'
     let aiScore: number | null = null
@@ -148,55 +285,59 @@ Explanation: [brief explanation]`
       status = 'incorrect'
     }
 
-    // Insert or update answer
-    const answerData = {
-      progressId,
-      questionId,
-      submission: storedSubmission,
-      aiScore,
-      status
-    }
+    // Insert or update answer in transaction
+    const transactionResult = await prisma.$transaction(async (tx) => {
+      // Insert or update answer
+      const answerData = {
+        progressId,
+        questionId,
+        submission: storedSubmission,
+        aiScore,
+        status
+      }
 
-    let answerId: string
+      let answerId: string
 
-    if (existingAnswer) {
-      // Update
-      const updatedAnswer = await prisma.answer.update({
-        where: { id: existingAnswer.id },
-        data: answerData,
-        select: { id: true }
+      if (existingAnswer) {
+        // Update
+        const updatedAnswer = await tx.answer.update({
+          where: { id: existingAnswer.id },
+          data: answerData,
+          select: { id: true }
+        })
+        answerId = updatedAnswer.id
+      } else {
+        // Insert
+        const newAnswer = await tx.answer.create({
+          data: answerData,
+          select: { id: true }
+        })
+        answerId = newAnswer.id
+      }
+
+      // Check if all questions completed
+      const allAnswers = await tx.answer.findMany({
+        where: { progressId },
+        select: { status: true }
       })
-      answerId = updatedAnswer.id
-    } else {
-      // Insert
-      const newAnswer = await prisma.answer.create({
-        data: answerData,
-        select: { id: true }
-      })
-      answerId = newAnswer.id
-    }
 
-    // Check if all questions completed
-    const allAnswers = await prisma.answer.findMany({
-      where: { progressId },
-      select: { status: true }
+      const totalQuestions = allAnswers.length
+      const correctCount = allAnswers.filter(a => a.status === 'correct').length
+
+      let completed = false
+      if (totalQuestions > 0 && correctCount === totalQuestions) {
+        completed = true
+        // Update progress
+        await tx.progress.update({
+          where: { id: progressId },
+          data: { completed: true }
+        })
+      }
+
+      return { answerId, completed, stats: { correctCount, totalQuestions } }
     })
 
-    const totalQuestions = allAnswers.length
-    const correctCount = allAnswers.filter(a => a.status === 'correct').length
-
-    let completed = false
-    if (totalQuestions > 0 && correctCount === totalQuestions) {
-      completed = true
-      // Update progress
-      await prisma.progress.update({
-        where: { id: progressId },
-        data: { completed: true }
-      }).catch(error => {
-        console.error('Failed to update progress completed:', error)
-        // Don't fail the request
-      })
-    }
+    const { answerId, completed, stats } = transactionResult
 
     return NextResponse.json({
       answerId,
@@ -204,10 +345,13 @@ Explanation: [brief explanation]`
       aiScore,
       explanation,
       completed,
-      stats: { correctCount, totalQuestions }
+      stats
     })
   } catch (error) {
     console.error('Answers API error:', error)
+    if (uploadedUrl) {
+      await storage.cleanupImage(uploadedUrl)
+    }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

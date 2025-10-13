@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { getUserId } from '@/utils/session'
-import type { Question } from '@/types/question'
+import type { Question, Progress } from '@/types/question'
 import type { Event } from '@/types/admin'
 import LoadingSpinner from '@/components/LoadingSpinner'
+import ImageQuestionComponent from '@/components/ImageQuestion'
 
 interface AnswerResponse {
   status: 'correct' | 'incorrect' | 'pending'
@@ -21,6 +22,7 @@ export default function ChallengeDetailPage({ params }: { params: { slug: string
 
   const [event, setEvent] = useState<Event | null>(null)
   const [question, setQuestion] = useState<Question | null>(null)
+  const [progress, setProgress] = useState<Progress | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [feedback, setFeedback] = useState<string | null>(null)
@@ -61,6 +63,7 @@ export default function ChallengeDetailPage({ params }: { params: { slug: string
           throw new Error('Failed to fetch progress')
         }
         const data = await progressResponse.json()
+        const progress = data.progress || { completed: false }
 
         // Find the current question (first not answered or incorrect)
         const currentQuestion = data.questions.find((q: any) => !q.answered || q.status === 'incorrect')
@@ -69,6 +72,7 @@ export default function ChallengeDetailPage({ params }: { params: { slug: string
           router.push('/challenges')
           return
         }
+        setProgress(progress)
         setQuestion(currentQuestion)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load challenge')
@@ -89,13 +93,6 @@ export default function ChallengeDetailPage({ params }: { params: { slug: string
     setSubmission(value)
   }
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setSubmission(file)
-      if (feedback) setFeedback(null)
-    }
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -106,19 +103,7 @@ export default function ChallengeDetailPage({ params }: { params: { slug: string
     setError(null)
 
     try {
-      let submitData: string | { url: string }
-      if (question.type === 'image' && submission instanceof File) {
-        // Convert file to base64 data URL
-        const base64 = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader()
-          reader.onload = () => resolve(reader.result as string)
-          reader.onerror = reject
-          reader.readAsDataURL(submission)
-        })
-        submitData = { url: base64 }
-      } else {
-        submitData = submission as string
-      }
+      const submitData = submission as string
 
       const response = await fetch('/api/answers', {
         method: 'POST',
@@ -141,7 +126,7 @@ export default function ChallengeDetailPage({ params }: { params: { slug: string
         // Show feedback for retry (text/image)
         setAiScore(result.aiScore || 0)
         setFeedback(
-          question.type === 'text' || question.type === 'image'
+          question.type === 'text'
             ? `Score: ${result.aiScore || 0}/${question.aiThreshold}. Try again!`
             : 'Incorrect. Please try again.'
         )
@@ -198,6 +183,47 @@ export default function ChallengeDetailPage({ params }: { params: { slug: string
     }
   }
 
+  const handleImageAnswer = async (url: string) => {
+    if (!question || submitting) return
+
+    setSubmitting(true)
+    setFeedback(null)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/answers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ questionId: question.id, answer: url })
+      })
+
+      if (!response.ok) {
+        const errData = await response.json()
+        throw new Error(errData.error || 'Submission failed')
+      }
+
+      const result: AnswerResponse = await response.json()
+
+      if (result.status === 'correct') {
+        router.push('/challenges')
+        return
+      } else {
+        const feedbackMessage = `Score: ${result.aiScore || 0}/${question.aiThreshold}. Try again!`
+        setAiScore(result.aiScore || 0)
+        setFeedback(feedbackMessage)
+
+        const announcement = document.getElementById('feedback-announce')
+        if (announcement) {
+          announcement.textContent = feedbackMessage
+        }
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Submission error')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -225,9 +251,10 @@ export default function ChallengeDetailPage({ params }: { params: { slug: string
     )
   }
 
-  const isTextOrImage = question.type === 'text' || question.type === 'image'
   const isMc = question.type === 'multiple_choice'
-  const showRetry = isTextOrImage && feedback && aiScore! < question.aiThreshold
+  const isText = question.type === 'text'
+  const isImage = question.type === 'image'
+  const showRetry = (isText || isImage) && feedback && aiScore! < question.aiThreshold
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -286,31 +313,26 @@ export default function ChallengeDetailPage({ params }: { params: { slug: string
             </fieldset>
           )}
 
-          {isTextOrImage && !isMc && (
+          {isText && (
             <div>
-              {question.type === 'text' ? (
-                <input
-                  type="text"
-                  value={typeof submission === 'string' ? submission : ''}
-                  onChange={handleTextChange}
-                  placeholder="Enter your answer..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  required={!showRetry}
-                  aria-describedby={feedback ? 'feedback-announce' : undefined}
-                  disabled={submitting}
-                />
-              ) : (
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                  required={!showRetry}
-                  disabled={submitting}
-                  aria-label="Upload image for challenge"
-                />
-              )}
+              <input
+                type="text"
+                value={typeof submission === 'string' ? submission : ''}
+                onChange={handleTextChange}
+                placeholder="Enter your answer..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required={!showRetry}
+                aria-describedby={feedback ? 'feedback-announce' : undefined}
+                disabled={submitting}
+              />
             </div>
+          )}
+          {isImage && (
+            <ImageQuestionComponent
+              question={question}
+              progress={progress || { completed: false }}
+              onAnswer={handleImageAnswer}
+            />
           )}
 
           {feedback && (
@@ -360,14 +382,16 @@ export default function ChallengeDetailPage({ params }: { params: { slug: string
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={!submission || submitting}
-            className="w-full bg-blue-500 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed"
-            aria-label={submitting ? 'Submitting...' : 'Submit answer'}
-          >
-            {submitting ? 'Submitting...' : showRetry ? 'Retry' : 'Submit Answer'}
-          </button>
+          {(isMc || isText) && (
+            <button
+              type="submit"
+              disabled={!submission || submitting}
+              className="w-full bg-blue-500 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed"
+              aria-label={submitting ? 'Submitting...' : 'Submit answer'}
+            >
+              {submitting ? 'Submitting...' : showRetry ? 'Retry' : 'Submit Answer'}
+            </button>
+          )}
         </form>
       </div>
     </div>

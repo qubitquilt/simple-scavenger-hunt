@@ -7,7 +7,17 @@ export interface Question {
   expectedAnswer: string;
   aiThreshold: number;
   hintEnabled: boolean;
+  imageDescription?: string | null;
+  allowedFormats?: ('jpg' | 'png' | 'gif')[] | null;
+  maxFileSize?: number | null;
+  minResolution?: { width: number; height: number } | null;
+  required?: boolean | null;
   createdAt: string;
+}
+
+export interface ImageQuestion extends Omit<Question, 'imageDescription' | 'allowedFormats'> {
+  imageDescription: string;
+  allowedFormats: ('jpg' | 'png' | 'gif')[];
 }
 
 export interface Progress {
@@ -19,4 +29,4 @@ export interface Progress {
   createdAt: string;
 }
 
-export type { CreateQuestion, UpdateQuestion } from '../lib/validation';
+export type { CreateQuestion, UpdateQuestion, ImageQuestionData } from '../lib/validation';

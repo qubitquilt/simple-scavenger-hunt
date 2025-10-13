@@ -24,6 +24,7 @@ describe('admin users api', () => {
   })
 
   it('computes metrics correctly', async () => {
+    const validUUID = '123e4567-e89b-12d3-a456-426614174000'
     const fakeUser = {
       id: 'u1',
       firstName: 'A',
@@ -31,7 +32,7 @@ describe('admin users api', () => {
       createdAt: new Date(),
       progress: [{
         id: 'p1',
-        eventId: 'e1',
+        eventId: validUUID,
         completed: true,
         createdAt: new Date(),
         answers: [{
@@ -45,7 +46,7 @@ describe('admin users api', () => {
       }]
     }
     adminUsersPrisma.user.findMany.mockResolvedValue([fakeUser])
-    const req = { url: 'https://example.com/?eventId=e1' }
+    const req = { url: `https://example.com/?eventId=${validUUID}` }
     const res = await adminUsersGET(req)
     expect(res.users.length).toBe(1)
     expect(res.metrics.totalUsers).toBe(1)

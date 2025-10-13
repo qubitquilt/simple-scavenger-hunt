@@ -7,7 +7,9 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Event, UserProgress, AdminMetrics } from '@/types/admin'
 import type { Question } from '@/types/question'
+import type { ImageQuestionData } from '@/lib/validation'
 import MultiChoiceQuestionForm from '@/components/admin/MultiChoiceQuestionForm'
+import ImageQuestionForm from '@/components/admin/ImageQuestionForm'
 import QRGenerator from '@/components/QRGenerator'
 
 export default function AdminPage() {
@@ -301,6 +303,40 @@ function AdminDashboard() {
     setShowQuestionForm(false)
     setEditingQuestion(null)
     setCurrentType('text')
+  }
+  
+  const handleImageCancel = () => {
+    setShowQuestionForm(false)
+    setEditingQuestion(null)
+    setCurrentType('text')
+  }
+  
+  const handleImageQuestionSubmit = async (data: ImageQuestionData) => {
+    try {
+      const method = editingQuestion ? 'PUT' : 'POST'
+      const body = editingQuestion
+        ? { id: editingQuestion.id, ...data }
+        : data
+      const res = await fetch('/api/admin/questions', {
+        method,
+        body: JSON.stringify(body),
+        headers: { 'Content-Type': 'application/json' },
+      })
+      if (!res.ok) throw new Error(`Failed to ${editingQuestion ? 'update' : 'create'} question`)
+      const { question } = await res.json()
+      if (editingQuestion) {
+        setQuestions(prev => prev.map(q => q.id === question.id ? question : q))
+      } else {
+        setQuestions(prev => [...prev, question])
+      }
+      setShowQuestionForm(false)
+      setEditingQuestion(null)
+      setCurrentType('text')
+      setError(null)
+      await loadQuestions()
+    } catch (err: any) {
+      setError(`Failed to ${editingQuestion ? 'update' : 'create'} question: ${err.message}`)
+    }
   }
 
   const handleEditQuestion = (question: Question) => {
@@ -657,7 +693,14 @@ function AdminDashboard() {
               {showQuestionForm && selectedEventId && (
                 <div className="bg-white p-6 rounded-lg shadow">
                   <h3 className="text-lg font-medium mb-4">{editingQuestion ? 'Edit Question' : 'Create Question'}</h3>
-                  {isMcMode ? (
+                  {currentType === 'image' ? (
+                    <ImageQuestionForm
+                      initialData={editingQuestion || undefined}
+                      eventId={selectedEventId}
+                      onSubmit={handleImageQuestionSubmit}
+                      onCancel={handleImageCancel}
+                    />
+                  ) : currentType === 'multiple_choice' ? (
                     <MultiChoiceQuestionForm
                       initialData={editingQuestion || undefined}
                       eventId={selectedEventId}

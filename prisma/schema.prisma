@@ -35,13 +35,19 @@ model Event {
 
 model Question {
   id             String       @id @default(uuid()) @db.Uuid
-  eventId        String @db.Uuid
+  eventId        String @db.Uuid @map("event_id")
   type           QuestionType @map("type")
   content        String
   options        Json?
   expectedAnswer String?      @map("expected_answer")
   aiThreshold    Int          @default(8) @map("ai_threshold")
   hintEnabled    Boolean      @default(false) @map("hint_enabled")
+  
+  imageDescription String?     @map("image_description")
+  minResolution    Json?       @map("min_resolution")
+  allowedFormats   Json?       @map("allowed_formats")
+  maxFileSize      Int?        @default(5242880) @map("max_file_size")
+  
   createdAt      DateTime     @default(now()) @map("created_at")
   event          Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
   answers        Answer[]
@@ -51,8 +57,8 @@ model Question {
 
 model Progress {
   id            String   @id @default(uuid()) @db.Uuid
-  userId        String @db.Uuid
-  eventId       String @db.Uuid
+  userId        String @db.Uuid @map("user_id")
+  eventId       String @db.Uuid @map("event_id")
   questionOrder Json     @map("question_order")
   completed     Boolean  @default(false)
   createdAt     DateTime @default(now()) @map("created_at")
@@ -66,10 +72,10 @@ model Progress {
 
 model Answer {
   id         String       @id @default(uuid()) @db.Uuid
-  progressId String @db.Uuid
-  questionId String @db.Uuid
+  progressId String @db.Uuid @map("progress_id")
+  questionId String @db.Uuid @map("question_id")
   submission Json?
-  aiScore    Int?
+  aiScore    Int? @map("ai_score")
   status     AnswerStatus @default(pending)
   createdAt  DateTime     @default(now()) @map("created_at")
   progress   Progress     @relation(fields: [progressId], references: [id], onDelete: Cascade)
