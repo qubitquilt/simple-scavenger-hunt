@@ -27,10 +27,10 @@ describe('admin events api', () => {
   })
 
   it('GET returns events', async () => {
-    const mockEvent = { id: '1', title: 'E', date: new Date(), createdAt: new Date() }
+    const mockEvent = { id: '1', title: 'E', slug: 'e', date: new Date(), createdAt: new Date() }
     adminEventsPrisma.event.findMany.mockResolvedValue([mockEvent])
     const res = await adminEventsGET()
-    expect(res).toEqual({ events: [{ id: '1', title: 'E', description: '', date: expect.any(String), createdAt: expect.any(String) }] })
+    expect(res).toEqual({ events: [{ id: '1', title: 'E', slug: 'e', description: '', date: expect.any(Date), createdAt: expect.any(Date) }] })
   })
 
   it('POST returns 401 when not admin', async () => {

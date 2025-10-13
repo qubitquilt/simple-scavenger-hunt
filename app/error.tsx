@@ -17,7 +17,7 @@ export default function Error({ error, reset }: ErrorProps) {
       <div className="max-w-md w-full bg-white rounded-lg shadow-md p-6 text-center">
         <h2 className="text-2xl font-bold text-gray-900 mb-4">Something went wrong!</h2>
         <p className="text-gray-600 mb-6" id="error-message">
-          {error.message}
+          {typeof error.message === 'string' ? error.message : JSON.stringify(error.message)}
         </p>
         <button
           onClick={reset}

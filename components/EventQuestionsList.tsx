@@ -9,43 +9,50 @@ import QuestionCard from '@/components/QuestionCard'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import RegistrationForm from '@/components/RegistrationForm'
 import Link from 'next/link'
+import { getUserId } from '@/utils/session'
 
 interface ProgressResponse {
   questions: QuestionWithStatus[]
-  progress: number
+  progress: {
+    completed: boolean
+  }
+  stats: {
+    completedCount: number
+    totalCount: number
+  }
 }
 
 export default function EventQuestionsList({ event }: { event: Event }) {
   const [progressData, setProgressData] = useState<ProgressResponse | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [isLoadingProgress, setIsLoadingProgress] = useState(false)
   const router = useRouter()
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
+
+  const fetchProgress = async () => {
+    try {
+      setIsLoadingProgress(true)
+      const data = await fetch(`/api/progress?eventId=${event.id}`)
+      if (data.ok) {
+        const result = await data.json()
+        setProgressData(result)
+      } else {
+        setProgressData(null)
+      }
+    } catch (err) {
+      console.error('Failed to fetch progress')
+      setProgressData(null)
+    } finally {
+      setIsLoadingProgress(false)
+    }
+  }
 
   useEffect(() => {
-    if (session) {
-      const fetchProgress = async () => {
-        try {
-          setLoading(true)
-          const data = await fetch(`/api/progress?eventId=${event.id}`)
-          if (data.ok) {
-            const result = await data.json()
-            setProgressData(result)
-          } else {
-            setProgressData(null)
-          }
-        } catch (err) {
-          console.error('Failed to fetch progress')
-          setProgressData(null)
-        } finally {
-          setLoading(false)
-        }
-      }
+    if (status !== 'authenticated') return
 
-      fetchProgress()
-    }
-  }, [event.id, session])
+    fetchProgress()
+  }, [event.id, status])
 
-  if (loading) {
+  if (status === 'loading' || isLoadingProgress) {
     return (
       <div className="flex items-center justify-center p-8">
         <LoadingSpinner size="lg" />
@@ -54,11 +61,12 @@ export default function EventQuestionsList({ event }: { event: Event }) {
   }
 
   if (!progressData) {
-    return <RegistrationForm event={event} />
+    return <RegistrationForm event={event} onSuccess={fetchProgress} />
   }
 
-  const { questions, progress } = progressData
-  const isCompleted = progress === 100 || questions.every(q => q.computedStatus === 'accepted')
+  const { questions, progress, stats } = progressData
+  const progressPercentage = Math.round((stats.completedCount / stats.totalCount) * 100)
+  const isCompleted = progress.completed || questions.every(q => q.computedStatus === 'accepted')
 
   const handleBack = () => {
     router.push('/')
@@ -98,7 +106,7 @@ export default function EventQuestionsList({ event }: { event: Event }) {
       <div className="bg-green-50 border border-green-200 rounded-md p-4 mb-6">
         <h2 className="text-lg font-semibold text-green-800 mb-2">You're Registered!</h2>
         <p className="text-green-700 mb-2">
-          Progress: {progress}% ({questions.filter(q => q.computedStatus === 'accepted').length}/{questions.length} challenges completed)
+          Progress: {progressPercentage}% ({stats.completedCount}/{stats.totalCount} challenges completed)
         </p>
         {isCompleted && (
           <p className="text-green-700 font-semibold">🎉 Event completed!</p>
@@ -108,12 +116,12 @@ export default function EventQuestionsList({ event }: { event: Event }) {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium text-gray-700">Progress</span>
-          <span className="text-sm font-medium text-gray-900">{progress}%</span>
+          <span className="text-sm font-medium text-gray-900">{progressPercentage}%</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div
             className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-            style={{ width: `${progress}%` }}
+            style={{ width: `${progressPercentage}%` }}
           ></div>
         </div>
       </div>

@@ -5,6 +5,33 @@ import type { Event } from '@/types/admin'
 import { createQuestionSchema, updateQuestionSchema } from '@/lib/validation'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+const createSlugFromContent = (content: string): string => {
+  return content
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '') // remove special characters except spaces and hyphens
+    .replace(/\s+/g, '-') // replace spaces with hyphens
+    .replace(/-+/g, '-') // replace multiple hyphens with single
+    .trim()
+    .replace(/^-|-$/g, '') // remove leading/trailing hyphens
+}
+
+const generateUniqueSlug = async (baseSlug: string): Promise<string> => {
+  let slug = baseSlug
+  let counter = 1
+
+  while (true) {
+    const existingQuestion = await prisma.question.findUnique({
+      where: { slug }
+    })
+
+    if (!existingQuestion) {
+      return slug
+    }
+
+    counter++
+    slug = `${baseSlug}-${counter}`
+  }
+}
 
 export const dynamic = 'force-dynamic'
 
@@ -94,6 +121,10 @@ export async function POST(request: NextRequest) {
       createData.allowedFormats = JSON.stringify(validatedData.allowedFormats)
       createData.minResolution = JSON.stringify(validatedData.minResolution)
     }
+
+    // Generate unique slug from question content
+    const baseSlug = createSlugFromContent(validatedData.content)
+    createData.slug = await generateUniqueSlug(baseSlug)
 
     const { required, ...questionData } = createData
     const data = await prisma.question.create({

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth/next'
+import { authOptions } from '@/lib/auth'
 import type { Progress, Question } from '@/types/question'
 import type { Answer, AnswerStatus } from '@/types/answer'
 
@@ -85,12 +86,29 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  console.log('Progress GET API called')
   try {
-    const session = await getServerSession()
-    if (!session?.user?.id) {
+    const session = await getServerSession(authOptions)
+    console.log('Session from getServerSession:', session)
+
+    const userId = request.cookies.get('userId')?.value
+    console.log('UserId from cookies:', userId)
+
+    // Determine userId from session or cookie
+    let finalUserId: string | undefined
+
+    if (session?.user?.id) {
+      // Admin user with NextAuth session
+      finalUserId = session.user.id
+      console.log('Using NextAuth session userId:', finalUserId)
+    } else if (userId) {
+      // Regular user with cookie
+      finalUserId = userId
+      console.log('Using cookie userId:', finalUserId)
+    } else {
+      console.log('No authentication found')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    const userId = session.user.id
 
     const { searchParams } = new URL(request.url)
     const eventId = searchParams.get('eventId')
@@ -112,7 +130,7 @@ export async function GET(request: NextRequest) {
       const userProgress = await prisma.progress.findUnique({
         where: {
           userId_eventId: {
-            userId,
+            userId: finalUserId,
             eventId: event.id
           }
         },
@@ -138,7 +156,7 @@ export async function GET(request: NextRequest) {
       const userProgress = await prisma.progress.findUnique({
         where: {
           userId_eventId: {
-            userId,
+            userId: finalUserId,
             eventId: event.id
           }
         },
@@ -156,7 +174,7 @@ export async function GET(request: NextRequest) {
     const progressData = await prisma.progress.findUnique({
       where: {
         userId_eventId: {
-          userId,
+          userId: finalUserId,
           eventId: targetEventId
         }
       },
@@ -231,14 +249,20 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // Compute progress as percentage
+    // Compute progress stats
     const totalQuestions = questionsWithStatus.length
     const completedQuestions = questionsWithStatus.filter(q => q.computedStatus === 'accepted').length
-    const progressPercentage = totalQuestions > 0 ? Math.round((completedQuestions / totalQuestions) * 100) : 0
+    const isCompleted = completedQuestions === totalQuestions
 
     return NextResponse.json({
+      progress: {
+        completed: isCompleted
+      },
       questions: questionsWithStatus,
-      progress: progressPercentage
+      stats: {
+        completedCount: completedQuestions,
+        totalCount: totalQuestions
+      }
     })
   } catch (error) {
     console.error('Progress API error:', error)

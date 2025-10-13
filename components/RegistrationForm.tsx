@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Event } from '@/types/admin'
 
-export default function RegistrationForm({ event }: { event: Event }) {
+export default function RegistrationForm({ event, onSuccess }: { event: Event; onSuccess?: () => void }) {
   const [registering, setRegistering] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
@@ -40,6 +40,9 @@ export default function RegistrationForm({ event }: { event: Event }) {
         const errData = await response.json()
         throw new Error(errData.error || 'Registration failed')
       }
+
+      console.log('Registration successful, calling onSuccess callback')
+      onSuccess?.() // Call the onSuccess callback to update progress data
 
       router.refresh() // Revalidate server data
       router.push(`/events/${event.slug}`) // Stay on page to see updated view
