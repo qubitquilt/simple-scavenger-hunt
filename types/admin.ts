@@ -4,9 +4,9 @@ export interface Event {
   id: string;
   title: string;
   slug: string;
-  description: string;
-  date: string; // ISO date string
-  createdAt: string;
+  description: string | null;
+  date: Date;
+  createdAt: Date;
 }
 
 export interface AdminUser {

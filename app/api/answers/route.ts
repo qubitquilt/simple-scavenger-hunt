@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getServerSession } from 'next-auth/next'
 import type { Prisma } from '@prisma/client'
 import type { Question } from '@/types/question'
 import storage from '@/lib/storage'
 import { imageUploadSchema, bufferValidationSchema } from '@/lib/validation'
-import type { AnswerSubmission } from '@/types/answer'
+import type { AnswerSubmission, AnswerStatus } from '@/types/answer'
 import * as fs from 'fs'
 import path from 'path'
 
@@ -15,11 +16,11 @@ const defaultMaxFileSize = 5 * 1024 * 1024 // 5MB
 export async function POST(request: NextRequest) {
   let uploadedUrl: string | null = null
   try {
-    const userId = request.cookies.get('userId')?.value
-
-    if (!userId) {
-      return NextResponse.json({ error: 'User ID is required' }, { status: 401 })
+    const session = await getServerSession()
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const userId = session.user.id
 
     let questionId: string
     let submission: string | { url: string }
@@ -446,19 +447,69 @@ export async function POST(request: NextRequest) {
 
     const { answerId, completed, stats } = transactionResult
 
+    const accepted = status === 'correct'
+    const responseStatus: AnswerStatus = status === 'correct' ? 'accepted' : status === 'incorrect' ? 'rejected' : 'pending'
+
     return NextResponse.json({
-      answerId,
-      status,
-      aiScore,
-      explanation,
-      completed,
-      stats
+      accepted,
+      status: responseStatus
     })
   } catch (error) {
     console.error('Answers API error:', error)
     if (uploadedUrl) {
       await storage.cleanupImage(uploadedUrl)
     }
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const session = await getServerSession()
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const userId = session.user.id
+
+    const { searchParams } = new URL(request.url)
+    const questionId = searchParams.get('questionId')
+
+    if (!questionId) {
+      return NextResponse.json({ error: 'questionId is required' }, { status: 400 })
+    }
+
+    const answer = await prisma.answer.findFirst({
+      where: {
+        questionId,
+        progress: {
+          userId
+        }
+      },
+      select: {
+        id: true,
+        progressId: true,
+        questionId: true,
+        submission: true,
+        aiScore: true,
+        status: true,
+        createdAt: true
+      }
+    })
+
+    if (!answer) {
+      return NextResponse.json({ answer: null })
+    }
+
+    const computedStatus: AnswerStatus = answer.status === 'correct' ? 'accepted' : answer.status === 'incorrect' ? 'rejected' : 'pending'
+
+    const answerWithStatus = {
+      ...answer,
+      computedStatus
+    }
+
+    return NextResponse.json({ answer: answerWithStatus })
+  } catch (error) {
+    console.error('Answers GET API error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

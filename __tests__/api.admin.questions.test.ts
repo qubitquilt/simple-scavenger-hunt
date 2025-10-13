@@ -23,7 +23,7 @@ const { getServerSession } = require('next-auth');
 describe('admin questions api', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    getServerSession.mockResolvedValue({ user: { role: 'ADMIN' } });
+    getServerSession.mockResolvedValue({ user: { id: 'admin-id', admin: true } });
   });
 
   describe('GET', () => {

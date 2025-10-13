@@ -29,8 +29,8 @@ export async function GET() {
       title: event.title,
       slug: event.slug,
       description: event.description || '',
-      date: event.date.toISOString(),
-      createdAt: event.createdAt.toISOString()
+      date: event.date,
+      createdAt: event.createdAt
     }))
 
     return NextResponse.json({ events: typedEvents })
@@ -68,8 +68,8 @@ export async function POST(request: NextRequest) {
       title: eventData.title,
       slug: eventData.slug,
       description: eventData.description || '',
-      date: eventData.date.toISOString(),
-      createdAt: eventData.createdAt.toISOString()
+      date: eventData.date,
+      createdAt: eventData.createdAt
     }
     return NextResponse.json({ event: typedEvent }, { status: 201 })
   } catch (error) {
@@ -107,8 +107,8 @@ export async function PUT(request: NextRequest) {
       title: eventData.title,
       slug: eventData.slug,
       description: eventData.description || '',
-      date: eventData.date.toISOString(),
-      createdAt: eventData.createdAt.toISOString()
+      date: eventData.date,
+      createdAt: eventData.createdAt
     }
     return NextResponse.json({ event: typedEvent })
   } catch (error) {

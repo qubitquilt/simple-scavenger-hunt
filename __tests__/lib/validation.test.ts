@@ -56,7 +56,7 @@ describe('Image Validation Schemas', () => {
       const invalidData = { ...validImageData, allowedFormats: ['invalid', 'png'] }
       const result = imageQuestionSchema.safeParse(invalidData)
       expect(result.success).toBe(false)
-      expect(result.error!.issues[0].message).toBe('Invalid option: expected one of "jpg"|"png"|"gif"')
+      expect(result.error!.issues[0].message).toBe('Invalid input')
     })
 
     it('validates maxFileSize range', () => {

@@ -1,3 +1,5 @@
+import { NextRequest } from 'next/server'
+
 jest.mock('@/lib/prisma', () => ({
   prisma: {
     answer: {
@@ -26,8 +28,14 @@ jest.mock('@/lib/prisma', () => ({
 const mockFetch = jest.fn()
 global.fetch = mockFetch
 
-const { POST } = require('@/app/api/answers/route')
-const { prisma } = require('@/lib/prisma')
+const mockPrisma = jest.requireMock('@/lib/prisma').prisma
+
+// Mock next-auth getServerSession
+jest.mock('next-auth/next', () => ({
+  getServerSession: jest.fn(),
+}))
+
+const mockGetServerSession = jest.requireMock('next-auth/next').getServerSession
 
 describe('API progress completion logic', () => {
   const userCookie = { value: 'user-1' }
@@ -45,10 +53,11 @@ describe('API progress completion logic', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     process.env.OPENROUTER_API_KEY = 'fake_key'
+    mockGetServerSession.mockResolvedValue({ user: { id: 'user-1' } })
 
     // Default question and progress used by tests
-    prisma.progress.findFirst.mockResolvedValue({ id: 'p1', eventId: 'e1' })
-    prisma.question.findFirst.mockResolvedValue({
+    mockPrisma.progress.findFirst.mockResolvedValue({ id: 'p1', eventId: 'e1' })
+    mockPrisma.question.findFirst.mockResolvedValue({
       id: 'q1',
       type: 'text',
       expectedAnswer: 'expected',
@@ -57,11 +66,12 @@ describe('API progress completion logic', () => {
     })
 
     // Default: use tx as the same mocked prisma object
-    prisma.$transaction = jest.fn((fn) => fn(prisma))
+    mockPrisma.$transaction = jest.fn((fn) => fn(mockPrisma))
   })
 
   it('incremental progress: submitting 1 of 3 correctly sets completed false and stats reflect 1/3', async () => {
-    // Simulate AI returning a high score -> correct
+    const { POST } = await import('@/app/api/answers/route')
+    // Simulate AI returning a high score -> accepted
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
@@ -70,27 +80,30 @@ describe('API progress completion logic', () => {
     })
 
     // No existing answer
-    prisma.answer.findFirst.mockResolvedValue(null)
-    prisma.answer.create.mockResolvedValue({ id: 'a1' })
+    mockPrisma.answer.findFirst.mockResolvedValue(null)
+    mockPrisma.answer.create.mockResolvedValue({ id: 'a1' })
 
-    // When transaction reads answers, only 1 correct recorded
-    prisma.answer.findMany.mockResolvedValue([{ status: 'correct' }])
+    // When transaction reads answers, only 1 accepted recorded
+    mockPrisma.answer.findMany.mockResolvedValue([{ status: 'correct' }])
 
     // progress row inside tx contains questionOrder of 3
-    prisma.progress.findUnique.mockResolvedValue({ id: 'p1', questionOrder: ['q1', 'q2', 'q3'], eventId: 'e1' })
+    mockPrisma.progress.findUnique.mockResolvedValue({ id: 'p1', questionOrder: ['q1', 'q2', 'q3'], eventId: 'e1' })
 
-    const req = makeReq({ questionId: 'q1', submission: 'user answer' })
+    const req = makeReq({ questionId: 'q1', submission: 'user answer' }) as any as NextRequest
     const res = await POST(req)
 
-    expect(res.completed).toBe(false)
-    expect(res.stats).toEqual({ correctCount: 1, totalQuestions: 3 })
+    expect(res).toMatchObject({
+      accepted: true,
+      status: 'accepted'
+    })
     // Progress update should not have been called because not complete
-    expect(prisma.progress.update).not.toHaveBeenCalled()
+    expect(mockPrisma.progress.update).not.toHaveBeenCalled()
   })
 
   it('final completion: after submitting all 3 questions correctly, progress.completed becomes true', async () => {
+    const { POST } = await import('@/app/api/answers/route')
     // Prepare three sequential submissions: simulate calling POST three times.
-    // We'll simulate the third call here (assume prior two have created correct answers).
+    // We'll simulate the third call here (assume prior two have created accepted answers).
 
     mockFetch.mockResolvedValue({
       ok: true,
@@ -100,34 +113,37 @@ describe('API progress completion logic', () => {
     })
 
     // No existing answer for this submission
-    prisma.answer.findFirst.mockResolvedValue(null)
+    mockPrisma.answer.findFirst.mockResolvedValue(null)
     // Create returns an id
-    prisma.answer.create.mockResolvedValue({ id: 'a3' })
+    mockPrisma.answer.create.mockResolvedValue({ id: 'a3' })
 
-    // Transaction read returns 3 correct answers (after this insert)
-    prisma.answer.findMany.mockResolvedValue([
+    // Transaction read returns 3 accepted answers (after this insert)
+    mockPrisma.answer.findMany.mockResolvedValue([
       { status: 'correct' },
       { status: 'correct' },
       { status: 'correct' },
     ])
 
-    prisma.progress.findUnique.mockResolvedValue({ id: 'p1', questionOrder: ['q1', 'q2', 'q3'], eventId: 'e1' })
+    mockPrisma.progress.findUnique.mockResolvedValue({ id: 'p1', questionOrder: ['q1', 'q2', 'q3'], eventId: 'e1' })
 
-    prisma.progress.update.mockResolvedValue({ id: 'p1', completed: true })
+    mockPrisma.progress.update.mockResolvedValue({ id: 'p1', completed: true })
 
-    const req = makeReq({ questionId: 'q3', submission: 'final answer' })
+    const req = makeReq({ questionId: 'q3', submission: 'final answer' }) as any as NextRequest
     const res = await POST(req)
 
-    expect(res.completed).toBe(true)
-    expect(res.stats).toEqual({ correctCount: 3, totalQuestions: 3 })
-    expect(prisma.progress.update).toHaveBeenCalledWith({
+    expect(res).toMatchObject({
+      accepted: true,
+      status: 'accepted'
+    })
+    expect(mockPrisma.progress.update).toHaveBeenCalledWith({
       where: { id: 'p1' },
       data: { completed: true }
     })
   })
 
   it('edge case: submitting incorrect answers should not mark completion', async () => {
-    // AI returns low score -> incorrect
+    const { POST } = await import('@/app/api/answers/route')
+    // AI returns low score -> rejected
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
@@ -135,28 +151,31 @@ describe('API progress completion logic', () => {
       })
     })
 
-    prisma.answer.findFirst.mockResolvedValue(null)
-    prisma.answer.create.mockResolvedValue({ id: 'aX' })
+    mockPrisma.answer.findFirst.mockResolvedValue(null)
+    mockPrisma.answer.create.mockResolvedValue({ id: 'aX' })
 
-    // After this insert, only 0 correct answers
-    prisma.answer.findMany.mockResolvedValue([{ status: 'incorrect' }])
-    prisma.progress.findUnique.mockResolvedValue({ id: 'p1', questionOrder: ['q1', 'q2', 'q3'], eventId: 'e1' })
+    // After this insert, only 0 accepted answers
+    mockPrisma.answer.findMany.mockResolvedValue([{ status: 'incorrect' }])
+    mockPrisma.progress.findUnique.mockResolvedValue({ id: 'p1', questionOrder: ['q1', 'q2', 'q3'], eventId: 'e1' })
 
-    const req = makeReq({ questionId: 'qX', submission: 'wrong answer' })
+    const req = makeReq({ questionId: 'qX', submission: 'wrong answer' }) as any as NextRequest
     const res = await POST(req)
 
-    expect(res.completed).toBe(false)
-    expect(res.stats).toEqual({ correctCount: 0, totalQuestions: 3 })
-    expect(prisma.progress.update).not.toHaveBeenCalled()
+    expect(res).toMatchObject({
+      accepted: false,
+      status: 'rejected'
+    })
+    expect(mockPrisma.progress.update).not.toHaveBeenCalled()
   })
 
   it('edge case: duplicate submissions update existing answer and do not cause incorrect completion', async () => {
+    const { POST } = await import('@/app/api/answers/route')
     // Simulate existing answer present (duplicate)
-    prisma.answer.findFirst.mockResolvedValue({ id: 'existingA', status: 'incorrect' })
+    mockPrisma.answer.findFirst.mockResolvedValue({ id: 'existingA', status: 'incorrect' })
     // Update will be called on tx.answer.update; here we mock update result
-    prisma.answer.update.mockResolvedValue({ id: 'existingA' })
+    mockPrisma.answer.update.mockResolvedValue({ id: 'existingA' })
 
-    // AI returns a correct score now
+    // AI returns an accepted score now
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
@@ -164,16 +183,18 @@ describe('API progress completion logic', () => {
       })
     })
 
-    // After updating, suppose there are still only 2 correct out of 3
-    prisma.answer.findMany.mockResolvedValue([{ status: 'correct' }, { status: 'correct' }])
-    prisma.progress.findUnique.mockResolvedValue({ id: 'p1', questionOrder: ['q1', 'q2', 'q3'], eventId: 'e1' })
+    // After updating, suppose there are still only 2 accepted out of 3
+    mockPrisma.answer.findMany.mockResolvedValue([{ status: 'correct' }, { status: 'correct' }])
+    mockPrisma.progress.findUnique.mockResolvedValue({ id: 'p1', questionOrder: ['q1', 'q2', 'q3'], eventId: 'e1' })
 
-    const req = makeReq({ questionId: 'q2', submission: 'updated submission' })
+    const req = makeReq({ questionId: 'q2', submission: 'updated submission' }) as any as NextRequest
     const res = await POST(req)
 
-    expect(prisma.answer.update).toHaveBeenCalled()
-    expect(res.completed).toBe(false)
-    expect(res.stats).toEqual({ correctCount: 2, totalQuestions: 3 })
-    expect(prisma.progress.update).not.toHaveBeenCalled()
+    expect(mockPrisma.answer.update).toHaveBeenCalled()
+    expect(res).toMatchObject({
+      accepted: true,
+      status: 'accepted'
+    })
+    expect(mockPrisma.progress.update).not.toHaveBeenCalled()
   })
 })

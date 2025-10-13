@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getServerSession } from 'next-auth/next'
 import type { Progress, Question } from '@/types/question'
-import type { Answer } from '@/types/answer'
+import type { Answer, AnswerStatus } from '@/types/answer'
 
 export const dynamic = 'force-dynamic'
 
@@ -85,11 +86,11 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const userId = request.cookies.get('userId')?.value
-
-    if (!userId) {
-      return NextResponse.json({ error: 'User ID is required' }, { status: 401 })
+    const session = await getServerSession()
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const userId = session.user.id
 
     const { searchParams } = new URL(request.url)
     const eventId = searchParams.get('eventId')
@@ -97,7 +98,7 @@ export async function GET(request: NextRequest) {
     let targetEventId: string
 
     if (eventId) {
-      // Verify event exists
+      // Verify event exists and user is registered
       const event = await prisma.event.findUnique({
         where: { id: eventId },
         select: { id: true }
@@ -107,9 +108,24 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Event not found' }, { status: 404 })
       }
 
+      // Check if user has progress for this event (i.e., registered)
+      const userProgress = await prisma.progress.findUnique({
+        where: {
+          userId_eventId: {
+            userId,
+            eventId: event.id
+          }
+        },
+        select: { id: true }
+      })
+
+      if (!userProgress) {
+        return NextResponse.json({ error: 'User not registered for this event' }, { status: 403 })
+      }
+
       targetEventId = event.id
     } else {
-      // Fetch default event (first event)
+      // Fetch default event (first event) and check registration
       const event = await prisma.event.findFirst({
         orderBy: { id: 'asc' },
         select: { id: true }
@@ -119,10 +135,24 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'No events found' }, { status: 404 })
       }
 
+      const userProgress = await prisma.progress.findUnique({
+        where: {
+          userId_eventId: {
+            userId,
+            eventId: event.id
+          }
+        },
+        select: { id: true }
+      })
+
+      if (!userProgress) {
+        return NextResponse.json({ error: 'User not registered for default event' }, { status: 403 })
+      }
+
       targetEventId = event.id
     }
 
-    // Fetch progress
+    // Fetch progress with answers including submission
     const progressData = await prisma.progress.findUnique({
       where: {
         userId_eventId: {
@@ -130,11 +160,22 @@ export async function GET(request: NextRequest) {
           eventId: targetEventId
         }
       },
-      select: {
-        id: true,
-        questionOrder: true,
-        completed: true,
-        createdAt: true
+      include: {
+        answers: {
+          where: {
+            question: {
+              eventId: targetEventId
+            }
+          },
+          select: {
+            id: true,
+            questionId: true,
+            submission: true,
+            aiScore: true,
+            status: true,
+            createdAt: true
+          }
+        }
       }
     })
 
@@ -142,80 +183,65 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No progress found for user' }, { status: 404 })
     }
 
-    const progress: Progress = {
-      id: progressData.id,
-      userId,
-      eventId: targetEventId,
-      questionOrder: progressData.questionOrder as string[],
-      completed: progressData.completed,
-      createdAt: progressData.createdAt.toISOString()
-    }
-
-    // Fetch answers for this progress
-    const answersData = await prisma.answer.findMany({
-      where: { progressId: progress.id },
-      select: {
-        questionId: true,
-        status: true,
-        aiScore: true
-      }
-    })
-
-    // Compute stats
-    const completedCount = answersData.filter(a => a.status === 'correct').length
-    const totalCount = progress.questionOrder.length
-    const stats = { completedCount, totalCount }
-
-    if (progress.completed) {
-      console.log('Returning completed progress response with stats:', { hasStats: !!stats, stats })
-      return NextResponse.json({ progress, questions: [], stats })
-    }
-
-    // Fetch questions in order with full details
+    // Fetch questions for the event
     const questionsData = await prisma.question.findMany({
-      where: {
-        id: { in: progress.questionOrder }
-      },
+      where: { eventId: targetEventId },
       select: {
         id: true,
+        eventId: true,
         type: true,
         content: true,
         options: true,
         expectedAnswer: true,
         aiThreshold: true,
-        hintEnabled: true
+        hintEnabled: true,
+        imageDescription: true,
+        minResolution: true,
+        allowedFormats: true,
+        maxFileSize: true,
+        createdAt: true
       }
     })
 
     const answersMap = new Map(
-      answersData.map(a => [a.questionId, { status: a.status, aiScore: a.aiScore }])
+      progressData.answers.map(a => [a.questionId, a])
     )
 
-    const questions: (Question & { answered?: boolean; status?: 'pending' | 'correct' | 'incorrect'; aiScore?: number })[] =
-      questionsData.map(q => {
-        const answer = answersMap.get(q.id)
-        return {
-          id: q.id,
-          eventId: targetEventId,
-          type: q.type,
-          content: q.content,
-          options: q.options as Record<string, string> | undefined,
-          expectedAnswer: q.expectedAnswer || '',
-          aiThreshold: q.aiThreshold,
-          hintEnabled: q.hintEnabled,
-          createdAt: new Date().toISOString(),
-          answered: !!answer,
-          status: answer?.status,
-          aiScore: answer?.aiScore || undefined
-        }
-      })
+    interface QuestionWithStatus extends Question {
+      answered?: boolean;
+      computedStatus?: AnswerStatus;
+      aiScore?: number;
+      submission?: any;
+    }
+
+    const questionsWithStatus: QuestionWithStatus[] = questionsData.map(q => {
+      const userAnswer = answersMap.get(q.id)
+      const computedStatus: AnswerStatus = userAnswer
+        ? (userAnswer.status === 'correct' ? 'accepted' : userAnswer.status === 'incorrect' ? 'rejected' : 'pending')
+        : 'pending'
+
+      const { answers: _, ...questionBase } = q as any // Exclude relation if present, but since select doesn't include, safe
+
+      return {
+        ...questionBase,
+        answered: !!userAnswer,
+        computedStatus,
+        aiScore: userAnswer?.aiScore ?? undefined,
+        submission: userAnswer?.submission
+      }
+    })
+
+    // Compute progress as percentage
+    const totalQuestions = questionsWithStatus.length
+    const completedQuestions = questionsWithStatus.filter(q => q.computedStatus === 'accepted').length
+    const progressPercentage = totalQuestions > 0 ? Math.round((completedQuestions / totalQuestions) * 100) : 0
 
     return NextResponse.json({
-      progress,
-      questions,
-      stats
+      questions: questionsWithStatus,
+      progress: progressPercentage
     })
   } catch (error) {
+    console.error('Progress API error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

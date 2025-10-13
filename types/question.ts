@@ -1,10 +1,12 @@
+import { JsonValue } from '@prisma/client/runtime/library';
+
 export interface Question {
   id: string;
   eventId: string;
   type: 'text' | 'multiple_choice' | 'image';
   content: string;
   options?: Record<string, string>;
-  expectedAnswer: string;
+  expectedAnswer: string | null;
   aiThreshold: number;
   hintEnabled: boolean;
   imageDescription?: string | null;

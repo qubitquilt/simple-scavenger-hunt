@@ -42,12 +42,14 @@ model Question {
   expectedAnswer String?      @map("expected_answer")
   aiThreshold    Int          @default(8) @map("ai_threshold")
   hintEnabled    Boolean      @default(false) @map("hint_enabled")
-  
+
   imageDescription String?     @map("image_description")
   minResolution    Json?       @map("min_resolution")
   allowedFormats   Json?       @map("allowed_formats")
-  maxFileSize      Int?        @default(5242880) @map("max_file_size")
-  
+  maxFileSize      Int?        @map("max_file_size")
+
+  slug            String       @unique @default("default-slug")
+
   createdAt      DateTime     @default(now()) @map("created_at")
   event          Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
   answers        Answer[]

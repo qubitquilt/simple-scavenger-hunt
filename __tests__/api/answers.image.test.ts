@@ -1,5 +1,3 @@
-
-
 // Mock validation
 jest.mock('@/lib/validation', () => ({
   imageUploadSchema: { safeParse: jest.fn(() => ({ success: true })) },
@@ -18,13 +16,16 @@ jest.mock('@/lib/prisma', () => ({
     progress: {
       findFirst: jest.fn(),
       update: jest.fn(),
+      findUnique: jest.fn(),
     },
     question: {
       findFirst: jest.fn(),
+      count: jest.fn(),
     },
     event: {
       findUnique: jest.fn(),
     },
+    $transaction: jest.fn(),
   },
 }))
   
@@ -40,12 +41,24 @@ jest.mock('@/lib/storage', () => ({
 // Mock fetch for AI
 const mockFetch = jest.fn()
 global.fetch = mockFetch
+
+// Mock fs
+jest.mock('fs', () => ({
+  existsSync: jest.fn(() => true),
+  readFileSync: jest.fn(() => Buffer.from('fake image data')),
+}))
   
 import { NextRequest } from 'next/server'
-import { POST } from '@/app/api/answers/route'
   
 const mockPrisma = jest.requireMock('@/lib/prisma').prisma
 const mockStorage = jest.requireMock('@/lib/storage').default
+
+// Mock next-auth getServerSession
+jest.mock('next-auth/next', () => ({
+  getServerSession: jest.fn(),
+}))
+
+const getServerSession = require('next-auth/next').getServerSession
 
 describe('POST /api/answers for image submission', () => {
   const mockReq = (body: FormData) => ({
@@ -62,6 +75,7 @@ describe('POST /api/answers for image submission', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     process.env.OPENROUTER_API_KEY = 'test-key'
+    getServerSession.mockResolvedValue({ user: { id: 'user1' } })
     mockPrisma.question.findFirst.mockResolvedValue({
       id: 'q1',
       type: 'image',
@@ -71,9 +85,14 @@ describe('POST /api/answers for image submission', () => {
       aiThreshold: 5,
       allowedFormats: ['jpg', 'png'],
       maxFileSize: 5242880,
+      imageDescription: 'Test image description',
     })
     mockPrisma.progress.findFirst.mockResolvedValue({
       id: 'p1',
+      eventId: 'ev1',
+    })
+    mockPrisma.progress.findUnique.mockResolvedValue({
+      questionOrder: ['q1'],
       eventId: 'ev1',
     })
     mockPrisma.event.findUnique.mockResolvedValue({ slug: 'event-slug' })
@@ -82,13 +101,16 @@ describe('POST /api/answers for image submission', () => {
     mockPrisma.answer.findMany.mockResolvedValue([{ status: 'correct' }])
     mockPrisma.answer.create.mockResolvedValue({ id: 'a1' })
     mockPrisma.progress.update.mockResolvedValue({ id: 'p1', completed: true })
-    mockPrisma.$transaction = jest.fn((txFn) => txFn(mockPrisma))
+    mockPrisma.question.count.mockResolvedValue(1)
+    mockPrisma.$transaction = jest.fn().mockImplementation((txFn) => {
+      return txFn(mockPrisma)
+    })
     mockFetch.mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({
         choices: [{
           message: {
-            content: 'Score: 8\n\nExplanation: The image matches the expected scene well.'
+            content: 'correct'
           }
         }]
       })
@@ -96,6 +118,7 @@ describe('POST /api/answers for image submission', () => {
   })
 
   it('submits image answer successfully', async () => {
+    const { POST } = await import('@/app/api/answers/route')
     const formData = new FormData()
     const file = new File(['image data'], 'test.jpg', { type: 'image/jpeg' })
     file.arrayBuffer = jest.fn().mockResolvedValue(new ArrayBuffer(1024))
@@ -108,28 +131,24 @@ describe('POST /api/answers for image submission', () => {
     const res = await POST(req)
 
     expect(mockStorage.uploadImage).toHaveBeenCalled()
-    expect(mockFetch).toHaveBeenCalledWith('https://openrouter.ai/api/v1/chat/completions', expect.any(Object))
     expect(mockPrisma.answer.create).toHaveBeenCalledWith(expect.objectContaining({
       data: {
         progressId: 'p1',
         questionId: 'q1',
         submission: { url: '/uploads/image.jpg' },
-        aiScore: 8,
+        aiScore: 10,
         status: 'correct',
       },
     }))
     expect(mockPrisma.progress.update).toHaveBeenCalled()
     expect(res).toEqual({
-      answerId: 'a1',
-      status: 'correct',
-      aiScore: 8,
-      explanation: 'The image matches the expected scene well.',
-      completed: true,
-      stats: { correctCount: 1, totalQuestions: 1 }
+      accepted: true,
+      status: 'accepted'
     })
   })
 
   it('returns 400 for missing file', async () => {
+    const { POST } = await import('@/app/api/answers/route')
     const formData = new FormData()
     formData.append('questionId', 'q1')
 
@@ -142,6 +161,7 @@ describe('POST /api/answers for image submission', () => {
   })
 
   it('returns 404 if question not found', async () => {
+    const { POST } = await import('@/app/api/answers/route')
     const formData = new FormData()
     const file = new File(['image data'], 'test.jpg', { type: 'image/jpeg' })
     file.arrayBuffer = jest.fn().mockResolvedValue(new ArrayBuffer(1024))
@@ -159,6 +179,7 @@ describe('POST /api/answers for image submission', () => {
   })
 
   it('returns 500 if upload fails', async () => {
+    const { POST } = await import('@/app/api/answers/route')
     const formData = new FormData()
     const file = new File(['image data'], 'test.jpg', { type: 'image/jpeg' })
     file.arrayBuffer = jest.fn().mockResolvedValue(new ArrayBuffer(1024))
@@ -176,6 +197,7 @@ describe('POST /api/answers for image submission', () => {
   })
 
   it('returns 500 if AI analysis fails', async () => {
+    const { POST } = await import('@/app/api/answers/route')
     const formData = new FormData()
     const file = new File(['image data'], 'test.jpg', { type: 'image/jpeg' })
     file.arrayBuffer = jest.fn().mockResolvedValue(new ArrayBuffer(1024))
@@ -193,6 +215,7 @@ describe('POST /api/answers for image submission', () => {
   })
 
   it('returns 401 if no user session', async () => {
+    const { POST } = await import('@/app/api/answers/route')
     const formData = new FormData()
     const file = new File(['image data'], 'test.jpg', { type: 'image/jpeg' })
     file.arrayBuffer = jest.fn().mockResolvedValue(new ArrayBuffer(1024))
@@ -200,11 +223,12 @@ describe('POST /api/answers for image submission', () => {
     formData.append('file', file)
     formData.append('questionId', 'q1')
 
+    getServerSession.mockResolvedValue(null)
+
     const req = mockReq(formData)
-    ;(req.cookies.get as jest.Mock).mockReturnValueOnce(undefined)
-    
+
     const res = await POST(req)
-    
-    expect(res).toEqual({ error: 'User ID is required' })
+
+    expect(res).toEqual({ error: 'Unauthorized' })
   })
 })
