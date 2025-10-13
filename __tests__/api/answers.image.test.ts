@@ -1,18 +1,29 @@
 import { NextRequest } from 'next/server'
 import { POST } from '@/app/api/answers/route'
-import { prisma } from '@/lib/prisma'
-import storage from '@/lib/storage'
+
+// Mock validation
+jest.mock('@/lib/validation', () => ({
+  imageUploadSchema: { safeParse: jest.fn(() => ({ success: true })) },
+  bufferValidationSchema: { safeParse: jest.fn(() => ({ success: true })) },
+}))
 
 // Mock prisma
 jest.mock('@/lib/prisma', () => ({
   prisma: {
     answer: {
       create: jest.fn(),
+      findFirst: jest.fn(),
+      update: jest.fn(),
+      findMany: jest.fn(),
     },
     progress: {
-      upsert: jest.fn(),
+      findFirst: jest.fn(),
+      update: jest.fn(),
     },
     question: {
+      findFirst: jest.fn(),
+    },
+    event: {
       findUnique: jest.fn(),
     },
   },
@@ -22,147 +33,173 @@ jest.mock('@/lib/prisma', () => ({
 jest.mock('@/lib/storage', () => ({
   default: {
     uploadImage: jest.fn(),
+    cleanupImage: jest.fn(),
   },
 }))
 
-// Mock AI call - assuming there's an AI service
-const mockAICall = jest.fn()
-jest.mock('../lib/ai', () => ({
-  analyzeImage: mockAICall,
-}))
+// Mock fetch for AI
+const mockFetch = jest.fn()
+global.fetch = mockFetch
 
-// Mock session/auth
-const mockGetUserId = jest.fn()
-jest.mock('@/utils/session', () => ({
-  getUserId: mockGetUserId,
-}))
-
-const mockPrisma = require('@/lib/prisma').prisma
-const mockStorage = storage
+const mockPrisma = jest.requireMock('@/lib/prisma').prisma
+const mockStorage = jest.requireMock('@/lib/storage').default
 
 describe('POST /api/answers for image submission', () => {
   const mockReq = (body: FormData) => ({
     json: async () => ({}),
     formData: async () => body,
-    headers: new Headers(),
+    headers: {
+      get: jest.fn((name: string) => name === 'content-type' ? 'multipart/form-data' : null),
+    },
+    cookies: {
+      get: jest.fn(() => ({ value: 'user1' })),
+    },
   } as unknown as NextRequest)
 
   beforeEach(() => {
     jest.clearAllMocks()
-    mockGetUserId.mockReturnValue('user1')
-    mockPrisma.question.findUnique.mockResolvedValue({
+    mockPrisma.question.findFirst.mockResolvedValue({
       id: 'q1',
       type: 'image',
       eventId: 'ev1',
-      content: 'Test',
+      content: 'Test question',
+      expectedAnswer: 'Expected image description',
+      aiThreshold: 5,
+      allowedFormats: ['jpg', 'png'],
+      maxFileSize: 5242880,
     })
+    mockPrisma.progress.findFirst.mockResolvedValue({
+      id: 'p1',
+      eventId: 'ev1',
+    })
+    mockPrisma.event.findUnique.mockResolvedValue({ slug: 'event-slug' })
     mockStorage.uploadImage.mockResolvedValue({ url: '/uploads/image.jpg' })
+    mockPrisma.answer.findFirst.mockResolvedValue(null)
+    mockPrisma.answer.findMany.mockResolvedValue([{ status: 'correct' }])
     mockPrisma.answer.create.mockResolvedValue({ id: 'a1' })
-    mockPrisma.progress.upsert.mockResolvedValue({ completedCount: 1 })
-    mockAICall.mockResolvedValue({ analysis: 'Test analysis' })
+    mockPrisma.progress.update.mockResolvedValue({ id: 'p1', completed: true })
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        choices: [{
+          message: {
+            content: 'Score: 8\n\nExplanation: The image matches the expected scene well.'
+          }
+        }]
+      })
+    } as Response)
   })
 
   it('submits image answer successfully', async () => {
     const formData = new FormData()
-    formData.append('file', new File(['image data'], 'test.jpg', { type: 'image/jpeg' }))
+    const file = new File(['image data'], 'test.jpg', { type: 'image/jpeg' })
+    file.arrayBuffer = jest.fn().mockResolvedValue(new ArrayBuffer(1024))
+    Object.defineProperty(file, 'size', { value: 1024, writable: false })
+    formData.append('file', file)
     formData.append('questionId', 'q1')
-    formData.append('answer', 'User description')
 
     const req = mockReq(formData)
-    req.headers.set('content-type', 'multipart/form-data')
 
     const res = await POST(req)
 
     expect(mockStorage.uploadImage).toHaveBeenCalled()
-    expect(mockAICall).toHaveBeenCalledWith('/uploads/image.jpg', 'User description', expect.any(Object))
+    expect(mockFetch).toHaveBeenCalledWith('https://openrouter.ai/api/v1/chat/completions', expect.any(Object))
     expect(mockPrisma.answer.create).toHaveBeenCalledWith(expect.objectContaining({
       data: {
-        userId: 'user1',
+        progressId: 'p1',
         questionId: 'q1',
-        answer: 'User description',
-        imageUrl: '/uploads/image.jpg',
-        aiAnalysis: 'Test analysis',
+        submission: { url: '/uploads/image.jpg' },
+        aiScore: 8,
+        status: 'correct',
       },
     }))
-    expect(mockPrisma.progress.upsert).toHaveBeenCalled()
-    expect(res).toEqual({ success: true, answer: { id: 'a1' } })
+    expect(mockPrisma.progress.update).toHaveBeenCalled()
+    expect(res).toEqual({
+      answerId: 'a1',
+      status: 'correct',
+      aiScore: 8,
+      explanation: 'The image matches the expected scene well.',
+      completed: true,
+      stats: { correctCount: 1, totalQuestions: 1 }
+    })
   })
 
   it('returns 400 for missing file', async () => {
     const formData = new FormData()
     formData.append('questionId', 'q1')
-    formData.append('answer', 'Description')
 
     const req = mockReq(formData)
-    req.headers.set('content-type', 'multipart/form-data')
 
     const res = await POST(req)
 
-    expect(res).toEqual({ error: 'File is required for image questions' })
+    expect(res).toEqual({ error: 'File and questionId are required for image upload' })
     expect(mockStorage.uploadImage).not.toHaveBeenCalled()
   })
 
   it('returns 404 if question not found', async () => {
     const formData = new FormData()
-    formData.append('file', new File(['image data'], 'test.jpg', { type: 'image/jpeg' }))
+    const file = new File(['image data'], 'test.jpg', { type: 'image/jpeg' })
+    file.arrayBuffer = jest.fn().mockResolvedValue(new ArrayBuffer(1024))
+    Object.defineProperty(file, 'size', { value: 1024, writable: false })
+    formData.append('file', file)
     formData.append('questionId', 'q1')
-    formData.append('answer', 'Description')
 
-    mockPrisma.question.findUnique.mockResolvedValue(null)
+    mockPrisma.question.findFirst.mockResolvedValue(null)
 
     const req = mockReq(formData)
-    req.headers.set('content-type', 'multipart/form-data')
 
     const res = await POST(req)
 
-    expect(res).toEqual({ error: 'Question not found' })
+    expect(res).toEqual({ error: 'Image question not found' })
   })
 
   it('returns 500 if upload fails', async () => {
     const formData = new FormData()
-    formData.append('file', new File(['image data'], 'test.jpg', { type: 'image/jpeg' }))
+    const file = new File(['image data'], 'test.jpg', { type: 'image/jpeg' })
+    file.arrayBuffer = jest.fn().mockResolvedValue(new ArrayBuffer(1024))
+    Object.defineProperty(file, 'size', { value: 1024, writable: false })
+    formData.append('file', file)
     formData.append('questionId', 'q1')
-    formData.append('answer', 'Description')
 
     mockStorage.uploadImage.mockRejectedValue(new Error('Upload failed'))
 
     const req = mockReq(formData)
-    req.headers.set('content-type', 'multipart/form-data')
 
     const res = await POST(req)
 
-    expect(res).toEqual({ error: 'Upload failed' })
+    expect(res).toEqual({ error: 'Internal server error' })
   })
 
   it('returns 500 if AI analysis fails', async () => {
     const formData = new FormData()
-    formData.append('file', new File(['image data'], 'test.jpg', { type: 'image/jpeg' }))
+    const file = new File(['image data'], 'test.jpg', { type: 'image/jpeg' })
+    file.arrayBuffer = jest.fn().mockResolvedValue(new ArrayBuffer(1024))
+    Object.defineProperty(file, 'size', { value: 1024, writable: false })
+    formData.append('file', file)
     formData.append('questionId', 'q1')
-    formData.append('answer', 'Description')
 
-    mockAICall.mockRejectedValue(new Error('AI error'))
+    mockFetch.mockRejectedValue(new Error('AI error'))
 
     const req = mockReq(formData)
-    req.headers.set('content-type', 'multipart/form-data')
 
     const res = await POST(req)
 
-    expect(res).toEqual({ error: 'AI analysis failed' })
+    expect(res).toEqual({ error: 'Internal server error' })
   })
 
   it('returns 401 if no user session', async () => {
-    mockGetUserId.mockReturnValue(null)
-
     const formData = new FormData()
-    formData.append('file', new File(['image data'], 'test.jpg', { type: 'image/jpeg' }))
+    const file = new File(['image data'], 'test.jpg', { type: 'image/jpeg' })
+    file.arrayBuffer = jest.fn().mockResolvedValue(new ArrayBuffer(1024))
+    Object.defineProperty(file, 'size', { value: 1024, writable: false })
+    formData.append('file', file)
     formData.append('questionId', 'q1')
-    formData.append('answer', 'Description')
 
     const req = mockReq(formData)
-    req.headers.set('content-type', 'multipart/form-data')
+    req.cookies.get.mockReturnValueOnce(undefined)
 
     const res = await POST(req)
 
-    expect(res).toEqual({ error: 'Unauthorized' })
+    expect(res).toEqual({ error: 'User ID is required' })
   })
 })

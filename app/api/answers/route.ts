@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma, Prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
+import type { Prisma } from '@prisma/client'
+import type { Question } from '@/types/question'
 import storage from '@/lib/storage'
 import { imageUploadSchema, bufferValidationSchema } from '@/lib/validation'
 import type { AnswerSubmission } from '@/types/answer'
@@ -10,6 +12,7 @@ const defaultMaxFileSize = 5 * 1024 * 1024 // 5MB
 
 
 export async function POST(request: NextRequest) {
+  let uploadedUrl: string | null = null
   try {
     const userId = request.cookies.get('userId')?.value
 
@@ -21,8 +24,12 @@ export async function POST(request: NextRequest) {
     let submission: string | { url: string }
     let progressId: string
     let eventId: string
-    let uploadedUrl: string | null = null
-    const contentType = request.headers.get('content-type') || ''
+let uploadedUrl: string | null = null
+let type: Question['type']
+let expectedAnswer: string
+let aiThreshold: number
+let content: string
+const contentType = request.headers.get('content-type') || ''
     const isImageUpload = contentType.includes('multipart/form-data')
 
     if (isImageUpload) {
@@ -74,13 +81,18 @@ export async function POST(request: NextRequest) {
 
       const { type: qType, expectedAnswer: qExpected, aiThreshold: qAi, content: qContent, allowedFormats, maxFileSize } = questionValidationData
 
+type = qType
+expectedAnswer = qExpected
+aiThreshold = qAi || 0
+content = qContent
+
       // Parse allowedFormats
       let questionAllowedFormats: string[]
       if (typeof allowedFormats === 'string') {
         questionAllowedFormats = allowedFormats.split(',').map(f => f.trim())
-      } else if (Array.isArray(allowedFormats)) {
-        questionAllowedFormats = allowedFormats
-      } else {
+} else if (Array.isArray(allowedFormats)) {
+  questionAllowedFormats = allowedFormats as string[]
+} else {
         questionAllowedFormats = allowedMimeTypes
       }
 
@@ -183,6 +195,11 @@ export async function POST(request: NextRequest) {
       }
 
       const { type: qType, expectedAnswer: qExpected, aiThreshold: qAi, content: qContent } = questionData
+
+type = qType
+expectedAnswer = qExpected
+aiThreshold = qAi || 0
+content = qContent
       type = qType
       expectedAnswer = qExpected
       aiThreshold = qAi

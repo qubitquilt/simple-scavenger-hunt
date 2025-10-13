@@ -2,7 +2,6 @@ import { NextRequest } from 'next/server'
 import { POST } from '@/app/api/upload/image/route'
 import { imageUploadSchema } from '@/lib/validation'
 import { getServerSession } from 'next-auth'
-import * as prismaModule from '@/lib/prisma'
 import * as fsModule from 'fs/promises'
 import * as pathModule from 'path'
 
@@ -19,22 +18,19 @@ jest.mock('next-auth', () => ({
   getServerSession: jest.fn(),
 }))
 
-// Mock prisma
-const prismaMocks = {
-  progress: {
-    findFirst: jest.fn(),
-  },
-  question: {
-    findFirst: jest.fn(),
-  },
-  event: {
-    findUnique: jest.fn(),
-  },
-}
-
-jest.mock('@/lib/prisma', () => ({
-  prisma: prismaMocks,
-}))
+// Mock prisma with factory
+jest.mock('@/lib/prisma', () => {
+  const progressFindFirst = jest.fn()
+  const questionFindFirst = jest.fn()
+  const eventFindUnique = jest.fn()
+  return {
+    prisma: {
+      progress: { findFirst: progressFindFirst },
+      question: { findFirst: questionFindFirst },
+      event: { findUnique: eventFindUnique },
+    },
+  }
+})
 
 // Mock fs
 jest.mock('fs/promises', () => ({
@@ -48,14 +44,16 @@ jest.mock('path', () => ({
   join: jest.fn(),
 }))
 
+// Get mock references
+const mockPrisma = jest.requireMock('@/lib/prisma').prisma
+const mockPrismaProgressFindFirst = mockPrisma.progress.findFirst
+const mockPrismaQuestionFindFirst = mockPrisma.question.findFirst
+const mockPrismaEventFindUnique = mockPrisma.event.findUnique
+
 const mockImageUpload = imageUploadSchema.safeParse as jest.Mock
 const mockGetServerSession = getServerSession as jest.Mock
-const mockPrismaProgressFindFirst = prismaMocks.progress.findFirst as jest.Mock
-const mockPrismaQuestionFindFirst = prismaMocks.question.findFirst as jest.Mock
-const mockPrismaEventFindUnique = prismaMocks.event.findUnique as jest.Mock
 const mockFsMkdir = fsModule.mkdir as jest.Mock
 const mockFsWriteFile = fsModule.writeFile as jest.Mock
-const mockFsUnlink = fsModule.unlink as jest.Mock
 const mockPathJoin = pathModule.join as jest.Mock
 
 describe('POST /api/upload/image', () => {
@@ -83,9 +81,15 @@ describe('POST /api/upload/image', () => {
     mockPathJoin.mockImplementation((...args: string[]) => args.join('/'))
   })
 
+  afterEach(() => {
+    jest.restoreAllMocks()
+  })
+
   it('returns 201 with upload URL for valid FormData', async () => {
     const formData = new FormData()
-    formData.append('file', new File(['test'], 'test.jpg', { type: 'image/jpeg' }))
+    const file = new File(['test'], 'test.jpg', { type: 'image/jpeg' })
+    file.arrayBuffer = jest.fn().mockResolvedValue(new ArrayBuffer(1024))
+    formData.append('file', file)
     formData.append('questionId', 'q1')
 
     const req = mockReq(formData)
@@ -103,7 +107,9 @@ describe('POST /api/upload/image', () => {
 
   it('returns 400 for invalid FormData schema', async () => {
     const formData = new FormData()
-    formData.append('invalid', 'data')
+    const file = new File(['test'], 'test.jpg', { type: 'image/jpeg' })
+    formData.append('file', file)
+    formData.append('questionId', 'q1')
 
     mockImageUpload.mockReturnValue({ success: false, error: { issues: [{ message: 'Invalid' }] } })
 
@@ -116,7 +122,8 @@ describe('POST /api/upload/image', () => {
 
   it('returns 404 if question not found', async () => {
     const formData = new FormData()
-    formData.append('file', new File(['test'], 'test.jpg', { type: 'image/jpeg' }))
+    const file = new File(['test'], 'test.jpg', { type: 'image/jpeg' })
+    formData.append('file', file)
     formData.append('questionId', 'q1')
 
     mockPrismaQuestionFindFirst.mockResolvedValue(null)
@@ -130,13 +137,14 @@ describe('POST /api/upload/image', () => {
 
   it('returns 400 for invalid file format', async () => {
     const formData = new FormData()
-    formData.append('file', new File(['test'], 'test.txt', { type: 'text/plain' }))
+    const file = new File(['test'], 'test.txt', { type: 'text/plain' })
+    formData.append('file', file)
     formData.append('questionId', 'q1')
 
     const req = mockReq(formData)
     const res = await POST(req)
 
-    expect(res).toEqual({ error: 'Invalid file format. Allowed: jpg,png' })
+    expect(res).toEqual({ error: 'Invalid file format. Allowed: jpg, png' })
     expect(mockFsWriteFile).not.toHaveBeenCalled()
   })
 
@@ -156,7 +164,9 @@ describe('POST /api/upload/image', () => {
 
   it('returns 500 if write file fails', async () => {
     const formData = new FormData()
-    formData.append('file', new File(['test'], 'test.jpg', { type: 'image/jpeg' }))
+    const file = new File(['test'], 'test.jpg', { type: 'image/jpeg' })
+    file.arrayBuffer = jest.fn().mockResolvedValue(new ArrayBuffer(1024))
+    formData.append('file', file)
     formData.append('questionId', 'q1')
 
     mockFsWriteFile.mockRejectedValue(new Error('Write error'))

@@ -1,52 +1,8 @@
-'use client'
-
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import '@testing-library/jest-dom'
 import ImageQuestionForm from '@/components/admin/ImageQuestionForm'
-
-// Mock react-hook-form minimally for integration testing
-jest.mock('react-hook-form', () => ({
-  useForm: jest.fn(() => ({
-    register: jest.fn(() => ({ onChange: jest.fn(), onBlur: jest.fn(), name: 'field', ref: jest.fn() })),
-    handleSubmit: jest.fn((fn) => async (e: React.BaseSyntheticEvent) => {
-      e?.preventDefault()
-      const mockData = {
-        eventId: 'test-event',
-        type: 'image',
-        content: '',
-        expectedAnswer: '',
-        aiThreshold: 8,
-        hintEnabled: false,
-        imageDescription: '',
-        allowedFormats: ['jpg', 'png', 'gif']
-      }
-      return fn(mockData)
-    }),
-    formState: { errors: {}, isDirty: false },
-    watch: jest.fn(() => ['jpg', 'png', 'gif']),
-    setValue: jest.fn(),
-    control: {},
-  })),
-  useController: jest.fn(),
-  type: { Resolver: jest.fn() }
-}))
-
-// Mock zod resolver
-jest.mock('@hookform/resolvers/zod', () => ({
-  zodResolver: jest.fn(() => jest.fn())
-}))
-
-// Mock validation - assume passes for valid, fails for invalid
-const mockImageQuestionSchema = {
-  safeParse: jest.fn((data) => ({ success: true, data })),
-  parse: jest.fn((data) => data)
-}
-jest.mock('@/lib/validation', () => ({
-  imageQuestionSchema: mockImageQuestionSchema,
-  CreateQuestion: jest.fn(),
-}))
 
 const mockOnSubmit = jest.fn()
 const user = userEvent.setup()
@@ -60,15 +16,6 @@ describe('ImageQuestionForm', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    mockImageQuestionSchema.safeParse.mockImplementation((data) => {
-      if (!data.imageDescription) {
-        return { success: false, error: { issues: [{ message: 'Image description is required' }] }, data: {} }
-      }
-      if (data.allowedFormats && data.allowedFormats.length === 0) {
-        return { success: false, error: { issues: [{ message: 'At least one format required' }] }, data: {} }
-      }
-      return { success: true, data }
-    })
   })
 
   it('renders form inputs with defaults', () => {
@@ -108,7 +55,7 @@ describe('ImageQuestionForm', () => {
         allowedFormats: ['jpg', 'png', 'gif'],
         aiThreshold: 8,
         hintEnabled: false
-      }))
+      }), expect.anything())
     })
   })
 
@@ -118,7 +65,7 @@ describe('ImageQuestionForm', () => {
     await user.type(screen.getByLabelText(/question content/i), 'Content')
     await user.type(screen.getByLabelText(/expected answer/i), 'Answer')
 
-    // Uncheck all formats to also test that, but focus on description
+    // Uncheck all formats to also test that
     const jpgCheckbox = screen.getByLabelText(/jpg/i)
     await user.click(jpgCheckbox)
     await user.click(screen.getByLabelText(/png/i))
@@ -133,7 +80,7 @@ describe('ImageQuestionForm', () => {
   })
 
   it('toggles allowed formats checkboxes', async () => {
-    const { rerender } = render(<ImageQuestionForm {...defaultProps} />)
+    render(<ImageQuestionForm {...defaultProps} />)
 
     // Initial all checked
     expect(screen.getByLabelText(/jpg/i)).toBeChecked()
@@ -154,7 +101,7 @@ describe('ImageQuestionForm', () => {
       expect(mockOnSubmit).toHaveBeenCalledWith(expect.objectContaining({
         imageDescription: 'Desc',
         allowedFormats: expect.arrayContaining(['png', 'gif']) // jpg toggled but back on
-      }))
+      }), expect.anything())
     })
   })
 
@@ -167,9 +114,6 @@ describe('ImageQuestionForm', () => {
 
     // Make dirty by typing
     await user.type(screen.getByLabelText(/image description/i), 'Dirty')
-
-    // Mock useForm to return isDirty true
-    // But since mocked, assume
 
     const cancelButton = screen.getByRole('button', { name: /cancel/i })
     await user.click(cancelButton)
