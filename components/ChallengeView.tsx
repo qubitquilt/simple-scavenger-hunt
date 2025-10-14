@@ -24,7 +24,7 @@ export default function ChallengeView({ question, event }: ChallengeViewProps) {
   const [feedback, setFeedback] = useState<string | null>(null)
   const [aiScore, setAiScore] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [submission, setSubmission] = useState<string | null>(null)
+  const [submission, setSubmission] = useState<string>('')
   const [hint, setHint] = useState<string | null>(null)
   const [hintLoading, setHintLoading] = useState(false)
   const [hintError, setHintError] = useState<string | null>(null)
@@ -325,14 +325,14 @@ export default function ChallengeView({ question, event }: ChallengeViewProps) {
                     <span className="label-text">Choose your answer</span>
                   </label>
                   <div className="space-y-2">
-                    {question.options && Object.entries(question.options).map(([key, value]) => (
+                    {question.options && Object.entries(JSON.parse((question.options as unknown) as string) as Record<string, string>).map(([key, value]) => (
                       <label key={key} className="label cursor-pointer">
                         <input
                           type="radio"
                           name="answer"
                           value={value}
                           checked={submission === value}
-                          onChange={() => handleMcChange(value)}
+                          onChange={(e) => handleMcChange(e.target.value)}
                           className="radio radio-primary"
                           disabled={isAccepted || submitting}
                         />
@@ -342,13 +342,29 @@ export default function ChallengeView({ question, event }: ChallengeViewProps) {
                   </div>
                 </div>
 
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={!submission || submitting || isAccepted}
-                >
-                  {submitting ? 'Submitting...' : 'Submit Answer'}
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={!submission || submitting || isAccepted}
+                  >
+                    {submitting ? 'Submitting...' : 'Submit Answer'}
+                  </button>
+
+                  {isPendingOrRejected && question.hintEnabled && (
+                    <button
+                      type="button"
+                      onClick={handleHintRequest}
+                      className="btn btn-secondary"
+                      disabled={hintLoading || hintCount >= maxHints}
+                      onKeyDown={handleHintKeyDown}
+                      tabIndex={0}
+                      aria-label="Request hint"
+                    >
+                      {hintLoading ? 'Getting Hint...' : `Hint (${hintCount}/${maxHints})`}
+                    </button>
+                  )}
+                </div>
               </form>
             )}
 
@@ -367,35 +383,25 @@ export default function ChallengeView({ question, event }: ChallengeViewProps) {
                 role="alert"
                 aria-live="polite"
               >
-                {feedback}
+                <span>{feedback}</span>
               </div>
             )}
 
             {error && (
               <div className="alert alert-error" role="alert">
-                {error}
+                <span>{error}</span>
               </div>
             )}
 
             {hint && (
-              <div className="alert alert-info">
-                <div className="flex-1">
-                  <strong>Hint:</strong> {hint}
-                </div>
+              <div className="alert alert-info" role="alert">
+                <span>💡 {hint}</span>
               </div>
             )}
 
             {hintError && (
-              <div className="alert alert-error">
-                {hintError}
-              </div>
-            )}
-
-            {isAccepted && (
-              <div className="alert alert-success">
-                <div className="flex-1">
-                  <strong>Correct!</strong> Well done!
-                </div>
+              <div className="alert alert-error" role="alert">
+                <span>{hintError}</span>
               </div>
             )}
           </div>
