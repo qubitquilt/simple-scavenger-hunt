@@ -151,7 +151,8 @@ Hint:`;
     }
 
     const data = await openRouterResponse.json();
-    const hint = data.choices[0].message.content.trim();
+    const rawHint = data.choices[0].message.content;
+    const hint = typeof rawHint === 'string' ? rawHint.trim() : 'Hint unavailable';
 
     // Update or create answer record with hint count
     const existingAnswer = await prisma.answer.findFirst({

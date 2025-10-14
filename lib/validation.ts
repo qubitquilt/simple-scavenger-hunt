@@ -6,7 +6,7 @@ const commonQuestionFields = {
   content: z.string().min(1, "Content is required").max(2000, "Content must be less than 2000 characters"),
   expectedAnswer: z.string().min(1, "Expected answer is required"),
   aiThreshold: z.coerce.number().min(0).max(10).default(8),
-  hintEnabled: z.boolean().default(false),
+  hintEnabled: z.preprocess((val) => val === "on" ? true : val, z.boolean().default(false)),
 };
 
 const textQuestionSchema = z.object({
@@ -68,7 +68,7 @@ const updateCommonFields = {
   content: z.string().min(1).max(2000).optional(),
   expectedAnswer: z.string().min(1).optional(),
   aiThreshold: z.coerce.number().min(0).max(10).default(8).optional(),
-  hintEnabled: z.boolean().default(false).optional(),
+  hintEnabled: z.preprocess((val) => val === "on" ? true : val, z.boolean()).optional().default(false),
   imageDescription: z.string().optional(),
   allowedFormats: z.preprocess(
     (val) => (typeof val === "string" ? JSON.parse(val) : val),

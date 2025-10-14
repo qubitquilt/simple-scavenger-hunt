@@ -294,20 +294,32 @@ export default function ChallengeView({ question, event }: ChallengeViewProps) {
     let answerContent;
     const userAnswerValue = answer?.submission;
 
+    // Extract the display value from submission, handling both string and object formats
+    const getDisplayValue = (submission: any) => {
+      if (typeof submission === 'string') {
+        return submission;
+      }
+      if (typeof submission === 'object' && submission !== null) {
+        // For text/multiple choice, the answer might be stored under different keys
+        return submission.answer || submission.textAnswer || submission.mcAnswer || JSON.stringify(submission);
+      }
+      return String(submission || '');
+    };
+
     if (question.type === "text") {
       answerContent = (
         <div className="bg-base-200 p-3 rounded-box whitespace-pre-wrap" aria-label="Submitted text answer">
-          {userAnswerValue as string}
+          {getDisplayValue(userAnswerValue)}
         </div>
       );
     } else if (question.type === "multiple_choice") {
       answerContent = (
         <div className="bg-base-200 p-3 rounded-box whitespace-pre-wrap" aria-label="Submitted multiple choice answer">
-          {userAnswerValue as string}
+          {getDisplayValue(userAnswerValue)}
         </div>
       );
     } else if (question.type === "image") {
-      const imageUrl = (userAnswerValue as { url: string }).url;
+      const imageUrl = (userAnswerValue as { url: string })?.url;
       answerContent = (
         <div className="flex justify-center">
           <Image
@@ -477,7 +489,7 @@ export default function ChallengeView({ question, event }: ChallengeViewProps) {
                     d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-                <span>{hint}</span>
+                <span>{typeof hint === 'string' ? hint : JSON.stringify(hint)}</span>
               </div>
             )}
             {error && (
