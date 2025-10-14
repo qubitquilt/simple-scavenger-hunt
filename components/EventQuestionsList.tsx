@@ -137,17 +137,17 @@ export default function EventQuestionsList({
         </div>
       </div>
 
-      {questions.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
-          No challenges available for this event.
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {questions.map((question) => (
-            <QuestionCard key={question.id} question={question} />
-          ))}
-        </div>
-      )}
+        {questions.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            No challenges available for this event.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {questions.map((question) => (
+              <QuestionCard key={question.id} question={question} />
+            ))}
+          </div>
+        )}
 
       {isCompleted && (
         <div className="text-center">

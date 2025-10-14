@@ -246,6 +246,7 @@ export async function GET(request: NextRequest) {
     // Fetch questions for the event
     const questionsData = await prisma.question.findMany({
       where: { eventId: targetEventId },
+      orderBy: { title: 'asc' },
       select: {
         id: true,
         eventId: true,
