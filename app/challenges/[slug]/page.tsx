@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { cookies } from "next/headers";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import type { Question } from "@/types/question";
+import type { Question, QuestionType } from "@/types/question";
 import type { Event } from "@/types/admin";
 import ChallengeView from "@/components/ChallengeView";
 import Breadcrumbs from "@/components/Breadcrumbs";
@@ -11,42 +11,41 @@ import Breadcrumbs from "@/components/Breadcrumbs";
 async function getQuestionAndEvent(
   slug: string,
 ): Promise<{ question: Question; event: Event }> {
-  const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/questions/${slug}`, {
-    cache: 'no-store',
+  const { prisma } = await import("@/lib/prisma");
+  const question = await prisma.question.findUnique({
+    where: { slug },
+    include: {
+      event: true,
+    },
   });
 
-  if (!response.ok) {
-    notFound();
-  }
-
-  const data = await response.json();
-
-  if (!data.question) {
+  if (!question) {
     notFound();
   }
 
   // Transform to match custom types with backward compatibility
   const transformedQuestion: Question = {
-    ...data.question,
-    title: data.question.title || data.question.content || '',
-    content: data.question.content || '',
-    options: data.question.options as Record<string, string> | undefined,
-    createdAt: data.question.createdAt,
-    allowedFormats: data.question.allowedFormats as
+    ...question,
+    type: question.type as any as QuestionType,
+    title: question.title || question.content || '',
+    content: question.content || '',
+    options: question.options as Record<string, string> | undefined,
+    createdAt: question.createdAt.toISOString(),
+    allowedFormats: question.allowedFormats as
       | ("jpg" | "png" | "gif")[]
       | null
       | undefined,
-    minResolution: data.question.minResolution as
+    minResolution: question.minResolution as
       | { width: number; height: number }
       | null
       | undefined,
   };
 
   const transformedEvent: Event = {
-    ...data.event,
-    description: data.event.description || "",
-    date: data.event.date,
-    createdAt: data.event.createdAt,
+    ...question.event,
+    description: question.event?.description || "",
+    date: question.event?.date,
+    createdAt: question.event?.createdAt,
   };
 
   return {
