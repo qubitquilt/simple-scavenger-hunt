@@ -250,6 +250,7 @@ export async function GET(request: NextRequest) {
         id: true,
         eventId: true,
         type: true,
+        title: true,
         content: true,
         options: true,
         expectedAnswer: true,

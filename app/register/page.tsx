@@ -76,7 +76,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-md">
         <form onSubmit={handleSubmit} className="space-y-4">
           <fieldset className="fieldset">
-            <legend className="fieldset-legend">What is your name?</legend>
+            <legend className="fieldset-legend pb-4">What is your name?</legend>
             <input
               type="text"
               id="name"

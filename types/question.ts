@@ -1,9 +1,15 @@
 import { JsonValue } from "@prisma/client/runtime/library";
 
+export enum QuestionType {
+  TEXT = "text",
+  MULTIPLE_CHOICE = "multiple_choice",
+  IMAGE = "image",
+}
+
 export interface Question {
   id: string;
   eventId: string;
-  type: "text" | "multiple_choice" | "image";
+  type: QuestionType;
   title: string;
   content: string;
   options?: string | Record<string, string>;

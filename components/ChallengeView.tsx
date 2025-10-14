@@ -450,7 +450,8 @@ export default function ChallengeView({ question, event }: ChallengeViewProps) {
       <div className="max-w-2xl mx-auto">
         <div className="card bg-base-100 shadow-xl">
           <div className="card-body p-6">
-            <h1 className="card-title text-2xl mb-4">{question.content}</h1>
+            <h1 className="card-title text-2xl mb-4">{question.title}</h1>
+            <h3 className="text-l mb-4">{question.content}</h3>
             {renderReadOnlyAnswer()}
             {shouldShowForm && renderForm()}
             {question.hintEnabled && !isAnswered && hintCount < maxHints && (

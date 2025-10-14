@@ -90,29 +90,15 @@ export default function CompletionPage() {
 
       <div className="text-center max-w-md">
         <h1 className="text-4xl font-bold mb-4">Congratulations!</h1>
-        <p className="text-xl mb-8 text-gray-700">
+        <p className="text-xl mb-8">
           You&apos;ve completed all the challenges! 🎉
         </p>
-        <p className="text-lg mb-8 text-gray-600">
-          Contact the organizers on October 14, 2025 to claim your prize.
+        <p className="text-lg mb-8">
+          Head to the check-in desk to claim your prize!
         </p>
-
-        <div className="space-y-3">
-          <button
-            onClick={handleRestart}
-            className="w-full bg-green-500 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-            aria-label="Start a new scavenger hunt"
-          >
-            Start New Hunt
-          </button>
-          <button
-            onClick={handleHome}
-            className="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            aria-label="Return to home page"
-          >
-            Home
-          </button>
-        </div>
+        <p className="text-lg mb-8">
+          First come, first serve!
+        </p>
       </div>
     </div>
   );

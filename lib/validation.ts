@@ -9,7 +9,7 @@ const commonQuestionFields = {
   hintEnabled: z.preprocess((val) => val === "on" ? true : val, z.boolean().default(false)),
 };
 
-const textQuestionSchema = z.object({
+export const textQuestionSchema = z.object({
   type: z.literal("text"),
   ...commonQuestionFields,
 });
