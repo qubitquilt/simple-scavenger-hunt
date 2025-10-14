@@ -184,7 +184,7 @@ export default function MultiChoiceQuestionForm({
       <div className="flex space-x-3 pt-4">
         <button
           type="submit"
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          className="btn btn-primary"
         >
           Submit
         </button>
@@ -192,7 +192,7 @@ export default function MultiChoiceQuestionForm({
           <button
             type="button"
             onClick={handleCancel}
-            className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+            className="btn btn-secondary"
           >
             Cancel
           </button>

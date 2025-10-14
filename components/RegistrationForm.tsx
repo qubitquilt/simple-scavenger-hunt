@@ -105,7 +105,7 @@ export default function RegistrationForm({ event, onSuccess }: { event: Event; o
         <button
           type="submit"
           disabled={registering || !formData.firstName || !formData.lastName}
-          className="w-full bg-blue-500 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold py-3 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed"
+          className="btn btn-primary btn-block"
           aria-label={registering ? 'Registering...' : 'Register for event'}
         >
           {registering ? 'Registering...' : 'Register'}

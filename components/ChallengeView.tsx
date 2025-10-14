@@ -301,11 +301,11 @@ export default function ChallengeView({ question, event }: ChallengeViewProps) {
                     {submitting ? 'Submitting...' : 'Submit Answer'}
                   </button>
 
-                  {isPendingOrRejected && (
+                  {isPendingOrRejected && question.hintEnabled && (
                     <button
                       type="button"
                       onClick={handleHintRequest}
-                      className="btn btn-outline"
+                      className="btn btn-secondary"
                       disabled={hintLoading || hintCount >= maxHints}
                       onKeyDown={handleHintKeyDown}
                       tabIndex={0}

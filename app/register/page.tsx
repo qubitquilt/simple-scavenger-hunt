@@ -111,7 +111,7 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-500 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed"
+            className="btn btn-primary btn-block"
             aria-label="Register and start the scavenger hunt"
           >
             {loading ? 'Registering...' : 'Register'}

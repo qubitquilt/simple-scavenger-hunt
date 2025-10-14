@@ -22,7 +22,7 @@ interface ProgressResponse {
   }
 }
 
-export default function EventQuestionsList({ event }: { event: Event }) {
+export default function EventQuestionsList({ event }: { event: Event, progressData?: ProgressResponse | null }) {
   const [progressData, setProgressData] = useState<ProgressResponse | null>(null)
   const [isLoadingProgress, setIsLoadingProgress] = useState(false)
   const router = useRouter()
@@ -80,13 +80,13 @@ export default function EventQuestionsList({ event }: { event: Event }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900">{event.title}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{event.title}</h1>
         <button
           onClick={handleBack}
           onKeyDown={handleKeyDown}
-          className="text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          className="btn btn-ghost"
           aria-label="Back to home"
           tabIndex={0}
         >
@@ -103,13 +103,13 @@ export default function EventQuestionsList({ event }: { event: Event }) {
         )}
       </div>
 
-      <div className="bg-green-50 border border-green-200 rounded-md p-4 mb-6">
-        <h2 className="text-lg font-semibold text-green-800 mb-2">You're Registered!</h2>
-        <p className="text-green-700 mb-2">
+      <div className="alert alert-success mb-6">
+        <h2 className="font-semibold">You're Registered!</h2>
+        <p>
           Progress: {progressPercentage}% ({stats.completedCount}/{stats.totalCount} challenges completed)
         </p>
         {isCompleted && (
-          <p className="text-green-700 font-semibold">🎉 Event completed!</p>
+          <p className="font-semibold">🎉 Event completed!</p>
         )}
       </div>
 
@@ -145,7 +145,7 @@ export default function EventQuestionsList({ event }: { event: Event }) {
         <div className="text-center">
           <Link
             href="/complete"
-            className="inline-block bg-green-500 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+            className="btn btn-success"
           >
             View Completion
           </Link>

@@ -54,12 +54,14 @@ export default function QuestionCard({ question, onSelect }: QuestionCardProps) 
     : question.content
 
   const cardContent = (
-    <div className="bg-white shadow-md rounded-lg p-6 hover:shadow-lg transition-shadow">
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">{previewText}</h3>
-      <p className="text-sm text-gray-600 mb-4">
-        Type: {question.type.replace('_', ' ')}
-      </p>
-      {getStatusBadge(question.computedStatus)}
+    <div className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow min-h-[120px] sm:min-h-[140px]">
+      <div className="card-body p-4 sm:p-6">
+        <h2 className="card-title text-base sm:text-lg leading-tight">{previewText}</h2>
+        <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
+          Type: {question.type.replace('_', ' ')}
+        </p>
+        {getStatusBadge(question.computedStatus)}
+      </div>
     </div>
   )
 

@@ -19,6 +19,7 @@ export default function ImageQuestion({
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showCamera, setShowCamera] = useState(false)
+  const [showPreviewModal, setShowPreviewModal] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const dropZoneRef = useRef<HTMLDivElement>(null)
@@ -36,6 +37,7 @@ export default function ImageQuestion({
       setSelectedFile(file)
       const preview = URL.createObjectURL(file)
       setPreviewUrl(preview)
+      setShowPreviewModal(true)
     } else {
       setError('Please drop an image file')
     }
@@ -48,6 +50,7 @@ export default function ImageQuestion({
       setSelectedFile(file)
       const preview = URL.createObjectURL(file)
       setPreviewUrl(preview)
+      setShowPreviewModal(true)
     } else {
       setError('Please select an image file')
     }
@@ -113,6 +116,7 @@ export default function ImageQuestion({
             const preview = URL.createObjectURL(file)
             setPreviewUrl(preview)
             setShowCamera(false)
+            setShowPreviewModal(true)
             // Stop camera
             if (videoRef.current?.srcObject) {
               (videoRef.current.srcObject as MediaStream).getTracks().forEach(track => track.stop())
@@ -162,7 +166,7 @@ export default function ImageQuestion({
           <div className="flex space-x-3 mt-4">
             <button
               onClick={capturePhoto}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="btn btn-primary flex-1"
               tabIndex={0}
               aria-label="Capture photo"
               onKeyDown={(e) => handleKeyDown(e, capturePhoto)}
@@ -171,7 +175,7 @@ export default function ImageQuestion({
             </button>
             <button
               onClick={closeCamera}
-              className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+              className="btn btn-secondary flex-1"
               tabIndex={0}
               aria-label="Cancel camera"
               onKeyDown={(e) => handleKeyDown(e, closeCamera)}
@@ -198,21 +202,14 @@ export default function ImageQuestion({
 
       {previewUrl ? (
         <div className="space-y-3">
-          <img
-            src={previewUrl}
-            alt="Preview of uploaded image"
-            className="max-w-full h-auto rounded border"
-            role="img"
-          />
           <button
-            onClick={handleUpload}
-            disabled={isUploading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed"
+            onClick={() => setShowPreviewModal(true)}
+            className="btn btn-secondary btn-block"
             tabIndex={0}
-            aria-label="Upload image"
-            onKeyDown={(e) => handleKeyDown(e, handleUpload)}
+            aria-label="Preview image"
+            onKeyDown={(e) => handleKeyDown(e, () => setShowPreviewModal(true))}
           >
-            {isUploading ? 'Uploading...' : 'Upload Image'}
+            Preview Image
           </button>
         </div>
       ) : (
@@ -244,7 +241,7 @@ export default function ImageQuestion({
       <button
         onClick={openCamera}
         disabled={isUploading || showCamera}
-        className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:cursor-not-allowed"
+        className="btn btn-success btn-block"
         tabIndex={0}
         aria-label="Open camera to take photo"
         onKeyDown={(e) => handleKeyDown(e, openCamera)}
@@ -256,6 +253,50 @@ export default function ImageQuestion({
         <div className="flex items-center justify-center p-4" aria-live="polite">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
           <span className="ml-2 text-sm text-gray-600">Uploading...</span>
+        </div>
+      )}
+
+      {showPreviewModal && (
+        <div
+          className="modal modal-open"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="preview-modal-title"
+        >
+          <div className="modal-box w-11/12 max-w-sm sm:max-w-md md:max-w-lg">
+            <h3 id="preview-modal-title" className="font-bold text-lg mb-4">
+              Image Preview
+            </h3>
+            {previewUrl && (
+              <img
+                src={previewUrl}
+                alt="Preview of selected image"
+                className="w-full h-auto max-h-64 object-contain rounded border mb-4"
+                role="img"
+              />
+            )}
+            <div className="modal-action flex-col sm:flex-row gap-2 sm:gap-3">
+              <button
+                onClick={() => setShowPreviewModal(false)}
+                className="btn btn-secondary w-full sm:w-auto"
+                tabIndex={0}
+                aria-label="Cancel upload"
+                onKeyDown={(e) => handleKeyDown(e, () => setShowPreviewModal(false))}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpload}
+                disabled={isUploading}
+                className="btn btn-primary w-full sm:w-auto"
+                tabIndex={0}
+                aria-label="Confirm and upload image"
+                onKeyDown={(e) => handleKeyDown(e, handleUpload)}
+              >
+                {isUploading ? 'Uploading...' : 'Upload Image'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

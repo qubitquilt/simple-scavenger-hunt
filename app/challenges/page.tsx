@@ -8,6 +8,7 @@ import LoadingSpinner from '@/components/LoadingSpinner'
 
 interface QuestionWithStatus {
   id: string
+  slug: string
   type: string
   content: string
   answered?: boolean
@@ -77,7 +78,7 @@ export default function ChallengesPage() {
           <p>{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            className="btn btn-primary mt-4"
             aria-label="Retry loading challenges"
           >
             Retry
@@ -104,9 +105,9 @@ export default function ChallengesPage() {
   const progressPercentage = stats.totalCount > 0 ? (stats.completedCount / stats.totalCount) * 100 : 0
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen p-4">
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6 text-gray-900">Scavenger Hunt Challenges</h1>
+        <h1 className="text-3xl font-bold mb-6">Scavenger Hunt Challenges</h1>
         
         <div className="mb-8">
           <div className="flex justify-between text-sm font-medium text-gray-700 mb-2">
@@ -130,26 +131,27 @@ export default function ChallengesPage() {
           {questions.map((question) => (
             <Link
               key={question.id}
-              href={`/challenges/${question.id}`}
-              className="block p-4 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              tabIndex={0}
+              href={`/challenges/${question.slug}`}
+              className="block"
               aria-label={`Challenge: ${question.content.substring(0, 50)}... ${question.status ? `Status: ${question.status}` : 'Not started'}`}
             >
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">{question.content}</h3>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Type: {question.type.replace('_', ' ')} {question.answered ? `• ${question.status}` : '• Not answered'}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                    question.status === 'correct' ? 'bg-green-100 text-green-800' :
-                    question.status === 'incorrect' ? 'bg-red-100 text-red-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {question.status || 'Start'}
-                  </span>
+              <div className="card bg-base-100 shadow-lg hover:shadow-xl transition-shadow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                <div className="card-body">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h3 className="card-title text-lg">{question.content}</h3>
+                      <p className="text-sm opacity-70">
+                        Type: {question.type.replace('_', ' ')} {question.answered ? `• ${question.status}` : '• Not answered'}
+                      </p>
+                    </div>
+                    <div className={`badge badge-lg ${
+                      question.status === 'correct' ? 'badge-success' :
+                      question.status === 'incorrect' ? 'badge-error' :
+                      'badge-neutral'
+                    }`}>
+                      {question.status || 'Start'}
+                    </div>
+                  </div>
                 </div>
               </div>
             </Link>

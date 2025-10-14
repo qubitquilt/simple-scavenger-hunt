@@ -25,6 +25,7 @@ model Event {
   title       String
   slug        String     @unique @default("default-slug")
   description String?
+  theme       EventTheme @default(blue)
   date        DateTime   @default("2025-10-14T00:00:00Z") @map("date")
   createdAt   DateTime   @default(now()) @map("created_at")
   questions   Question[]
@@ -96,4 +97,10 @@ enum AnswerStatus {
   pending
   correct
   incorrect
+}
+
+enum EventTheme {
+  blue
+  green
+  red
 }

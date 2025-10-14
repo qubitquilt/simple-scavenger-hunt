@@ -87,7 +87,7 @@ describe('ImageQuestion', () => {
     fireEvent.drop(dropZone, { dataTransfer })
 
     await waitFor(() => {
-      expect(screen.getByAltText('Preview of uploaded image')).toBeInTheDocument()
+      expect(screen.getByAltText('Preview of selected image')).toBeInTheDocument()
     })
   })
 
@@ -101,7 +101,7 @@ describe('ImageQuestion', () => {
     fireEvent.drop(dropZone, { dataTransfer })
 
     await waitFor(() => {
-      expect(screen.getByAltText('Preview of uploaded image')).toBeInTheDocument()
+      expect(screen.getByAltText('Preview of selected image')).toBeInTheDocument()
     })
 
     const uploadButton = screen.getByText('Upload Image')
@@ -128,7 +128,7 @@ describe('ImageQuestion', () => {
     fireEvent.drop(dropZone, { dataTransfer })
 
     await waitFor(() => {
-      expect(screen.getByAltText('Preview of uploaded image')).toBeInTheDocument()
+      expect(screen.getByAltText('Preview of selected image')).toBeInTheDocument()
     })
 
     const uploadButton = screen.getByText('Upload Image')
