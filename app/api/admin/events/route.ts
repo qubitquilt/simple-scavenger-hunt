@@ -24,7 +24,14 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    const typedEvents: Event[] = eventsData.map((event) => ({
+    const typedEvents: Event[] = eventsData.map((event: {
+      id: string;
+      title: string;
+      slug: string;
+      description: string | null;
+      date: Date;
+      createdAt: Date;
+    }) => ({
       id: event.id,
       title: event.title,
       slug: event.slug,
