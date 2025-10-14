@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import type { Event } from "@/types/admin";
@@ -35,7 +35,7 @@ export default function EventQuestionsList({
   const router = useRouter();
   const { data: session, status } = useSession();
 
-  const fetchProgress = async () => {
+  const fetchProgress = useCallback(async () => {
     try {
       setIsLoadingProgress(true);
       const data = await fetch(`/api/progress?eventId=${event.id}`);
@@ -51,13 +51,13 @@ export default function EventQuestionsList({
     } finally {
       setIsLoadingProgress(false);
     }
-  };
+  }, [event.id]);
 
   useEffect(() => {
     if (status !== "authenticated") return;
 
     fetchProgress();
-  }, [event.id, status]);
+  }, [event.id, status, fetchProgress]);
 
   if (status === "loading" || isLoadingProgress) {
     return (
@@ -116,7 +116,7 @@ export default function EventQuestionsList({
       </div>
 
       <div className="alert alert-success mb-6">
-        <h2 className="font-semibold">You're Registered!</h2>
+        <h2 className="font-semibold">You&apos;re Registered!</h2>
         <p>
           Progress: {progressPercentage}% ({stats.completedCount}/
           {stats.totalCount} challenges completed)

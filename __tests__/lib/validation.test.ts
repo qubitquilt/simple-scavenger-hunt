@@ -101,6 +101,7 @@ describe("Image Validation Schemas", () => {
   describe("createQuestionSchema for image type", () => {
     const validImageCreate: CreateQuestion = {
       type: "image",
+      title: "Test Image Question",
       eventId: "123e4567-e89b-12d3-a456-426614174000",
       content: "Test content",
       expectedAnswer: "Expected",

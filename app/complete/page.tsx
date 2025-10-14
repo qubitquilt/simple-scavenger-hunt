@@ -91,7 +91,7 @@ export default function CompletionPage() {
       <div className="text-center max-w-md">
         <h1 className="text-4xl font-bold mb-4">Congratulations!</h1>
         <p className="text-xl mb-8 text-gray-700">
-          You've completed all the challenges! 🎉
+          You&apos;ve completed all the challenges! 🎉
         </p>
         <p className="text-lg mb-8 text-gray-600">
           Contact the organizers on October 14, 2025 to claim your prize.

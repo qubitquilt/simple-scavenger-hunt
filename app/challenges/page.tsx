@@ -11,6 +11,7 @@ interface QuestionWithStatus {
   id: string;
   slug: string;
   type: string;
+  title?: string;
   content: string;
   answered?: boolean;
   status?: "pending" | "correct" | "incorrect";

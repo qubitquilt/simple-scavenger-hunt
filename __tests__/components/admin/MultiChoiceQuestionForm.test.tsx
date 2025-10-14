@@ -150,6 +150,7 @@ describe("MultiChoiceQuestionForm", () => {
     const validData: CreateQuestion = {
       eventId: "test-event",
       type: "multiple_choice",
+      title: "Test Title",
       content: "What is 2+2?",
       expectedAnswer: "A",
       options: { A: "4", B: "5", C: "3", D: "6" },

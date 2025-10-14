@@ -31,7 +31,7 @@
     "react-hook-form": "^7.65.0",
     "react-webcam": "^7.2.0",
     "tailwindcss": "^3.4.10",
-    "typescript": "5.9.3",
+    "typescript": "^5.4.5",
     "zod": "^4.1.12"
   },
   "devDependencies": {
@@ -40,6 +40,8 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/jest": "^30.0.0",
     "@types/react-dom": "^18.3.0",
+    "@typescript-eslint/eslint-plugin": "^8.46.1",
+    "@typescript-eslint/parser": "^8.46.1",
     "daisyui": "^5.2.3",
     "eslint": "^8.57.0",
     "eslint-config-next": "14.2.5",

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import Image from "next/image";
 import type { Question, Progress } from "@/types/question";
 
 interface ImageQuestionProps {
@@ -300,11 +301,12 @@ export default function ImageQuestion({
               Image Preview
             </h3>
             {previewUrl && (
-              <img
+              <Image
                 src={previewUrl}
                 alt="Preview of selected image"
+                width={400}
+                height={300}
                 className="w-full h-auto max-h-64 object-contain rounded border mb-4"
-                role="img"
               />
             )}
             <div className="modal-action flex-col sm:flex-row gap-2 sm:gap-3">

@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useSession, signOut } from "next-auth/react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import type { Event, UserProgress, AdminMetrics } from "@/types/admin";
 import type { Question } from "@/types/question";
@@ -137,7 +137,7 @@ function AdminDashboard() {
     }
   };
 
-  const loadQuestions = async () => {
+  const loadQuestions = useCallback(async () => {
     try {
       const query = selectedEventId ? `?eventId=${selectedEventId}` : "";
       const res = await fetch(`/api/admin/questions${query}`);
@@ -147,9 +147,9 @@ function AdminDashboard() {
     } catch (err) {
       setError("Failed to load questions");
     }
-  };
+  }, [selectedEventId]);
 
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     try {
       const res = await fetch(`/api/admin/users?eventId=${selectedEventId}`);
       if (!res.ok) throw new Error("Failed to fetch users");
@@ -159,7 +159,7 @@ function AdminDashboard() {
     } catch (err) {
       setError("Failed to load users");
     }
-  };
+  }, [selectedEventId]);
 
   const formatSlug = (str: string): string => {
     return str
@@ -432,9 +432,9 @@ function AdminDashboard() {
         )}
 
         <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8">
+          <nav className="-mb-px flex space-x-8" role="tablist">
             {["metrics", "events", "questions", "users"].map((tab) => (
-              <button
+              <button role="tab" 
                 key={tab}
                 onClick={() => setActiveTab(tab as any)}
                 className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${

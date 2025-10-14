@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { Question } from "@/types/question";
 import type { Event } from "@/types/admin";
@@ -76,9 +77,9 @@ export default function ChallengeView({ question, event }: ChallengeViewProps) {
         mcForm.setValue("mcAnswer", answer.submission as string, { shouldValidate: false });
       }
     }
-  }, [answer, isIncorrect, question.type]);
+  }, [answer, isIncorrect, question.type, textForm, mcForm, question]);
 
-  const fetchAnswer = async () => {
+  const fetchAnswer = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/answers?questionId=${question.id}`, {
@@ -117,11 +118,11 @@ export default function ChallengeView({ question, event }: ChallengeViewProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [question.id, question.type, router]);
 
   useEffect(() => {
     fetchAnswer();
-  }, [question.id, router]);
+  }, [question.id, router, fetchAnswer]);
 
   const handleTextSubmit = async (data: TextFormData) => {
     await handleSubmitGeneric(data.textAnswer);
@@ -296,9 +297,11 @@ export default function ChallengeView({ question, event }: ChallengeViewProps) {
       const imageUrl = (userAnswerValue as { url: string }).url;
       answerContent = (
         <div className="flex justify-center">
-          <img
+          <Image
             src={imageUrl}
             alt="Submitted image answer"
+            width={400}
+            height={300}
             className="max-w-md h-auto rounded-box"
           />
         </div>
@@ -330,9 +333,11 @@ export default function ChallengeView({ question, event }: ChallengeViewProps) {
           {isIncorrect && lastImageUrl && (
             <div className="mb-4 p-4 bg-base-200 rounded-box">
               <p className="text-sm font-medium mb-2 text-base-content">Previous attempt:</p>
-              <img
+              <Image
                 src={lastImageUrl}
                 alt="Previous image submission"
+                width={400}
+                height={300}
                 className="max-w-md h-auto rounded-box"
               />
             </div>
@@ -374,8 +379,7 @@ export default function ChallengeView({ question, event }: ChallengeViewProps) {
     }
 
     if (question.type === "multiple_choice") {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const options = question.options ? (JSON.parse(question.options as any) as Record<string, string>) : {};
+      const options = question.options ? (JSON.parse(question.options) as Record<string, string>) : {};
       return (
         <form onSubmit={mcForm.handleSubmit(handleMcSubmit)} className="space-y-4">
           <div className="form-control">

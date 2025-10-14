@@ -27,7 +27,7 @@ describe('ImageQuestionForm', () => {
     jest.clearAllMocks();
     (useForm as jest.Mock).mockReturnValue({
       register: jest.fn((name) => [jest.fn(), jest.fn()]),
-      handleSubmit: jest.fn((fn) => async (data) => fn(data)),
+      handleSubmit: jest.fn((fn) => async (data: any) => fn(data)),
       formState: { errors: {} },
       watch: jest.fn(() => ({})),
       setValue: jest.fn(),
@@ -45,7 +45,7 @@ describe('ImageQuestionForm', () => {
     const mockRegister = jest.fn((name) => [jest.fn(), jest.fn()]);
     (useForm as jest.Mock).mockReturnValue({
       register: mockRegister,
-      handleSubmit: jest.fn((fn) => async (data) => fn(data)),
+      handleSubmit: jest.fn((fn) => async (data: any) => fn(data)),
       formState: { errors: {} },
       watch: jest.fn(() => ({})),
       setValue: jest.fn(),
@@ -73,7 +73,7 @@ describe('ImageQuestionForm', () => {
     const mockRegister = jest.fn((name) => [jest.fn(), jest.fn()]);
     (useForm as jest.Mock).mockReturnValue({
       register: mockRegister,
-      handleSubmit: jest.fn((fn) => async (data) => fn(data)),
+      handleSubmit: jest.fn((fn) => async (data: any) => fn(data)),
       formState: { errors: {} },
       watch: jest.fn(() => ({ title: '' })),
       setValue: jest.fn(),

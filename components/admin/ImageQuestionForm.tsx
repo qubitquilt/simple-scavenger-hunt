@@ -1,14 +1,14 @@
 "use client";
 
 import React from "react";
-import { useForm } from "react-hook-form";
+import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ImageQuestionData } from "@/lib/validation";
 import type { Question } from "@/types/question";
 
 interface ImageQuestionFormProps {
   initialData?: Partial<Question>;
-  onSubmit: (data: ImageQuestionData) => Promise<void>;
+  onSubmit: SubmitHandler<ImageQuestionData>;
   onCancel?: () => void;
   eventId: string;
 }
