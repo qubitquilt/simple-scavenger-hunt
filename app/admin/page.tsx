@@ -24,7 +24,7 @@ export default function AdminPage() {
   }, [session, status, router])
 
   if (status === 'loading') {
-    return <div className="min-h-screen bg-gray-50 flex items-center justify-center">Loading...</div>
+    return <div className="min-h-screen shadow-xl flex items-center justify-center">Loading...</div>
   }
 
   if (!session || !session.user.admin) {
@@ -368,15 +368,15 @@ function AdminDashboard() {
   const isMcMode = currentType === 'multiple_choice'
 
   if (loading && activeTab === 'metrics') {
-    return <div className="min-h-screen bg-gray-50 p-8">Loading...</div>
+    return <div className="min-h-screen shadow-xl p-8">Loading...</div>
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow">
+    <div className="min-h-screen shadow-xl bg-base-100">
+      <div className="shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
-            <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+            <h1 className="text-3xl font-bold">Admin Dashboard</h1>
             <button
               onClick={handleLogout}
               className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
@@ -421,7 +421,7 @@ function AdminDashboard() {
             <div id="tab-metrics" role="tabpanel" aria-labelledby="tab-metrics-button">
               {metrics ? (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-white overflow-hidden shadow rounded-lg">
+                  <div className="bg-base-300 overflow-hidden shadow-xl rounded-lg">
                     <div className="p-5">
                       <div className="flex items-center">
                         <div className="flex-shrink-0">
@@ -431,15 +431,15 @@ function AdminDashboard() {
                         </div>
                         <div className="ml-5 w-0 flex-1">
                           <dl>
-                            <dt className="text-sm font-medium text-gray-500 truncate">Total Users</dt>
-                            <dd className="text-lg font-medium text-gray-900">{metrics.totalUsers}</dd>
+                            <dt className="text-sm font-medium truncate">Total Users</dt>
+                            <dd className="text-lg font-medium">{metrics.totalUsers}</dd>
                           </dl>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-white overflow-hidden shadow rounded-lg">
+                  <div className="bg-base-300 overflow-hidden shadow-xl rounded-lg">
                     <div className="p-5">
                       <div className="flex items-center">
                         <div className="flex-shrink-0">
@@ -449,15 +449,15 @@ function AdminDashboard() {
                         </div>
                         <div className="ml-5 w-0 flex-1">
                           <dl>
-                            <dt className="text-sm font-medium text-gray-500 truncate">Completed</dt>
-                            <dd className="text-lg font-medium text-gray-900">{metrics.completedUsers}</dd>
+                            <dt className="text-sm font-medium truncate">Completed</dt>
+                            <dd className="text-lg font-medium">{metrics.completedUsers}</dd>
                           </dl>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-white overflow-hidden shadow rounded-lg">
+                  <div className="bg-base-300 overflow-hidden shadow-xl rounded-lg">
                     <div className="p-5">
                       <div className="flex items-center">
                         <div className="flex-shrink-0">
@@ -467,8 +467,8 @@ function AdminDashboard() {
                         </div>
                         <div className="ml-5 w-0 flex-1">
                           <dl>
-                            <dt className="text-sm font-medium text-gray-500 truncate">Completion Rate</dt>
-                            <dd className="text-lg font-medium text-gray-900">{metrics.completionRate}%</dd>
+                            <dt className="text-sm font-medium truncate">Completion Rate</dt>
+                            <dd className="text-lg font-medium">{metrics.completionRate}%</dd>
                           </dl>
                         </div>
                       </div>
@@ -484,7 +484,7 @@ function AdminDashboard() {
           {activeTab === 'events' && (
             <div id="tab-events" role="tabpanel" aria-labelledby="tab-events-button" className="space-y-6">
               <div className="flex justify-between items-center">
-                <h2 className="text-lg font-medium text-gray-900">Events</h2>
+                <h2 className="text-lg font-medium">Events</h2>
                 <button
                   onClick={() => setShowEventForm(true)}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
@@ -495,16 +495,16 @@ function AdminDashboard() {
               </div>
 
               {events.length > 0 ? (
-                <div className="bg-white shadow overflow-hidden sm:rounded-md">
+                <div className="bg-base-200 shadow overflow-hidden sm:rounded-md">
                   <ul className="divide-y divide-gray-200">
                     {events.map((event) => (
                       <li key={event.id} className="px-4 py-4 sm:px-6">
                         <div className="flex items-start justify-between space-x-4">
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-lg font-medium text-gray-900">{event.title}</h3>
-                            <p className="text-sm text-gray-500 truncate">{event.description}</p>
-                            <p className="text-sm text-gray-500">Slug: {event.slug}</p>
-                            <p className="text-sm text-gray-500">Date: {new Date(event.date).toLocaleDateString()}</p>
+                            <h3 className="text-lg font-medium">{event.title}</h3>
+                            <p className="text-sm truncate">{event.description}</p>
+                            <p className="text-sm">Slug: {event.slug}</p>
+                            <p className="text-sm">Date: {new Date(event.date).toLocaleDateString()}</p>
                           </div>
                           <div className="flex flex-col items-center space-y-2 ml-4 flex-shrink-0">
                             <QRGenerator
@@ -631,7 +631,7 @@ function AdminDashboard() {
           {activeTab === 'questions' && (
             <div id="tab-questions" role="tabpanel" aria-labelledby="tab-questions-button" className="space-y-6">
               <div className="flex justify-between items-center">
-                <h2 className="text-lg font-medium text-gray-900">Questions</h2>
+                <h2 className="text-lg font-medium">Questions</h2>
                 {selectedEventId && (
                   <button
                     onClick={() => {
@@ -650,20 +650,20 @@ function AdminDashboard() {
               {!selectedEventId ? (
                 <p>Select an event to view questions</p>
               ) : questions.length > 0 ? (
-                <div className="bg-white shadow overflow-hidden sm:rounded-md">
+                <div className="bg-base-200 shadow-xl overflow-hidden sm:rounded-md">
                   <ul className="divide-y divide-gray-200">
                     {questions.map((question) => (
                       <li key={question.id} className="px-4 py-4 sm:px-6">
                         <div className="flex items-start justify-between">
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-lg font-medium text-gray-900">{question.content}</h3>
-                            <p className="text-sm text-gray-500">Type: {question.type}</p>
+                            <h3 className="text-lg font-medium">{question.content}</h3>
+                            <p className="text-sm">Type: {question.type}</p>
                             {question.type === 'multiple_choice' && question.options && (
-                              <p className="text-sm text-gray-500">Options: {Object.keys(question.options).join(', ')}</p>
+                              <p className="text-sm">Options: {Object.keys(question.options).join(', ')}</p>
                             )}
-                            <p className="text-sm text-gray-500">Expected: {question.expectedAnswer}</p>
-                            <p className="text-sm text-gray-500">AI Threshold: {question.aiThreshold}/10</p>
-                            <p className="text-sm text-gray-500">Hints: {question.hintEnabled ? 'Enabled' : 'Disabled'}</p>
+                            <p className="text-sm">Expected: {question.expectedAnswer}</p>
+                            <p className="text-sm">AI Threshold: {question.aiThreshold}/10</p>
+                            <p className="text-sm">Hints: {question.hintEnabled ? 'Enabled' : 'Disabled'}</p>
                           </div>
                           <div className="ml-4 flex-shrink-0">
                             <button
@@ -821,26 +821,26 @@ function AdminDashboard() {
 
           {activeTab === 'users' && (
             <div id="tab-users" role="tabpanel" aria-labelledby="tab-users-button" className="space-y-6">
-              <h2 className="text-lg font-medium text-gray-900">Users Progress</h2>
+              <h2 className="text-lg font-medium">Users Progress</h2>
               {!selectedEventId ? (
                 <p>Select an event to view users</p>
               ) : users.length > 0 ? (
-                <div className="bg-white shadow overflow-hidden sm:rounded-md">
+                <div className="bg-base-200 shadow-xl overflow-hidden sm:rounded-md">
                   <ul className="divide-y divide-gray-200">
                     {users.map((user) => (
                       <li key={user.id} className="px-4 py-4 sm:px-6">
                         <div className="flex items-center justify-between">
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-lg font-medium text-gray-900">
+                            <h3 className="text-lg font-medium">
                               {user.firstName} {user.lastName}
                             </h3>
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm">
                               Progress: {user.completedQuestions}/{user.totalQuestions} ({Math.round((user.completedQuestions / user.totalQuestions) * 100) || 0}%)
                             </p>
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm">
                               Status: {user.completed ? 'Completed' : 'In Progress'}
                             </p>
-                            <p className="text-sm text-gray-500">Started: {new Date(user.createdAt).toLocaleDateString()}</p>
+                            <p className="text-sm">Started: {new Date(user.createdAt).toLocaleDateString()}</p>
                           </div>
                         </div>
                       </li>
