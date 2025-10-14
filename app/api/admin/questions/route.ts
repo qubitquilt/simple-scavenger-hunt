@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { Question } from "@/types/question";
 import type { Event } from "@/types/admin";
+import { Question as PrismaQuestion } from "@prisma/client";
 import { createQuestionSchema, updateQuestionSchema } from "@/lib/validation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -59,12 +60,12 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const eventId = searchParams.get("eventId");
 
-    const questions = await prisma.question.findMany({
+    const questions: PrismaQuestion[] = await prisma.question.findMany({
       where: eventId ? { eventId } : {},
       orderBy: { createdAt: "desc" },
     });
 
-    const typedQuestions: Question[] = questions.map((q) => {
+    const typedQuestions: Question[] = questions.map((q: PrismaQuestion): Question => {
       // Backward compatibility: if title is missing, use content
       const effectiveTitle = q.title || q.content || "";
       let options: Record<string, string> | undefined;

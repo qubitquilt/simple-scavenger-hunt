@@ -3,6 +3,18 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import type { Event } from "@/types/admin";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
+
+type EventData = Prisma.EventGetPayload<{
+  select: {
+    id: true;
+    title: true;
+    slug: true;
+    description: true;
+    date: true;
+    createdAt: true;
+  };
+}>;
 
 export async function GET() {
   try {
@@ -24,14 +36,7 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    const typedEvents: Event[] = eventsData.map((event: {
-      id: string;
-      title: string;
-      slug: string;
-      description: string | null;
-      date: Date;
-      createdAt: Date;
-    }) => ({
+    const typedEvents: Event[] = eventsData.map((event: EventData) => ({
       id: event.id,
       title: event.title,
       slug: event.slug,
