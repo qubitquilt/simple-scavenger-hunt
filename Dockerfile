@@ -13,6 +13,9 @@ RUN npm install
 # The .dockerignore file will prevent node_modules and other unnecessary files from being copied.
 COPY . .
 
+# Generate Prisma client types
+RUN npx prisma generate
+
 # Build the Next.js application
 RUN npm run build
 
