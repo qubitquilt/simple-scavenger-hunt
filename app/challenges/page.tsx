@@ -4,22 +4,23 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getUserId } from "@/utils/session";
+import type { Question } from "@/types/question";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import QuestionCard from "@/components/QuestionCard";
 
 interface QuestionWithStatus {
   id: string;
   slug: string;
-  type: string;
-  title?: string;
+  type: "text" | "multiple_choice" | "image";
+  title: string;
   content: string;
   answered?: boolean;
   status?: "pending" | "correct" | "incorrect";
-  eventId?: string;
-  expectedAnswer?: string;
-  aiThreshold?: number;
-  hintEnabled?: boolean;
-  createdAt?: string;
+  eventId: string;
+  expectedAnswer: string | null;
+  aiThreshold: number;
+  hintEnabled: boolean;
+  createdAt: string;
 }
 
 interface ProgressResponse {

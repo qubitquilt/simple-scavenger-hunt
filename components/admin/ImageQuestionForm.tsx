@@ -1,10 +1,16 @@
 "use client";
 
 import React from "react";
-import { useForm, SubmitHandler } from "react-hook-form";
+import { useForm, SubmitHandler, Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ImageQuestionData } from "@/lib/validation";
+import { imageQuestionSchema } from "@/lib/validation";
+import * as z from "zod";
 import type { Question } from "@/types/question";
+
+
+
+  type ImageQuestionData = z.infer<typeof imageQuestionSchema>;
+
 
 interface ImageQuestionFormProps {
   initialData?: Partial<Question>;
@@ -24,7 +30,7 @@ export default function ImageQuestionForm({
     handleSubmit,
     formState: { isDirty },
   } = useForm<ImageQuestionData>({
-    resolver: zodResolver(ImageQuestionData),
+    resolver: zodResolver(imageQuestionSchema) as Resolver<ImageQuestionData>,
     defaultValues: {
       eventId,
       type: "image",

@@ -84,7 +84,7 @@ function AdminDashboard() {
       setUsers([]);
       setMetrics(null);
     }
-  }, [selectedEventId]);
+  }, [selectedEventId, loadQuestions, loadUsers]);
 
   useEffect(() => {
     setSlug(editingEvent?.slug || "");

@@ -6,7 +6,7 @@ export interface Question {
   type: "text" | "multiple_choice" | "image";
   title: string;
   content: string;
-  options?: string;
+  options?: string | Record<string, string>;
   expectedAnswer: string | null;
   aiThreshold: number;
   hintEnabled: boolean;
