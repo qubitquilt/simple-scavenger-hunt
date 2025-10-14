@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -31,12 +32,11 @@ export default function ChallengeView({ question, event }: ChallengeViewProps) {
   const [hintCount, setHintCount] = useState(0);
   const [maxHints, setMaxHints] = useState(2);
 
-  const isAccepted = answer?.computedStatus === "accepted";
-  const isPendingOrRejected =
-    answer?.computedStatus === "pending" ||
-    answer?.computedStatus === "rejected" ||
-    !answer;
-  const userAnswer = answer?.submission as string | undefined;
+  const isAnswered = !!answer;
+  const isCorrect = answer?.status === "correct";
+  const isIncorrect = answer?.status === "incorrect";
+  const isPending = answer?.status === "pending";
+  const userAnswer = answer?.submission as string | { url: string } | undefined;
 
   useEffect(() => {
     console.log(
@@ -47,7 +47,7 @@ export default function ChallengeView({ question, event }: ChallengeViewProps) {
     );
     console.log("ChallengeView - Current loading state:", loading);
     console.log("ChallengeView - Question ID:", question.id);
-    console.log("ChallengeView - isAccepted:", isAccepted);
+    console.log("ChallengeView - isAnswered:", isAnswered);
     console.log(
       "ChallengeView - Session object details:",
       session ? { user: session.user, expires: session.expires } : "null",
@@ -94,6 +94,7 @@ export default function ChallengeView({ question, event }: ChallengeViewProps) {
             headers: {
               "Cache-Control": "no-cache",
             },
+            credentials: "include",
           });
           clearTimeout(timeoutId);
 
@@ -109,12 +110,12 @@ export default function ChallengeView({ question, event }: ChallengeViewProps) {
             const { answer: answerData } = responseData;
             console.log("ChallengeView - Extracted answer data:", answerData);
             setAnswer(answerData);
-            if (answerData?.submission && !isAccepted) {
+            if (answerData?.submission && !isAnswered) {
               console.log(
                 "ChallengeView - Setting submission from existing answer:",
                 answerData.submission,
               );
-              setSubmission(answerData.submission);
+              setSubmission(typeof answerData.submission === "string" ? answerData.submission : answerData.submission.url);
             }
           } else {
             console.log(
@@ -123,7 +124,11 @@ export default function ChallengeView({ question, event }: ChallengeViewProps) {
             );
             const errorText = await response.text();
             console.log("ChallengeView - Error response body:", errorText);
-            setError(`Failed to load answer: ${response.status}`);
+            if (response.status === 401) {
+              setError("Please log in to view or submit answers.");
+            } else {
+              setError(`Failed to load answer: ${response.status}`);
+            }
           }
         } catch (err) {
           console.error("ChallengeView - Failed to load answer status:", err);
@@ -154,7 +159,7 @@ export default function ChallengeView({ question, event }: ChallengeViewProps) {
       // Handle unexpected status by setting loading to false
       setLoading(false);
     }
-  }, [question.id, session, status, isAccepted]);
+  }, [question.id, session, status]);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSubmission(e.target.value);
@@ -167,7 +172,12 @@ export default function ChallengeView({ question, event }: ChallengeViewProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!submission || submitting || isAccepted) return;
+    if (!submission || submitting || isAnswered) {
+      if (isAnswered) {
+        setFeedback("Already submitted - cannot resubmit");
+      }
+      return;
+    }
 
     setSubmitting(true);
     setFeedback(null);
@@ -177,33 +187,38 @@ export default function ChallengeView({ question, event }: ChallengeViewProps) {
       const response = await fetch("/api/answers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ questionId: question.id, submission }),
       });
 
       if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || "Submission failed");
-      }
-
-      const result = await response.json();
-
-      if (result.accepted) {
-        router.push(`/events/${event.slug}`);
-        return;
-      } else {
-        setAiScore(result.aiScore || 0);
-        setFeedback(
-          question.type === "text"
-            ? `Score: ${result.aiScore || 0}/${question.aiThreshold}. Try again!`
-            : "Incorrect. Please try again.",
-        );
-        if (question.type !== "multiple_choice") {
-          setSubmission("");
+        const errData = await response.json().catch(() => ({}));
+        if (response.status === 409 || response.status === 401) {
+          setFeedback("Already submitted - cannot resubmit");
+        } else {
+          throw new Error(errData.error || "Submission failed");
         }
+      } else {
+        const result = await response.json();
 
-        const announcement = document.getElementById("feedback-announce");
-        if (announcement) {
-          announcement.textContent = feedback;
+        if (result.accepted) {
+          router.push("/challenges");
+          return;
+        } else {
+          setAiScore(result.aiScore || 0);
+          setFeedback(
+            question.type === "text"
+              ? `Score: ${result.aiScore || 0}/${question.aiThreshold}. Try again!`
+              : "Incorrect. Please try again.",
+          );
+          if (question.type !== "multiple_choice") {
+            setSubmission("");
+          }
+
+          const announcement = document.getElementById("feedback-announce");
+          if (announcement) {
+            announcement.textContent = feedback;
+          }
         }
       }
     } catch (err) {
@@ -214,7 +229,7 @@ export default function ChallengeView({ question, event }: ChallengeViewProps) {
   };
 
   const handleHintRequest = async () => {
-    if (!question || hintLoading || hintCount >= maxHints) return;
+    if (!question || hintLoading || hintCount >= maxHints || isAnswered) return;
 
     setHintLoading(true);
     setHintError(null);
@@ -223,6 +238,7 @@ export default function ChallengeView({ question, event }: ChallengeViewProps) {
       const response = await fetch("/api/hints", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ questionId: question.id }),
       });
 
@@ -250,7 +266,12 @@ export default function ChallengeView({ question, event }: ChallengeViewProps) {
   };
 
   const handleImageAnswer = async (url: string) => {
-    if (submitting || isAccepted) return;
+    if (submitting || isAnswered) {
+      if (isAnswered) {
+        setFeedback("Already submitted - cannot resubmit");
+      }
+      return;
+    }
 
     setSubmitting(true);
     setFeedback(null);
@@ -260,33 +281,38 @@ export default function ChallengeView({ question, event }: ChallengeViewProps) {
       const response = await fetch("/api/answers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ questionId: question.id, submission: url }),
       });
 
       if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || "Image submission failed");
-      }
-
-      const result = await response.json();
-
-      if (result.accepted) {
-        router.push(`/events/${event.slug}`);
-        return;
-      } else {
-        setAiScore(result.aiScore || 0);
-        setFeedback(
-          question.type === "text"
-            ? `Score: ${result.aiScore || 0}/${question.aiThreshold}. Try again!`
-            : "Incorrect. Please try again.",
-        );
-        if (question.type !== "multiple_choice") {
-          setSubmission("");
+        const errData = await response.json().catch(() => ({}));
+        if (response.status === 409 || response.status === 401) {
+          setFeedback("Already submitted - cannot resubmit");
+        } else {
+          throw new Error(errData.error || "Image submission failed");
         }
+      } else {
+        const result = await response.json();
 
-        const announcement = document.getElementById("feedback-announce");
-        if (announcement) {
-          announcement.textContent = feedback;
+        if (result.accepted) {
+          router.push("/challenges");
+          return;
+        } else {
+          setAiScore(result.aiScore || 0);
+          setFeedback(
+            question.type === "text"
+              ? `Score: ${result.aiScore || 0}/${question.aiThreshold}. Try again!`
+              : "Incorrect. Please try again.",
+          );
+          if (question.type !== "multiple_choice") {
+            setSubmission("");
+          }
+
+          const announcement = document.getElementById("feedback-announce");
+          if (announcement) {
+            announcement.textContent = feedback;
+          }
         }
       }
     } catch (err) {
@@ -300,158 +326,52 @@ export default function ChallengeView({ question, event }: ChallengeViewProps) {
     return <LoadingSpinner />;
   }
 
-  return (
-    <div className="bg-base-200 p-4">
-      <div className="max-w-2xl mx-auto">
-        <div className="card bg-base-100 shadow-xl">
-          <div className="card-body">
-            <h1 className="card-title text-2xl mb-4">{question.content}</h1>
+  const renderReadOnlyAnswer = () => {
+    if (!isAnswered) return null;
 
-            {question.type === "text" && (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text">Your Answer</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={submission || ""}
-                    onChange={handleTextChange}
-                    className="input input-bordered"
-                    placeholder="Enter your answer..."
-                    disabled={isAccepted || submitting}
-                    aria-describedby="feedback-announce"
-                  />
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    type="submit"
-                    className="btn btn-primary btn-block"
-                    disabled={!submission || submitting || isAccepted}
-                  >
-                    {submitting ? "Submitting..." : "Submit Answer"}
-                  </button>
-
-                  {isPendingOrRejected && question.hintEnabled && (
-                    <button
-                      type="button"
-                      onClick={handleHintRequest}
-                      className="btn btn-secondary btn-block"
-                      disabled={hintLoading || hintCount >= maxHints}
-                      onKeyDown={handleHintKeyDown}
-                      tabIndex={0}
-                      aria-label="Request hint"
-                    >
-                      {hintLoading
-                        ? "Getting Hint..."
-                        : `Hint (${hintCount}/${maxHints})`}
-                    </button>
-                  )}
-                </div>
-              </form>
-            )}
-
-            {question.type === "multiple_choice" && (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text">Choose your answer</span>
-                  </label>
-                  <ul className="list bg-base-100 rounded-box shadow-md">
-                    {question.options &&
-                      Object.entries(
-                        JSON.parse(
-                          question.options as unknown as string,
-                        ) as Record<string, string>,
-                      ).map(([key, value], index) => (
-                        <li key={key} className="list-row">
-                          <div className="list-col-grow">
-                            <label className="label cursor-pointer">
-                              <input
-                                type="radio"
-                                name="answer"
-                                value={value}
-                                checked={submission === value}
-                                onChange={(e) => handleMcChange(e.target.value)}
-                                className="radio radio-primary"
-                                disabled={isAccepted || submitting}
-                              />
-                              <span className="label-text ml-2">{value}</span>
-                            </label>
-                          </div>
-                        </li>
-                      ))}
-                  </ul>
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    type="submit"
-                    className="btn btn-primary btn-block"
-                    disabled={!submission || submitting || isAccepted}
-                  >
-                    {submitting ? "Submitting..." : "Submit Answer"}
-                  </button>
-
-                  {isPendingOrRejected && question.hintEnabled && (
-                    <button
-                      type="button"
-                      onClick={handleHintRequest}
-                      className="btn btn-secondary btn-block"
-                      disabled={hintLoading || hintCount >= maxHints}
-                      onKeyDown={handleHintKeyDown}
-                      tabIndex={0}
-                      aria-label="Request hint"
-                    >
-                      {hintLoading
-                        ? "Getting Hint..."
-                        : `Hint (${hintCount}/${maxHints})`}
-                    </button>
-                  )}
-                </div>
-              </form>
-            )}
-
-            {question.type === "image" && (
-              <ImageQuestion
-                question={question}
-                progress={null}
-                onAnswer={handleImageAnswer}
-              />
-            )}
-
-            {feedback && (
-              <div
-                id="feedback-announce"
-                className={`alert ${aiScore && aiScore >= question.aiThreshold ? "alert-success" : "alert-warning"}`}
-                role="alert"
-                aria-live="polite"
-              >
-                <span>{feedback}</span>
-              </div>
-            )}
-
-            {error && (
-              <div role="alert" className="alert alert-error alert-soft mt-4">
-                <span>{error}</span>
-              </div>
-            )}
-
-            {hint && (
-              <div className="alert alert-info" role="alert">
-                <span>💡 {hint}</span>
-              </div>
-            )}
-
-            {hintError && (
-              <div className="alert alert-error" role="alert">
-                <span>{hintError}</span>
-              </div>
-            )}
-          </div>
+    let answerContent;
+    if (question.type === "text") {
+      answerContent = (
+        <div className="input bg-base-200 text-base-content p-2" id="answer-desc">
+          {typeof userAnswer === 'string' ? userAnswer : ''}
         </div>
+      );
+    } else if (question.type === "multiple_choice") {
+      const options = JSON.parse(question.options as unknown as string);
+      const selectedOption = userAnswer as string;
+      answerContent = (
+        <div className="input bg-base-200 text-base-content p-2">
+          {selectedOption}
+        </div>
+      );
+    } else if (question.type === "image") {
+      const imageUrl = (userAnswer as { url: string }).url;
+      answerContent = (
+        <div className="flex justify-center">
+          <img
+            src={imageUrl}
+            alt="Submitted answer"
+            className="max-w-full h-auto rounded-box bg-base-200 p-2"
+          />
+        </div>
+      );
+    }
+
+    const statusBadge = isCorrect ? (
+      <span className="badge badge-success">Correct</span>
+    ) : isIncorrect ? (
+      <span className="badge badge-error">Incorrect</span>
+    ) : (
+      <span className="badge badge-neutral">Submitted</span>
+    );
+
+    return (
+      <div className="mb-4">
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-sm font-medium">Your Answer:</span>
+          {statusBadge}
+        </div>
+        {answerContent}
       </div>
-    </div>
-  );
-}
+    );
+  }}

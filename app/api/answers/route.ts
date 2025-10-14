@@ -284,6 +284,8 @@ export async function POST(request: NextRequest) {
       }
     })
 
+
+
     if (type === 'multiple_choice') {
       const normalizedSubmission = normalize(submission as string)
       const normalizedExpectedAnswer = normalize(expectedAnswer)
@@ -423,6 +425,7 @@ export async function POST(request: NextRequest) {
 
 
 
+
     // Removed excessive logging - only log in development
     if (process.env.NODE_ENV === 'development') {
       console.log('AI response parsed, aiScore:', aiScore, 'status:', status)
@@ -435,32 +438,29 @@ export async function POST(request: NextRequest) {
 
     // Insert or update answer in transaction
     const transactionResult = await prisma.$transaction(async (tx) => {
-      // Insert or update answer
       const answerData = {
         progressId,
         questionId,
         submission: storedSubmission,
         aiScore,
-        status
-      }
+        status,
+        explanation
+      };
 
-      let answerId: string
-
+      let answerId: string;
       if (existingAnswer) {
-        // Update
         const updatedAnswer = await tx.answer.update({
           where: { id: existingAnswer.id },
           data: answerData,
           select: { id: true }
-        })
-        answerId = updatedAnswer.id
+        });
+        answerId = updatedAnswer.id;
       } else {
-        // Insert
         const newAnswer = await tx.answer.create({
           data: answerData,
           select: { id: true }
-        })
-        answerId = newAnswer.id
+        });
+        answerId = newAnswer.id;
       }
 
       // Check and compute progress correctly.

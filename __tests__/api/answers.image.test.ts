@@ -159,6 +159,7 @@ describe("POST /api/answers for image submission", () => {
           submission: { url: "/uploads/image.jpg" },
           aiScore: 10,
           status: "correct",
+          explanation: expect.any(String),
         },
       }),
     );
