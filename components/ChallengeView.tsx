@@ -17,7 +17,7 @@ interface ChallengeViewProps {
 
 export default function ChallengeView({ question, event }: ChallengeViewProps) {
   const router = useRouter()
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const [answer, setAnswer] = useState<Answer | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -36,37 +36,93 @@ export default function ChallengeView({ question, event }: ChallengeViewProps) {
   const userAnswer = answer?.submission as string | undefined
 
   useEffect(() => {
-    if (!session) {
+    console.log('ChallengeView useEffect triggered - session status:', status, 'session data:', !!session)
+    console.log('ChallengeView - Current loading state:', loading)
+    console.log('ChallengeView - Question ID:', question.id)
+    console.log('ChallengeView - isAccepted:', isAccepted)
+    console.log('ChallengeView - Session object details:', session ? { user: session.user, expires: session.expires } : 'null')
+
+    if (status === 'loading') {
+      console.log('ChallengeView - Session still loading, keeping loading true')
       return
     }
 
-    const fetchAnswer = async () => {
-      try {
-        setLoading(true)
-        const response = await fetch(`/api/answers?questionId=${question.id}`)
-        if (response.ok) {
-          const { answer: answerData } = await response.json()
-          setAnswer(answerData)
-          if (answerData?.submission && !isAccepted) {
-            setSubmission(answerData.submission)
+    if (status === 'unauthenticated') {
+      console.log('ChallengeView - User unauthenticated, setting loading false and showing login prompt')
+      setLoading(false)
+      return
+    }
+
+    if (status === 'authenticated') {
+      console.log('ChallengeView - Session authenticated, proceeding with answer fetch')
+
+      const fetchAnswer = async () => {
+        try {
+          console.log('ChallengeView - Starting answer fetch for questionId:', question.id)
+          setLoading(true)
+          console.log('ChallengeView - Set loading to true')
+
+          const apiUrl = `/api/answers?questionId=${question.id}`
+          console.log('ChallengeView - Fetching from URL:', apiUrl)
+
+          // Add timeout to prevent hanging
+          const controller = new AbortController()
+          const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+
+          const response = await fetch(apiUrl, {
+            signal: controller.signal,
+            headers: {
+              'Cache-Control': 'no-cache'
+            }
+          })
+          clearTimeout(timeoutId)
+
+          console.log('ChallengeView - Fetch response status:', response.status, response.statusText)
+
+          if (response.ok) {
+            const responseData = await response.json()
+            console.log('ChallengeView - Response data:', responseData)
+            const { answer: answerData } = responseData
+            console.log('ChallengeView - Extracted answer data:', answerData)
+            setAnswer(answerData)
+            if (answerData?.submission && !isAccepted) {
+              console.log('ChallengeView - Setting submission from existing answer:', answerData.submission)
+              setSubmission(answerData.submission)
+            }
+          } else {
+            console.log('ChallengeView - Answer fetch failed with status:', response.status)
+            const errorText = await response.text()
+            console.log('ChallengeView - Error response body:', errorText)
+            setError(`Failed to load answer: ${response.status}`)
           }
+        } catch (err) {
+          console.error('ChallengeView - Failed to load answer status:', err)
+          if (err instanceof Error && err.name === 'AbortError') {
+            setError('Request timed out - please check your connection')
+          } else {
+            setError('Failed to load answer status')
+          }
+        } finally {
+          console.log('ChallengeView - Setting loading to false in finally block')
+          setLoading(false)
         }
-      } catch (err) {
-        setError('Failed to load answer status')
-      } finally {
-        setLoading(false)
       }
-    }
 
-    fetchAnswer()
-
-    const handleFocus = () => {
       fetchAnswer()
-    }
 
-    window.addEventListener('focus', handleFocus)
-    return () => window.removeEventListener('focus', handleFocus)
-  }, [question.id, session, isAccepted])
+      const handleFocus = () => {
+        console.log('ChallengeView - Window focus event, refetching answer')
+        fetchAnswer()
+      }
+
+      window.addEventListener('focus', handleFocus)
+      return () => window.removeEventListener('focus', handleFocus)
+    } else {
+      console.log('ChallengeView - Unexpected session status:', status)
+      // Handle unexpected status by setting loading to false
+      setLoading(false)
+    }
+  }, [question.id, session, status, isAccepted])
 
   const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSubmission(e.target.value)

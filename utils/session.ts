@@ -18,7 +18,7 @@ export const getUserId = (): string | null => {
   return null
 }
 
-export const setUserId = (userId: string, days = 30): void => {
+export const setUserId = (userId: string, days = 1): void => {
   if (typeof document === 'undefined') {
     return
   }

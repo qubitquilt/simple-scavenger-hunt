@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 interface FormData {
   firstName: string
@@ -13,6 +13,22 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const eventId = searchParams.get('eventId')
+
+  useEffect(() => {
+    // Check if user is already authenticated
+    const userId = document.cookie.split('; ').find(row => row.startsWith('userId='))?.split('=')[1]
+    if (userId) {
+      console.log('User already authenticated with userId:', userId)
+      // If we have an eventId, redirect to event-specific challenges
+      // Otherwise, redirect to generic challenges (fallback)
+      const redirectPath = eventId ? `/events/${eventId}` : '/challenges'
+      router.push(redirectPath)
+      return
+    }
+    console.log('No existing user session found')
+  }, [router, eventId])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -29,7 +45,11 @@ export default function RegisterPage() {
       const response = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ firstName: formData.firstName, lastName: formData.lastName })
+        body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          eventId: eventId // Pass eventId to registration API
+        })
       })
 
       if (!response.ok) {
@@ -38,7 +58,9 @@ export default function RegisterPage() {
       }
 
       const data = await response.json()
-      router.push('/challenges')
+      // Redirect to event-specific challenges page instead of generic challenges
+      const redirectPath = eventId ? `/events/${eventId}` : '/challenges'
+      router.push(redirectPath)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred')
     } finally {

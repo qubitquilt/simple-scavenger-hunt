@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth/next'
 import type { Prisma } from '@prisma/client'

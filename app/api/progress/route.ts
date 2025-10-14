@@ -17,7 +17,7 @@ function shuffleArray(array: string[]) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { eventId } = await request.json()
+    const { eventSlug } = await request.json()
 
     const userId = request.cookies.get('userId')?.value
 
@@ -25,13 +25,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 401 })
     }
 
-    if (!eventId) {
-      return NextResponse.json({ error: 'eventId is required' }, { status: 400 })
+    if (!eventSlug) {
+      return NextResponse.json({ error: 'eventSlug is required' }, { status: 400 })
+    }
+
+    // Fetch event by slug
+    const event = await prisma.event.findUnique({
+      where: { slug: eventSlug },
+      select: { id: true }
+    })
+
+    if (!event) {
+      return NextResponse.json({ error: 'Event not found' }, { status: 404 })
     }
 
     // Fetch questions for the event
     const questions = await prisma.question.findMany({
-      where: { eventId },
+      where: { eventId: event.id },
       select: { id: true }
     })
 
@@ -47,7 +57,7 @@ export async function POST(request: NextRequest) {
       where: {
         userId_eventId: {
           userId,
-          eventId
+          eventId: event.id
         }
       }
     })
@@ -70,7 +80,7 @@ export async function POST(request: NextRequest) {
       const newProgress = await prisma.progress.create({
         data: {
           userId,
-          eventId,
+          eventId: event.id,
           questionOrder: shuffledOrder,
           completed: false
         },
@@ -217,9 +227,12 @@ export async function GET(request: NextRequest) {
         minResolution: true,
         allowedFormats: true,
         maxFileSize: true,
-        createdAt: true
+        createdAt: true,
+        slug: true
       }
     })
+
+    console.log('Questions data with slugs:', questionsData.map(q => ({ id: q.id, slug: q.slug })))
 
     const answersMap = new Map(
       progressData.answers.map(a => [a.questionId, a])
