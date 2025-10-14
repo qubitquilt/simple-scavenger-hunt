@@ -4,7 +4,7 @@ import './globals.css'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import Providers from './providers'
-import ThemeToggle from '@/components/ThemeToggle'
+import Navbar from './navbar'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -25,14 +25,7 @@ export default async function RootLayout({
       <body className={inter.className}>
         <Providers session={session}>
           <div className="min-h-screen bg-base-200">
-            <div className="navbar bg-base-100 shadow-lg">
-              <div className="navbar-start">
-                <a className="btn btn-ghost normal-case text-xl">Scavenger Hunt</a>
-              </div>
-              <div className="navbar-end">
-                <ThemeToggle />
-              </div>
-            </div>
+            <Navbar />
             <main className="container mx-auto px-4 py-8">
               {children}
             </main>
