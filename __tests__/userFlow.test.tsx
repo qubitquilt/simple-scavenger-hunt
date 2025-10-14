@@ -8,6 +8,7 @@ import { getUserId } from '@/utils/session'
 const mockPush = jest.fn()
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
+  useSearchParams: () => new URLSearchParams(),
 }))
 
 // Mock utils
@@ -43,7 +44,7 @@ describe('User Flow Tests', () => {
       await waitFor(() => {
         expect(fetch).toHaveBeenCalledWith('/api/register', expect.objectContaining({
           method: 'POST',
-          body: JSON.stringify({ firstName: 'John', lastName: 'Doe' }),
+          body: JSON.stringify({ firstName: 'John', lastName: 'Doe', eventId: null }),
         }))
       })
 

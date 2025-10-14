@@ -173,7 +173,7 @@ export default function MultiChoiceQuestionForm({
           className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
           aria-describedby="hintEnabled-description"
         />
-        <label htmlFor="hintEnabled" className="ml-2 block text-sm text-gray-900">
+        <label htmlFor="hintEnabled" className="ml-2 block text-sm">
           Enable Hints
         </label>
         <span id="hintEnabled-description" className="sr-only">

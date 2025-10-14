@@ -82,7 +82,7 @@ export default function EventQuestionsList({ event }: { event: Event, progressDa
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{event.title}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold">{event.title}</h1>
         <button
           onClick={handleBack}
           onKeyDown={handleKeyDown}
@@ -116,7 +116,7 @@ export default function EventQuestionsList({ event }: { event: Event, progressDa
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium text-gray-700">Progress</span>
-          <span className="text-sm font-medium text-gray-900">{progressPercentage}%</span>
+          <span className="text-sm font-medium">{progressPercentage}%</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div

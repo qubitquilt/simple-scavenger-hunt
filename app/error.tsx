@@ -13,9 +13,9 @@ export default function Error({ error, reset }: ErrorProps) {
   }, [error])
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-md p-6 text-center">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">Something went wrong!</h2>
+    <div className="min-h-screen flex items-center justify-center bg-base-200 p-4">
+      <div className="max-w-md w-full bg-base-50 rounded-lg shadow-md p-6 text-center">
+        <h2 className="text-2xl font-bold mb-4">Something went wrong!</h2>
         <p className="text-gray-600 mb-6" id="error-message">
           {typeof error.message === 'string' ? error.message : JSON.stringify(error.message)}
         </p>

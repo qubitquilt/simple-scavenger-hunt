@@ -51,7 +51,7 @@ export default function CompletionPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-base-200">
         <LoadingSpinner size="lg" />
         <div className="sr-only">Loading...</div>
       </div>
@@ -60,7 +60,7 @@ export default function CompletionPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-base-200">
         <div className="text-red-600 text-center">
           <h2 className="text-xl font-bold mb-2">Error</h2>
           <p>{error}</p>
@@ -77,7 +77,7 @@ export default function CompletionPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-50 relative">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-base-200 relative">
       {showConfetti && (
         <Confetti
           width={window.innerWidth}
@@ -89,7 +89,7 @@ export default function CompletionPage() {
       )}
       
       <div className="text-center max-w-md">
-        <h1 className="text-4xl font-bold mb-4 text-gray-900">Congratulations!</h1>
+        <h1 className="text-4xl font-bold mb-4">Congratulations!</h1>
         <p className="text-xl mb-8 text-gray-700">
           You've completed all the challenges! 🎉
         </p>

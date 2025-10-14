@@ -157,7 +157,7 @@ export default function ImageQuestion({
         aria-modal="true"
         aria-labelledby="camera-heading"
       >
-        <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+        <div className="bg-base-50 p-6 rounded-lg max-w-md w-full mx-4">
           <h2 id="camera-heading" className="sr-only">
             Camera
           </h2>

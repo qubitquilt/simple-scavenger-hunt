@@ -510,7 +510,7 @@ function AdminDashboard() {
                             <QRGenerator
                               value={`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/events/${event.slug}`}
                               size={96}
-                              className="border border-gray-200 rounded-md p-1 bg-white"
+                              className="border border-gray-200 rounded-md p-1 bg-base-50"
                               aria-label={`QR code for event ${event.title}`}
                             />
                             <button
@@ -538,7 +538,7 @@ function AdminDashboard() {
               )}
 
               {showEventForm && (
-                <div className="bg-white p-6 rounded-lg shadow">
+                <div className="bg-base-50 p-6 rounded-lg shadow">
                   <h3 className="text-lg font-medium mb-4">{editingEvent ? 'Edit Event' : 'Create Event'}</h3>
                   <form onSubmit={editingEvent ? handleUpdateEvent : handleCreateEvent} className="space-y-4">
                     <div>
@@ -691,7 +691,7 @@ function AdminDashboard() {
               )}
 
               {showQuestionForm && selectedEventId && (
-                <div className="bg-white p-6 rounded-lg shadow">
+                <div className="bg-base-50 p-6 rounded-lg shadow">
                   <h3 className="text-lg font-medium mb-4">{editingQuestion ? 'Edit Question' : 'Create Question'}</h3>
                   {currentType === 'image' ? (
                     <ImageQuestionForm
@@ -786,7 +786,7 @@ function AdminDashboard() {
                           className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                           aria-describedby="hintEnabled-description"
                         />
-                        <label htmlFor="hintEnabled" className="ml-2 block text-sm text-gray-900">
+                        <label htmlFor="hintEnabled" className="ml-2 block text-sm">
                           Enable Hints
                         </label>
                         <span id="hintEnabled-description" className="sr-only">

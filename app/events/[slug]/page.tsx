@@ -74,7 +74,7 @@ export default function EventPage({ params }: { params: { slug: string } }) {
 
   if (loading || status === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-base-200">
         <LoadingSpinner size="lg" />
         <div className="sr-only">Loading event...</div>
       </div>
@@ -83,7 +83,7 @@ export default function EventPage({ params }: { params: { slug: string } }) {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-base-200">
         <div className="text-red-600 text-center">
           <h2 className="text-xl font-bold mb-2">Error</h2>
           <p>{error}</p>
@@ -94,14 +94,14 @@ export default function EventPage({ params }: { params: { slug: string } }) {
 
   if (!event) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-base-200">
         <div className="text-gray-600">Event not found</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-base-200 p-4">
       <div className="max-w-7xl mx-auto">
         <EventQuestionsList event={event} progressData={progressData} />
       </div>

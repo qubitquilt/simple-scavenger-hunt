@@ -63,7 +63,7 @@ export default function ChallengesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-base-200">
         <LoadingSpinner size="lg" />
         <div className="sr-only">Loading challenges...</div>
       </div>
@@ -72,7 +72,7 @@ export default function ChallengesPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-base-200">
         <div className="text-red-600 text-center">
           <h2 className="text-xl font-bold mb-2">Error</h2>
           <p>{error}</p>
@@ -90,7 +90,7 @@ export default function ChallengesPage() {
 
   if (!data) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-base-200">
         <div className="text-gray-600">No challenges available</div>
       </div>
     )
@@ -105,12 +105,12 @@ export default function ChallengesPage() {
   const progressPercentage = stats.totalCount > 0 ? (stats.completedCount / stats.totalCount) * 100 : 0
 
   return (
-    <div className="min-h-screen p-4">
+    <div className="min-h-screen bg-base-200 p-4">
       <div className="max-w-2xl mx-auto">
         <h1 className="text-3xl font-bold mb-6">Scavenger Hunt Challenges</h1>
         
         <div className="mb-8">
-          <div className="flex justify-between text-sm font-medium text-gray-700 mb-2">
+          <div className="flex justify-between text-sm font-medium mb-2">
             <span>Progress</span>
             <span>{stats.completedCount} of {stats.totalCount}</span>
           </div>
@@ -141,7 +141,7 @@ export default function ChallengesPage() {
                     <div className="flex-1">
                       <h3 className="card-title text-lg">{question.content}</h3>
                       <p className="text-sm opacity-70">
-                        Type: {question.type.replace('_', ' ')} {question.answered ? `• ${question.status}` : '• Not answered'}
+                        {question.answered ? `${question.status}` : ''}
                       </p>
                     </div>
                     <div className={`badge badge-lg ${
