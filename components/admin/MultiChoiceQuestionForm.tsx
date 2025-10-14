@@ -31,6 +31,7 @@ export default function MultiChoiceQuestionForm({
     defaultValues: {
       eventId,
       type: "multiple_choice",
+      title: initialData?.title ?? initialData?.content ?? "",
       content: initialData?.content ?? "",
       expectedAnswer: initialData?.expectedAnswer ?? "",
       options: initialData?.options || { A: "", B: "", C: "", D: "" },
@@ -54,6 +55,29 @@ export default function MultiChoiceQuestionForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <div>
+        <label
+          htmlFor="title"
+          className="block text-sm font-medium text-gray-700"
+        >
+          Question Title
+        </label>
+        <textarea
+          id="title"
+          {...register("title")}
+          rows={2}
+          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          aria-invalid={!!errors.title}
+          aria-describedby={errors.title ? "title-error" : undefined}
+          aria-required="true"
+        />
+        {errors.title && (
+          <p id="title-error" className="mt-1 text-sm text-red-500">
+            {errors.title.message}
+          </p>
+        )}
+      </div>
+
       <div>
         <label
           htmlFor="content"

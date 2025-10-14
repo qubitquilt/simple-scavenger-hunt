@@ -5,8 +5,8 @@ import type { Event } from "@/types/admin";
 import { createQuestionSchema, updateQuestionSchema } from "@/lib/validation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-const createSlugFromContent = (content: string): string => {
-  return content
+const createSlugFromTitle = (title: string): string => {
+  return title
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, "") // remove special characters except spaces and hyphens
     .replace(/\s+/g, "-") // replace spaces with hyphens
@@ -65,6 +65,8 @@ export async function GET(request: NextRequest) {
     });
 
     const typedQuestions: Question[] = questions.map((q) => {
+      // Backward compatibility: if title is missing, use content
+      const effectiveTitle = q.title || q.content || "";
       let options: Record<string, string> | undefined;
       let minResolution: { width: number; height: number } | undefined;
       if (q.type === "multiple_choice" && q.options) {
@@ -75,6 +77,7 @@ export async function GET(request: NextRequest) {
       }
       return {
         ...q,
+        title: effectiveTitle,
         options,
         expectedAnswer: q.expectedAnswer || "",
         createdAt: q.createdAt.toISOString(),
@@ -130,8 +133,8 @@ export async function POST(request: NextRequest) {
       createData.minResolution = JSON.stringify(validatedData.minResolution);
     }
 
-    // Generate unique slug from question content
-    const baseSlug = createSlugFromContent(validatedData.content);
+    // Generate unique slug from question title
+    const baseSlug = createSlugFromTitle(validatedData.title);
     createData.slug = await generateUniqueSlug(baseSlug);
 
     const { required, ...questionData } = createData;
@@ -143,6 +146,7 @@ export async function POST(request: NextRequest) {
       id: data.id,
       eventId: data.eventId,
       type: data.type,
+      title: data.title,
       content: data.content,
       expectedAnswer: data.expectedAnswer || "",
       aiThreshold: data.aiThreshold,
@@ -228,8 +232,12 @@ export async function PUT(request: NextRequest) {
       data: updateQuestionData,
     });
 
+    // Backward compatibility for response
+    const effectiveTitle = data.title || data.content || "";
+
     const typedQuestion: Question = {
       ...data,
+      title: effectiveTitle,
       options: data.options as Record<string, string> | undefined,
       expectedAnswer: data.expectedAnswer || "",
       createdAt: new Date(data.createdAt).toISOString(),

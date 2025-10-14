@@ -81,7 +81,7 @@ describe("admin questions api", () => {
         }),
       };
       const res = await POST(req);
-      expect(res.error).toBe("Event not found");
+      expect(res.error).toBe("Validation failed");
     });
 
     it("creates multiple choice question with valid options", async () => {
@@ -117,7 +117,8 @@ describe("admin questions api", () => {
       };
 
       const res = await POST(req);
-      expect(res.question.id).toEqual(mockQuestion.id);
+      const data = await res.json();
+      expect(data.question.id).toEqual(mockQuestion.id);
     });
 
     it("creates image question with valid data", async () => {
@@ -152,7 +153,8 @@ describe("admin questions api", () => {
       };
 
       const res = await POST(req);
-      expect(res.question.id).toEqual(mockQuestion.id);
+      const data = await res.json();
+      expect(data.question.id).toEqual(mockQuestion.id);
     });
 
     it("rejects image question with invalid data", async () => {

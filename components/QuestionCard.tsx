@@ -27,48 +27,22 @@ export default function QuestionCard({
     }
   };
 
-  const getStatusBadge = (status: AnswerStatus | null | undefined) => {
-    if (!status) return null;
-
-    const badgeClasses = {
-      accepted: "bg-green-100 text-green-800",
-      pending: "bg-yellow-100 text-yellow-800",
-      rejected: "bg-red-100 text-red-800",
-    };
-
-    const icons = {
-      accepted: "✓",
-      pending: "⏳",
-      rejected: "✗",
-    };
-
-    const className = badgeClasses[status as keyof typeof badgeClasses];
-    const icon = icons[status as keyof typeof icons];
-
-    return (
-      <span
-        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${className}`}
-      >
-        {icon} {status}
-      </span>
-    );
-  };
-
-  const previewText =
-    question.content.length > 100
+  const effectiveTitle = question.title || question.content;
+  const contentPreview = question.title && question.content
+    ? question.content.length > 100
       ? `${question.content.substring(0, 100)}...`
-      : question.content;
+      : question.content
+    : null;
 
   const cardContent = (
     <div className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow min-h-[120px] sm:min-h-[140px]">
-      <div className="card-body p-4 sm:p-6">
+      <div className="card-body p-4">
         <h2 className="card-title text-base sm:text-lg leading-tight">
-          {previewText}
+          {effectiveTitle}
         </h2>
-        <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
-          Type: {question.type.replace("_", " ")}
-        </p>
-        {getStatusBadge(question.computedStatus)}
+        {contentPreview && (
+          <p className="text-sm text-base-content/70 mt-2">{contentPreview}</p>
+        )}
       </div>
     </div>
   );

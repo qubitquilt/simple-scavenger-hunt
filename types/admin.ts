@@ -40,3 +40,24 @@ export interface AdminMetrics {
 export interface AdminSession {
   user: AdminUser;
 }
+
+export interface ProgressResponse {
+  progress: {
+    completed: boolean;
+  };
+  questions: {
+    id: string;
+    slug: string;
+    type: string;
+    content: string;
+    eventId: string;
+    expectedAnswer: string;
+    aiThreshold: number;
+    hintEnabled: boolean;
+    createdAt: string;
+  }[];
+  stats: {
+    completedCount: number;
+    totalCount: number;
+  };
+}

@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     // Check if user exists by name
     let user = await prisma.user.findFirst({
       where: {
-        name,
+        name: name,
       },
     });
 
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
       // Create new user
       user = await prisma.user.create({
         data: {
-          name,
+          name: name,
         },
       });
       userId = user.id;

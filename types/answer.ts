@@ -6,6 +6,7 @@ export interface Answer {
   questionId: string;
   submission: any; // JSONB: string for text/MC, object for image {url: string}
   aiScore?: number;
+  explanation?: string;
   status: "pending" | "correct" | "incorrect";
   computedStatus?: AnswerStatus;
   createdAt: string;

@@ -118,11 +118,13 @@ export async function GET(request: NextRequest) {
 
     // Determine userId from session or cookie
     let finalUserId: string | undefined;
+    let isAdmin = false;
 
     if (session?.user?.id) {
       // Admin user with NextAuth session
       finalUserId = session.user.id;
-      console.log("Using NextAuth session userId:", finalUserId);
+      isAdmin = session.user.admin || finalUserId === 'admin';
+      console.log("Using NextAuth session userId:", finalUserId, "Is admin:", isAdmin);
     } else if (userId) {
       // Regular user with cookie
       finalUserId = userId;
@@ -130,6 +132,15 @@ export async function GET(request: NextRequest) {
     } else {
       console.log("No authentication found");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Handle admin sessions gracefully - admins don't have personal progress
+    if (isAdmin) {
+      console.log("Admin session detected - returning no progress");
+      return NextResponse.json(
+        { error: "Admins do not have personal progress" },
+        { status: 404 }
+      );
     }
 
     const { searchParams } = new URL(request.url);
@@ -296,6 +307,8 @@ export async function GET(request: NextRequest) {
       (q) => q.computedStatus === "accepted",
     ).length;
     const isCompleted = completedQuestions === totalQuestions;
+
+    console.log(`[PROGRESS GET] User ${finalUserId}, Event ${targetEventId}: totalQuestions=${totalQuestions}, completedQuestions=${completedQuestions}, isCompleted=${isCompleted}, accepted questions: ${questionsWithStatus.filter(q => q.computedStatus === "accepted").map(q => q.id).join(', ')}`);
 
     return NextResponse.json({
       progress: {

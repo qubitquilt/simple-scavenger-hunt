@@ -154,13 +154,14 @@ describe("POST /api/answers for image submission", () => {
     expect(mockPrisma.answer.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: {
-          progressId: "p1",
-          questionId: "q1",
+          progress: { connect: { id: "p1" } },
+          question: { connect: { id: "q1" } },
           submission: { url: "/uploads/image.jpg" },
           aiScore: 10,
           status: "correct",
-          explanation: expect.any(String),
+          explanation: "correct",
         },
+        select: { id: true }
       }),
     );
     expect(mockPrisma.progress.update).toHaveBeenCalled();

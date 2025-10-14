@@ -1,13 +1,13 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
 import type { Question } from "@/types/question";
 import type { Event } from "@/types/admin";
 import type { Answer } from "@/types/answer";
-import { AnswerStatus } from "@/types/answer";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ImageQuestion from "@/components/ImageQuestion";
 
@@ -16,169 +16,122 @@ interface ChallengeViewProps {
   event: Event;
 }
 
+type TextFormData = {
+  textAnswer: string;
+};
+
+type McFormData = {
+  mcAnswer: string;
+};
+
+const textSchema = z.object({
+  textAnswer: z.string().min(1, "Answer is required"),
+});
+
+const mcSchema = z.object({
+  mcAnswer: z.string().min(1, "Please select an option"),
+});
+
 export default function ChallengeView({ question, event }: ChallengeViewProps) {
   const router = useRouter();
-  const { data: session, status } = useSession();
   const [answer, setAnswer] = useState<Answer | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [feedback, setFeedback] = useState<string | null>(null);
-  const [aiScore, setAiScore] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [submission, setSubmission] = useState<string>("");
+  const [lastImageUrl, setLastImageUrl] = useState<string | null>(null);
   const [hint, setHint] = useState<string | null>(null);
   const [hintLoading, setHintLoading] = useState(false);
-  const [hintError, setHintError] = useState<string | null>(null);
   const [hintCount, setHintCount] = useState(0);
   const [maxHints, setMaxHints] = useState(2);
+  const [error, setError] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const isAnswered = !!answer;
   const isCorrect = answer?.status === "correct";
   const isIncorrect = answer?.status === "incorrect";
   const isPending = answer?.status === "pending";
-  const userAnswer = answer?.submission as string | { url: string } | undefined;
+  const shouldShowForm = !isAnswered || isIncorrect;
+  const showReadOnly = isAnswered && (isCorrect || isPending);
+
+  // Separate forms for different types
+  const textForm = useForm<TextFormData>({
+    resolver: zodResolver(textSchema),
+    defaultValues: {
+      textAnswer: "",
+    },
+  });
+
+  const mcForm = useForm<McFormData>({
+    resolver: zodResolver(mcSchema),
+    defaultValues: {
+      mcAnswer: "",
+    },
+  });
+
+  // Set initial values for pre-fill on incorrect
+  useEffect(() => {
+    if (isIncorrect && answer) {
+      if (question.type === "text") {
+        textForm.setValue("textAnswer", answer.submission as string, { shouldValidate: false });
+      } else if (question.type === "multiple_choice") {
+        mcForm.setValue("mcAnswer", answer.submission as string, { shouldValidate: false });
+      }
+    }
+  }, [answer, isIncorrect, question.type]);
+
+  const fetchAnswer = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/answers?questionId=${question.id}`, {
+        credentials: "include",
+      });
+  
+      if (process.env.NODE_ENV === 'development') {
+        console.log('ChallengeView fetchAnswer - response status:', response.status)
+      }
+  
+      if (!response.ok) {
+        if (response.status === 401) {
+          if (process.env.NODE_ENV === 'development') {
+            console.log('ChallengeView - 401 from /api/answers, redirecting to register')
+          }
+          router.push("/register");
+          return;
+        }
+        setError("Failed to load answer status");
+        setLoading(false);
+        return;
+      }
+  
+      const responseData = await response.json();
+      const { answer: answerData } = responseData;
+      setAnswer(answerData);
+  
+      if (answerData) {
+        if (question.type === "image") {
+          const imageUrl = (answerData.submission as { url: string }).url;
+          setLastImageUrl(imageUrl);
+        }
+      }
+    } catch (err) {
+      setError("Failed to load answer status");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    console.log(
-      "ChallengeView useEffect triggered - session status:",
-      status,
-      "session data:",
-      !!session,
-    );
-    console.log("ChallengeView - Current loading state:", loading);
-    console.log("ChallengeView - Question ID:", question.id);
-    console.log("ChallengeView - isAnswered:", isAnswered);
-    console.log(
-      "ChallengeView - Session object details:",
-      session ? { user: session.user, expires: session.expires } : "null",
-    );
+    fetchAnswer();
+  }, [question.id, router]);
 
-    if (status === "loading") {
-      console.log(
-        "ChallengeView - Session still loading, keeping loading true",
-      );
-      return;
-    }
-
-    if (status === "unauthenticated") {
-      console.log(
-        "ChallengeView - User unauthenticated, setting loading false and showing login prompt",
-      );
-      setLoading(false);
-      return;
-    }
-
-    if (status === "authenticated") {
-      console.log(
-        "ChallengeView - Session authenticated, proceeding with answer fetch",
-      );
-
-      const fetchAnswer = async () => {
-        try {
-          console.log(
-            "ChallengeView - Starting answer fetch for questionId:",
-            question.id,
-          );
-          setLoading(true);
-          console.log("ChallengeView - Set loading to true");
-
-          const apiUrl = `/api/answers?questionId=${question.id}`;
-          console.log("ChallengeView - Fetching from URL:", apiUrl);
-
-          // Add timeout to prevent hanging
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-
-          const response = await fetch(apiUrl, {
-            signal: controller.signal,
-            headers: {
-              "Cache-Control": "no-cache",
-            },
-            credentials: "include",
-          });
-          clearTimeout(timeoutId);
-
-          console.log(
-            "ChallengeView - Fetch response status:",
-            response.status,
-            response.statusText,
-          );
-
-          if (response.ok) {
-            const responseData = await response.json();
-            console.log("ChallengeView - Response data:", responseData);
-            const { answer: answerData } = responseData;
-            console.log("ChallengeView - Extracted answer data:", answerData);
-            setAnswer(answerData);
-            if (answerData?.submission && !isAnswered) {
-              console.log(
-                "ChallengeView - Setting submission from existing answer:",
-                answerData.submission,
-              );
-              setSubmission(typeof answerData.submission === "string" ? answerData.submission : answerData.submission.url);
-            }
-          } else {
-            console.log(
-              "ChallengeView - Answer fetch failed with status:",
-              response.status,
-            );
-            const errorText = await response.text();
-            console.log("ChallengeView - Error response body:", errorText);
-            if (response.status === 401) {
-              setError("Please log in to view or submit answers.");
-            } else {
-              setError(`Failed to load answer: ${response.status}`);
-            }
-          }
-        } catch (err) {
-          console.error("ChallengeView - Failed to load answer status:", err);
-          if (err instanceof Error && err.name === "AbortError") {
-            setError("Request timed out - please check your connection");
-          } else {
-            setError("Failed to load answer status");
-          }
-        } finally {
-          console.log(
-            "ChallengeView - Setting loading to false in finally block",
-          );
-          setLoading(false);
-        }
-      };
-
-      fetchAnswer();
-
-      const handleFocus = () => {
-        console.log("ChallengeView - Window focus event, refetching answer");
-        fetchAnswer();
-      };
-
-      window.addEventListener("focus", handleFocus);
-      return () => window.removeEventListener("focus", handleFocus);
-    } else {
-      console.log("ChallengeView - Unexpected session status:", status);
-      // Handle unexpected status by setting loading to false
-      setLoading(false);
-    }
-  }, [question.id, session, status]);
-
-  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSubmission(e.target.value);
-    if (feedback) setFeedback(null);
+  const handleTextSubmit = async (data: TextFormData) => {
+    await handleSubmitGeneric(data.textAnswer);
   };
 
-  const handleMcChange = (value: string) => {
-    setSubmission(value);
+  const handleMcSubmit = async (data: McFormData) => {
+    await handleSubmitGeneric(data.mcAnswer);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!submission || submitting || isAnswered) {
-      if (isAnswered) {
-        setFeedback("Already submitted - cannot resubmit");
-      }
-      return;
-    }
-
+  const handleSubmitGeneric = async (submission: string) => {
     setSubmitting(true);
     setFeedback(null);
     setError(null);
@@ -186,65 +139,112 @@ export default function ChallengeView({ question, event }: ChallengeViewProps) {
     try {
       const response = await fetch("/api/answers", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         credentials: "include",
-        body: JSON.stringify({ questionId: question.id, submission }),
+        body: JSON.stringify({
+          questionId: question.id,
+          submission,
+        }),
       });
 
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
         if (response.status === 409 || response.status === 401) {
-          setFeedback("Already submitted - cannot resubmit");
+          setFeedback("Already submitted or please log in");
         } else {
-          throw new Error(errData.error || "Submission failed");
+          setError(errData.error || "Submission failed");
         }
-      } else {
-        const result = await response.json();
-
-        if (result.accepted) {
-          router.push("/challenges");
-          return;
-        } else {
-          setAiScore(result.aiScore || 0);
-          setFeedback(
-            question.type === "text"
-              ? `Score: ${result.aiScore || 0}/${question.aiThreshold}. Try again!`
-              : "Incorrect. Please try again.",
-          );
-          if (question.type !== "multiple_choice") {
-            setSubmission("");
-          }
-
-          const announcement = document.getElementById("feedback-announce");
-          if (announcement) {
-            announcement.textContent = feedback;
-          }
-        }
+        return;
       }
+
+      const result = await response.json();
+
+      if (result.accepted) {
+        router.push("/challenges");
+        return;
+      }
+
+      setFeedback(
+        question.type === "text"
+          ? `Score: ${result.aiScore || 0}/${question.aiThreshold || 10}. Try again!`
+          : "Incorrect. Please try again."
+      );
+
+      // Refetch to update status
+      await fetchAnswer();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Submission error");
+      setError("Submission error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleImageAnswer = async (url: string) => {
+    setSubmitting(true);
+    setFeedback(null);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/answers", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          questionId: question.id,
+          submission: { url },
+        }),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        setError(errData.error || "Image submission failed");
+        return;
+      }
+
+      const result = await response.json();
+
+      if (result.accepted) {
+        router.push("/challenges");
+        return;
+      }
+
+      setFeedback("Incorrect. Please try again.");
+
+      // Refetch to update status
+      await fetchAnswer();
+    } catch (err) {
+      setError("Image submission error");
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleHintRequest = async () => {
-    if (!question || hintLoading || hintCount >= maxHints || isAnswered) return;
+    if (hintLoading || hintCount >= maxHints || isAnswered) {
+      return;
+    }
 
     setHintLoading(true);
-    setHintError(null);
+    setHint(null);
+    setError(null);
 
     try {
       const response = await fetch("/api/hints", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         credentials: "include",
         body: JSON.stringify({ questionId: question.id }),
       });
 
       if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || "Failed to get hint");
+        setError("Failed to get hint");
+        return;
       }
 
       const result = await response.json();
@@ -252,126 +252,235 @@ export default function ChallengeView({ question, event }: ChallengeViewProps) {
       setHintCount(result.hintCount);
       setMaxHints(result.maxHints);
     } catch (err) {
-      setHintError(err instanceof Error ? err.message : "Hint error");
+      setError("Hint request failed");
     } finally {
       setHintLoading(false);
     }
   };
 
-  const handleHintKeyDown = (e: React.KeyboardEvent) => {
+  const handleHintKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       handleHintRequest();
     }
   };
 
-  const handleImageAnswer = async (url: string) => {
-    if (submitting || isAnswered) {
-      if (isAnswered) {
-        setFeedback("Already submitted - cannot resubmit");
-      }
-      return;
-    }
-
-    setSubmitting(true);
-    setFeedback(null);
-    setError(null);
-
-    try {
-      const response = await fetch("/api/answers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ questionId: question.id, submission: url }),
-      });
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        if (response.status === 409 || response.status === 401) {
-          setFeedback("Already submitted - cannot resubmit");
-        } else {
-          throw new Error(errData.error || "Image submission failed");
-        }
-      } else {
-        const result = await response.json();
-
-        if (result.accepted) {
-          router.push("/challenges");
-          return;
-        } else {
-          setAiScore(result.aiScore || 0);
-          setFeedback(
-            question.type === "text"
-              ? `Score: ${result.aiScore || 0}/${question.aiThreshold}. Try again!`
-              : "Incorrect. Please try again.",
-          );
-          if (question.type !== "multiple_choice") {
-            setSubmission("");
-          }
-
-          const announcement = document.getElementById("feedback-announce");
-          if (announcement) {
-            announcement.textContent = feedback;
-          }
-        }
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Image submission error");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   if (loading) {
-    return <LoadingSpinner />;
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-base-200">
+        <LoadingSpinner size="lg" />
+        <div className="sr-only">Loading challenge...</div>
+      </div>
+    );
   }
 
   const renderReadOnlyAnswer = () => {
-    if (!isAnswered) return null;
+    if (!showReadOnly) return null;
 
     let answerContent;
+    const userAnswerValue = answer?.submission;
+
     if (question.type === "text") {
       answerContent = (
-        <div className="input bg-base-200 text-base-content p-2" id="answer-desc">
-          {typeof userAnswer === 'string' ? userAnswer : ''}
+        <div className="bg-base-200 p-3 rounded-box whitespace-pre-wrap" aria-label="Submitted text answer">
+          {userAnswerValue as string}
         </div>
       );
     } else if (question.type === "multiple_choice") {
-      const options = JSON.parse(question.options as unknown as string);
-      const selectedOption = userAnswer as string;
       answerContent = (
-        <div className="input bg-base-200 text-base-content p-2">
-          {selectedOption}
+        <div className="bg-base-200 p-3 rounded-box whitespace-pre-wrap" aria-label="Submitted multiple choice answer">
+          {userAnswerValue as string}
         </div>
       );
     } else if (question.type === "image") {
-      const imageUrl = (userAnswer as { url: string }).url;
+      const imageUrl = (userAnswerValue as { url: string }).url;
       answerContent = (
         <div className="flex justify-center">
           <img
             src={imageUrl}
-            alt="Submitted answer"
-            className="max-w-full h-auto rounded-box bg-base-200 p-2"
+            alt="Submitted image answer"
+            className="max-w-md h-auto rounded-box"
           />
         </div>
       );
     }
 
-    const statusBadge = isCorrect ? (
-      <span className="badge badge-success">Correct</span>
-    ) : isIncorrect ? (
-      <span className="badge badge-error">Incorrect</span>
-    ) : (
-      <span className="badge badge-neutral">Submitted</span>
-    );
+    const statusClass = isCorrect
+      ? "badge badge-success"
+      : "badge badge-warning";
+    const statusText = isCorrect ? "Correct" : "Under review";
 
     return (
-      <div className="mb-4">
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-sm font-medium">Your Answer:</span>
-          {statusBadge}
+      <div className="p-4 bg-base-200 rounded-box">
+        <div className="flex justify-between items-center mb-3">
+          <span className="text-lg font-medium">Your submission:</span>
+          <span className={statusClass} aria-label={`Status: ${statusText}`}>
+            {statusText}
+          </span>
         </div>
         {answerContent}
       </div>
     );
-  }}
+  };
+
+  const renderForm = () => {
+    if (question.type === "image") {
+      return (
+        <div>
+          {isIncorrect && lastImageUrl && (
+            <div className="mb-4 p-4 bg-base-200 rounded-box">
+              <p className="text-sm font-medium mb-2 text-base-content">Previous attempt:</p>
+              <img
+                src={lastImageUrl}
+                alt="Previous image submission"
+                className="max-w-md h-auto rounded-box"
+              />
+            </div>
+          )}
+          <ImageQuestion question={question} progress={null} onAnswer={handleImageAnswer} />
+        </div>
+      );
+    }
+
+    if (question.type === "text") {
+      return (
+        <form onSubmit={textForm.handleSubmit(handleTextSubmit)} className="space-y-4">
+          <div className="form-control w-full max-w-md">
+            <label className="label">
+              <span className="label-text">Your answer</span>
+            </label>
+            <textarea
+              {...textForm.register("textAnswer")}
+              className="textarea textarea-bordered w-full"
+              placeholder="Enter your answer here"
+              aria-describedby={textForm.formState.errors.textAnswer ? "text-error" : undefined}
+            />
+            {textForm.formState.errors.textAnswer && (
+              <label className="label">
+                <span className="label-text-alt text-error">{textForm.formState.errors.textAnswer.message}</span>
+              </label>
+            )}
+          </div>
+          <button
+            type="submit"
+            disabled={submitting}
+            className="btn btn-primary w-full max-w-md"
+            aria-label="Submit text answer"
+          >
+            {submitting ? <LoadingSpinner size="sm" /> : "Submit Answer"}
+          </button>
+        </form>
+      );
+    }
+
+    if (question.type === "multiple_choice") {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const options = question.options ? (JSON.parse(question.options as any) as Record<string, string>) : {};
+      return (
+        <form onSubmit={mcForm.handleSubmit(handleMcSubmit)} className="space-y-4">
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text">Select your answer</span>
+            </label>
+            <div className="space-y-2">
+              {Object.entries(options).map(([key, value]) => (
+                <label key={key} className="label btn-block cursor-pointer justify-start gap-2 p-4 hover:bg-base-200 rounded">
+                  <input
+                    type="radio"
+                    name="mcAnswer"
+                    value={value}
+                    className="radio radio-primary"
+                  />
+                  <span className="label-text">{value}</span>
+                </label>
+              ))}
+            </div>
+            {mcForm.formState.errors.mcAnswer && (
+              <label className="label">
+                <span className="label-text-alt text-error">{mcForm.formState.errors.mcAnswer.message}</span>
+              </label>
+            )}
+          </div>
+          <button
+            type="submit"
+            disabled={submitting}
+            className="btn btn-primary w-full max-w-md"
+            aria-label="Submit multiple choice answer"
+          >
+            {submitting ? <LoadingSpinner size="sm" /> : "Submit Answer"}
+          </button>
+        </form>
+      );
+    }
+
+    return null;
+  };
+
+  return (
+    <div className="min-h-screen bg-base-200" role="main" aria-label="Challenge view">
+      <div className="max-w-2xl mx-auto">
+        <div className="card bg-base-100 shadow-xl">
+          <div className="card-body p-6">
+            <h1 className="card-title text-2xl mb-4">{question.content}</h1>
+            {renderReadOnlyAnswer()}
+            {shouldShowForm && renderForm()}
+            {question.hintEnabled && !isAnswered && hintCount < maxHints && (
+              <div className="mt-4">
+                <button
+                  onClick={handleHintRequest}
+                  onKeyDown={handleHintKeyDown}
+                  disabled={hintLoading}
+                  className="btn btn-outline w-full max-w-md"
+                  aria-label="Request a hint for this challenge"
+                  tabIndex={0}
+                >
+                  {hintLoading ? (
+                    <>
+                      <LoadingSpinner size="sm" />
+                      <span className="ml-2">Getting hint...</span>
+                    </>
+                  ) : (
+                    `Get Hint (${hintCount + 1}/${maxHints})`
+                  )}
+                </button>
+              </div>
+            )}
+            {hint && (
+              <div className="alert alert-info mt-4" role="alert" aria-label="Hint provided">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  className="stroke-current shrink-0 w-6 h-6"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <span>{hint}</span>
+              </div>
+            )}
+            {error && (
+              <div className="alert alert-error mt-4" role="alert" aria-live="assertive">
+                {error}
+              </div>
+            )}
+            {feedback && (
+              <div
+                id="feedback-announce"
+                className="alert alert-warning mt-4"
+                role="status"
+                aria-live="polite"
+              >
+                {feedback}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

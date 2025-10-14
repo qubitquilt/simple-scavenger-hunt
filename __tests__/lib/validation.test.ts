@@ -14,6 +14,7 @@ describe("Image Validation Schemas", () => {
     const validImageData: ImageQuestionData = {
       type: "image",
       eventId: "123e4567-e89b-12d3-a456-426614174000",
+      title: "Test Title",
       content: "Test content",
       expectedAnswer: "Expected",
       aiThreshold: 8,

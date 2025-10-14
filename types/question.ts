@@ -4,6 +4,7 @@ export interface Question {
   id: string;
   eventId: string;
   type: "text" | "multiple_choice" | "image";
+  title: string;
   content: string;
   options?: Record<string, string>;
   expectedAnswer: string | null;

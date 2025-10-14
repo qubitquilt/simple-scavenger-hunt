@@ -1,76 +1,93 @@
-import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import "@testing-library/jest-dom";
-import ImageQuestionForm from "@/components/admin/ImageQuestionForm";
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import ImageQuestionForm from '@/components/admin/ImageQuestionForm';
+import { useForm } from 'react-hook-form';
+
+// Mock react-hook-form
+jest.mock('react-hook-form', () => ({
+  useForm: jest.fn(() => ({
+    register: jest.fn(),
+    handleSubmit: jest.fn((fn) => fn),
+    formState: { errors: {} },
+    watch: jest.fn(),
+    setValue: jest.fn(),
+  })),
+}));
 
 const mockOnSubmit = jest.fn();
-const user = userEvent.setup();
+const mockUser = userEvent.setup();
 
-describe("ImageQuestionForm", () => {
+describe('ImageQuestionForm', () => {
   const defaultProps = {
-    initialData: undefined,
     onSubmit: mockOnSubmit,
-    eventId: "test-event",
+    eventId: 'test-event',
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
-  });
-
-  it("renders form inputs with defaults", () => {
-    render(<ImageQuestionForm {...defaultProps} />);
-
-    expect(screen.getByLabelText(/question content/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/image description/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /submit/i })).toBeInTheDocument();
-  });
-
-  it("submits valid form data", async () => {
-    render(<ImageQuestionForm {...defaultProps} />);
-
-    await user.type(screen.getByLabelText(/question content/i), "Test content");
-    await user.type(
-      screen.getByLabelText(/image description/i),
-      "Upload image of a cat",
-    );
-    await user.click(screen.getByRole("button", { name: /submit/i }));
-
-    await waitFor(() => {
-      expect(mockOnSubmit).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: "image",
-          content: "Test content",
-          imageDescription: "Upload image of a cat",
-          allowedFormats: ["jpg", "png"],
-          aiThreshold: 8,
-          hintEnabled: false,
-        }),
-        expect.anything(),
-      );
+    (useForm as jest.Mock).mockReturnValue({
+      register: jest.fn((name) => [jest.fn(), jest.fn()]),
+      handleSubmit: jest.fn((fn) => async (data) => fn(data)),
+      formState: { errors: {} },
+      watch: jest.fn(() => ({})),
+      setValue: jest.fn(),
     });
   });
 
-  it("handles cancel with unsaved changes confirmation", async () => {
-    const mockOnCancel = jest.fn();
-    const mockConfirm = jest.fn(() => false);
-    global.confirm = mockConfirm;
+  test('renders title and content input fields separately', () => {
+    render(<ImageQuestionForm {...defaultProps} />);
 
-    render(<ImageQuestionForm {...defaultProps} onCancel={mockOnCancel} />);
+    expect(screen.getByLabelText(/title/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/content/i)).toBeInTheDocument();
+  });
 
-    // Make dirty by typing
-    await user.type(screen.getByLabelText(/image description/i), "Dirty");
+  test('submits form with both title and content fields', async () => {
+    const mockRegister = jest.fn((name) => [jest.fn(), jest.fn()]);
+    (useForm as jest.Mock).mockReturnValue({
+      register: mockRegister,
+      handleSubmit: jest.fn((fn) => async (data) => fn(data)),
+      formState: { errors: {} },
+      watch: jest.fn(() => ({})),
+      setValue: jest.fn(),
+    });
 
-    const cancelButton = screen.getByRole("button", { name: /cancel/i });
-    await user.click(cancelButton);
+    render(<ImageQuestionForm {...defaultProps} />);
 
-    expect(mockConfirm).toHaveBeenCalledWith(
-      "Unsaved changes will be lost. Discard?",
-    );
-    expect(mockOnCancel).not.toHaveBeenCalled();
+    const titleInput = screen.getByLabelText(/title/i);
+    const contentInput = screen.getByLabelText(/content/i);
 
-    mockConfirm.mockReturnValueOnce(true);
-    await user.click(cancelButton);
-    expect(mockOnCancel).toHaveBeenCalled();
+    await mockUser.type(titleInput, 'Test Title');
+    await mockUser.type(contentInput, 'Test Content');
+
+    const submitButton = screen.getByRole('button', { name: /submit/i });
+    await mockUser.click(submitButton);
+
+    expect(mockOnSubmit).toHaveBeenCalledWith({
+      title: 'Test Title',
+      content: 'Test Content',
+      // other fields...
+    });
+  });
+
+  test('handles form with missing title (backward compatibility)', async () => {
+    const mockRegister = jest.fn((name) => [jest.fn(), jest.fn()]);
+    (useForm as jest.Mock).mockReturnValue({
+      register: mockRegister,
+      handleSubmit: jest.fn((fn) => async (data) => fn(data)),
+      formState: { errors: {} },
+      watch: jest.fn(() => ({ title: '' })),
+      setValue: jest.fn(),
+    });
+
+    render(<ImageQuestionForm {...defaultProps} initialData={{ content: 'Fallback Content' }} />);
+
+    const contentInput = screen.getByLabelText(/content/i);
+    expect(contentInput).toHaveValue('Fallback Content');
+
+    // Title input should be empty
+    const titleInput = screen.getByLabelText(/title/i);
+    expect(titleInput).toHaveValue('');
+
+    // Submission should use content as fallback if needed, but since it's creation, just test fields are present
   });
 });

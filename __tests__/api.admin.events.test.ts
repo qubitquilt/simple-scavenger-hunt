@@ -1,3 +1,23 @@
+jest.mock("next/server", () => ({
+  NextResponse: {
+    json: jest.fn((data) => ({ ...data, json: () => Promise.resolve(data) })),
+  },
+  NextRequest: jest.fn().mockImplementation((url, options) => ({
+    url,
+    method: options?.method || 'GET',
+    json: jest.fn().mockResolvedValue(options?.body ? JSON.parse(options.body) : {}),
+  })),
+}));
+
+import { NextResponse } from "next/server";
+
+import * as server from "next/server";
+
+jest.spyOn(server.NextResponse, "json").mockImplementation((data: any) => ({
+  ...data,
+  json: () => Promise.resolve(data),
+}));
+
 jest.mock("@/lib/prisma", () => ({
   prisma: {
     event: {
@@ -17,14 +37,10 @@ beforeAll(() => {
 
 jest.mock("next-auth", () => ({ getServerSession: jest.fn() }));
 
-const {
-  GET: adminEventsGET,
-  POST: adminEventsPOST,
-  PUT: adminEventsPUT,
-  DELETE: adminEventsDELETE,
-} = require("@/app/api/admin/events/route");
-const { prisma: adminEventsPrisma } = require("@/lib/prisma");
-const { getServerSession: adminEventsGetServerSession } = require("next-auth");
+import { GET, POST, PUT, DELETE } from "@/app/api/admin/events/route";
+import { NextRequest } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
 
 describe("admin events api", () => {
   beforeEach(() => {
@@ -36,58 +52,66 @@ describe("admin events api", () => {
       id: "1",
       title: "E",
       slug: "e",
-      date: new Date(),
-      createdAt: new Date(),
+      description: "",
+      date: "2025-10-14T12:56:22.749Z",
+      createdAt: "2025-10-14T12:56:22.749Z",
     };
-    adminEventsPrisma.event.findMany.mockResolvedValue([mockEvent]);
-    const res = await adminEventsGET();
-    expect(res).toEqual({
-      events: [
-        {
-          id: "1",
-          title: "E",
-          slug: "e",
-          description: "",
-          date: expect.any(Date),
-          createdAt: expect.any(Date),
-        },
-      ],
-    });
+    (prisma.event.findMany as jest.Mock).mockResolvedValue([mockEvent]);
+    const res = await GET();
+    const body = await res.json();
+    expect(body.events).toEqual([
+      {
+        id: "1",
+        title: "E",
+        slug: "e",
+        description: "",
+        date: "2025-10-14T12:56:22.749Z",
+        createdAt: "2025-10-14T12:56:22.749Z",
+      },
+    ]);
   });
 
   it("POST returns 401 when not admin", async () => {
-    (adminEventsGetServerSession as jest.Mock).mockResolvedValue({
-      user: { admin: false },
+    (getServerSession as jest.Mock).mockResolvedValue({ user: { admin: false } });
+    const req = new NextRequest("http://localhost/api/admin/events", {
+      method: "POST",
+      body: JSON.stringify({ title: "t", slug: "test-slug" }),
     });
-    const req = { json: async () => ({ title: "t" }) };
-    const res = await adminEventsPOST(req);
-    expect(res).toEqual({ error: "Unauthorized" });
+    const res = await POST(req);
+    const body = await res.json();
+    expect(body.error).toEqual("Unauthorized");
   });
 
-  it("POST returns 400 when title missing", async () => {
-    (adminEventsGetServerSession as jest.Mock).mockResolvedValue({
-      user: { admin: true },
+  it("POST returns 400 when name missing", async () => {
+    (getServerSession as jest.Mock).mockResolvedValue({ user: { admin: true } });
+    const req = new NextRequest("http://localhost/api/admin/events", {
+      method: "POST",
+      body: JSON.stringify({ title: "", slug: "test-slug" }),
     });
-    const req = { json: async () => ({ title: "" }) };
-    const res = await adminEventsPOST(req);
-    expect(res).toEqual({ error: "Title is required" });
+    const res = await POST(req);
+    const body = await res.json();
+    expect(body.error).toEqual("Title is required");
   });
 
   it("PUT returns 400 when id missing", async () => {
-    (adminEventsGetServerSession as jest.Mock).mockResolvedValue({
-      user: { admin: true },
+    (getServerSession as jest.Mock).mockResolvedValue({ user: { admin: true } });
+    const req = new NextRequest("http://localhost/api/admin/events", {
+      method: "PUT",
+      body: JSON.stringify({ title: "t", slug: "test-slug" }),
     });
-    const req = { json: async () => ({}) };
-    const res = await adminEventsPUT(req);
-    expect(res).toEqual({ error: "ID is required" });
+    const res = await PUT(req);
+    const body = await res.json();
+    expect(body.error).toEqual("ID is required");
   });
 
   it("DELETE returns 400 when id missing", async () => {
-    (adminEventsGetServerSession as jest.Mock).mockResolvedValue({
-      user: { admin: true },
+    (getServerSession as jest.Mock).mockResolvedValue({ user: { admin: true } });
+    const req = new NextRequest("http://localhost/api/admin/events", {
+      method: "DELETE",
+      body: JSON.stringify({ title: "t", slug: "test-slug" }),
     });
-    const req = { json: async () => ({}) };
-    const res = await adminEventsDELETE(req);
-    expect(res).toEqual({ error: "ID is required" });
+    const res = await DELETE(req);
+    const body = await res.json();
+    expect(body.error).toEqual("ID is required");
   });
 });

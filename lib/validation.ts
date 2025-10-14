@@ -2,7 +2,8 @@ import { z } from "zod";
 
 const commonQuestionFields = {
   eventId: z.string().min(1, "Event ID is required"),
-  content: z.string().min(1, "Question content is required"),
+  title: z.string().min(1, "Title is required").max(100, "Title must be less than 100 characters"),
+  content: z.string().min(1, "Content is required").max(2000, "Content must be less than 2000 characters"),
   expectedAnswer: z.string().min(1, "Expected answer is required"),
   aiThreshold: z.coerce.number().min(0).max(10).default(8),
   hintEnabled: z.boolean().default(false),
@@ -36,7 +37,6 @@ const multipleChoiceQuestionSchema = z
 export const imageQuestionSchema = z.object({
   type: z.literal("image"),
   ...commonQuestionFields,
-  expectedAnswer: z.string(),
   imageDescription: z.string().min(1, "Image description is required"),
   allowedFormats: z
     .union([
@@ -54,23 +54,13 @@ export const imageQuestionSchema = z.object({
     .min(1)
     .max(10 * 1024 * 1024, "Number must be less than or equal to 10485760")
     .default(5 * 1024 * 1024),
-  minResolution: z
-    .union([
-      z.object({
-        width: z.number().min(1, "Width must be at least 1"),
-        height: z.number().min(1, "Height must be at least 1"),
-      }),
-      z
-        .string()
-        .transform((val) => JSON.parse(val))
-        .pipe(
-          z.object({
-            width: z.number().min(1, "Width must be at least 1"),
-            height: z.number().min(1, "Height must be at least 1"),
-          }),
-        ),
-    ])
-    .default({ width: 100, height: 100 }),
+  minResolution: z.preprocess(
+    (val) => (typeof val === "string" ? JSON.parse(val) : val),
+    z.object({
+      width: z.number().min(1, "Width must be at least 1"),
+      height: z.number().min(1, "Height must be at least 1"),
+    }),
+  ).default({ width: 100, height: 100 }),
   required: z.boolean().default(false),
 });
 
@@ -82,7 +72,8 @@ export const createQuestionSchema = z.discriminatedUnion("type", [
 
 const updateCommonFields = {
   eventId: z.string().min(1).optional(),
-  content: z.string().min(1).optional(),
+  title: z.string().min(1).max(100).optional(),
+  content: z.string().min(1).max(2000).optional(),
   expectedAnswer: z.string().min(1).optional(),
   aiThreshold: z.coerce.number().min(0).max(10).default(8).optional(),
   hintEnabled: z.boolean().default(false).optional(),
@@ -141,6 +132,7 @@ export const updateQuestionSchema = z
 
 export type CreateQuestion = z.infer<typeof createQuestionSchema>;
 export type UpdateQuestion = z.infer<typeof updateQuestionSchema>;
+export const ImageQuestionData = imageQuestionSchema;
 export type ImageQuestionData = z.infer<typeof imageQuestionSchema>;
 
 export const imageUploadSchema = z.object({

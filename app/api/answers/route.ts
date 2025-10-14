@@ -24,6 +24,13 @@ export async function POST(request: NextRequest) {
 
     if (session?.user?.id) {
       userId = session.user.id
+    } else {
+      // Fallback to userId cookie for regular users
+      const cookieStore = cookies()
+      const userIdCookie = cookieStore.get('userId')?.value
+      if (userIdCookie) {
+        userId = userIdCookie
+      }
     }
 
     if (!userId) {
@@ -438,20 +445,29 @@ export async function POST(request: NextRequest) {
 
     // Insert or update answer in transaction
     const transactionResult = await prisma.$transaction(async (tx) => {
-      const answerData = {
-        progressId,
-        questionId,
+      const answerData: Prisma.AnswerCreateInput = {
+        progress: {
+          connect: { id: progressId }
+        },
+        question: {
+          connect: { id: questionId }
+        },
         submission: storedSubmission,
-        aiScore,
         status,
-        explanation
+        ...(aiScore !== null && { aiScore }),
+        ...(explanation && { explanation }),
       };
 
       let answerId: string;
       if (existingAnswer) {
         const updatedAnswer = await tx.answer.update({
           where: { id: existingAnswer.id },
-          data: answerData,
+          data: {
+            ...answerData,
+            // Don't update relations on update if not changing
+            progress: undefined,
+            question: undefined,
+          },
           select: { id: true }
         });
         answerId = updatedAnswer.id;
@@ -463,6 +479,8 @@ export async function POST(request: NextRequest) {
         answerId = newAnswer.id;
       }
 
+      console.log(`[ANSWERS POST] User ${userId}, Question ${questionId}, Type ${type}, Submission processed. Status: ${status}, aiScore: ${aiScore}`);
+  
       // Check and compute progress correctly.
       // Previously the code used the number of recorded answers as the denominator
       // (i.e. totalQuestions = allAnswers.length) which incorrectly marked an
@@ -475,13 +493,13 @@ export async function POST(request: NextRequest) {
         where: { progressId },
         select: { status: true }
       })
-
+  
       // Get progress row inside the same tx to read questionOrder or eventId.
       const progressRow = await tx.progress.findUnique({
         where: { id: progressId },
         select: { questionOrder: true, eventId: true }
       })
-
+  
       let totalQuestions = 0
       if (progressRow?.questionOrder && Array.isArray(progressRow.questionOrder)) {
         // questionOrder is stored as JSON array of question IDs
@@ -490,10 +508,12 @@ export async function POST(request: NextRequest) {
         // Fallback: count questions for the event
         totalQuestions = await tx.question.count({ where: { eventId: progressRow.eventId } })
       }
-
+  
       const correctCount = allAnswers.filter(a => a.status === 'correct').length
       let completed = false
-
+  
+      console.log(`[ANSWERS POST] Progress calc - User ${userId}, Progress ${progressId}: totalQuestions=${totalQuestions}, allAnswers=${allAnswers.length}, correctCount=${correctCount}, newStatus=${status === 'correct' ? 'correct' : 'not correct'}`);
+  
       // Only mark completed when the number of correct answers equals the real
       // total number of questions for the event.
       if (totalQuestions > 0 && correctCount === totalQuestions) {
@@ -503,8 +523,9 @@ export async function POST(request: NextRequest) {
           where: { id: progressId },
           data: { completed: true }
         })
+        console.log(`[ANSWERS POST] Setting completed=true for progress ${progressId} (all questions correct)`);
       }
-
+  
       return { answerId, completed, stats: { correctCount, totalQuestions } }
     })
 
@@ -525,16 +546,19 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    let userId: string | null = null
+    // For users, rely on userId cookie since NextAuth is admin-only
+    const cookieStore = cookies()
+    const userIdCookie = cookieStore.get('userId')?.value
 
-    if (session?.user?.id) {
-      userId = session.user.id
+    if (process.env.NODE_ENV === 'development') {
+      console.log('GET /api/answers - userId from cookie:', userIdCookie ? 'Present' : 'Missing')
     }
 
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!userIdCookie) {
+      return NextResponse.json({ error: 'Please register to continue' }, { status: 401 })
     }
+
+    const userId = userIdCookie
 
     const { searchParams } = new URL(request.url)
     const questionId = searchParams.get('questionId')

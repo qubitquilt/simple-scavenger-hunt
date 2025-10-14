@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getUserId } from "@/utils/session";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import QuestionCard from "@/components/QuestionCard";
 
 interface QuestionWithStatus {
   id: string;
@@ -13,6 +14,11 @@ interface QuestionWithStatus {
   content: string;
   answered?: boolean;
   status?: "pending" | "correct" | "incorrect";
+  eventId?: string;
+  expectedAnswer?: string;
+  aiThreshold?: number;
+  hintEnabled?: boolean;
+  createdAt?: string;
 }
 
 interface ProgressResponse {
@@ -121,56 +127,16 @@ export default function ChallengesPage() {
         </div>
 
         <div className="space-y-4">
-          {questions.map((question) => {
-            const status = question.status || (question.answered ? "pending" : undefined);
-            const isCorrect = status === "correct";
-            const isIncorrect = status === "incorrect";
-            const isPending = status === "pending";
-            const badgeClass = isCorrect
-              ? "badge-success"
-              : isIncorrect
-              ? "badge-error"
-              : isPending
-              ? "badge-neutral"
-              : "badge-ghost";
-            const badgeText = isCorrect
-              ? "Correct"
-              : isIncorrect
-              ? "Incorrect"
-              : isPending
-              ? "Answered"
-              : "Start";
-            const ariaStatus = isCorrect
-              ? "Correct"
-              : isIncorrect
-              ? "Incorrect"
-              : isPending
-              ? "Answered, pending review"
-              : "Not started";
-            return (
-              <Link
-                key={question.id}
-                href={`/challenges/${question.slug}`}
-                className="block"
-                aria-label={`Challenge: ${question.content.substring(0, 50)}... ${ariaStatus}`}
-              >
-                <div className="card card-dash bg-base-100 shadow-lg hover:shadow-xl transition-shadow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                  <div className="card-body">
-                    <div className="flex justify-between items-center">
-                      <div className="flex-1 min-w-0 mr-4">
-                        <h3 className="card-title text-lg line-clamp-2">{question.content}</h3>
-                      </div>
-                      <div className="ml-auto">
-                        <div className={`badge badge-lg ${badgeClass}`}>
-                          {badgeText}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
+          {questions.map((question) => (
+            <Link
+              key={question.id}
+              href={`/challenges/${question.slug}`}
+              className="block focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              aria-label={`Challenge: ${question.content.substring(0, 50)}... ${question.status || (question.answered ? "pending" : "Not started")}`}
+            >
+              <QuestionCard question={question} />
+            </Link>
+          ))}
         </div>
 
         {stats.totalCount === 0 && (

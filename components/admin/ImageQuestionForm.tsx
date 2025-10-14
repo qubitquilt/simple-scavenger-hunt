@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { ImageQuestionData } from "@/lib/validation";
 import type { Question } from "@/types/question";
 
@@ -23,9 +24,11 @@ export default function ImageQuestionForm({
     handleSubmit,
     formState: { isDirty },
   } = useForm<ImageQuestionData>({
+    resolver: zodResolver(ImageQuestionData),
     defaultValues: {
       eventId,
       type: "image",
+      title: initialData?.title ?? initialData?.content ?? "",
       content: initialData?.content ?? "",
       expectedAnswer: initialData?.expectedAnswer ?? "",
       aiThreshold: initialData?.aiThreshold ?? 8,
@@ -50,6 +53,22 @@ export default function ImageQuestionForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <div>
+        <label
+          htmlFor="title"
+          className="block text-sm font-medium text-gray-700"
+        >
+          Question Title
+        </label>
+        <textarea
+          id="title"
+          {...register("title")}
+          rows={2}
+          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          aria-required="true"
+        />
+      </div>
+
       <div>
         <label
           htmlFor="content"
