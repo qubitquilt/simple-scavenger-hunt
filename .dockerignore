@@ -1,0 +1,13 @@
+# Docker-specific files
+Dockerfile
+.dockerignore
+
+# Git
+.git
+.gitignore
+
+# Dependencies
+node_modules
+
+# Build output
+.next
