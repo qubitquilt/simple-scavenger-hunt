@@ -8,7 +8,9 @@ import { getUserId } from '@/utils/session'
 const mockPush = jest.fn()
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => ({
+    get: (key: string) => null,
+  }),
 }))
 
 // Mock utils
