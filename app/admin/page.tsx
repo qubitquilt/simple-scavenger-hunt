@@ -71,6 +71,47 @@ function AdminDashboard() {
     }
   }, [editingQuestion]);
 
+  const loadEvents = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/admin/events");
+      if (!res.ok) throw new Error("Failed to fetch events");
+      const { events } = await res.json();
+      setEvents(events);
+      if (events.length > 0) {
+        setSelectedEventId(events[0].id);
+      }
+    } catch (err) {
+      setError("Failed to load events");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadQuestions = useCallback(async () => {
+    try {
+      const query = selectedEventId ? `?eventId=${selectedEventId}` : "";
+      const res = await fetch(`/api/admin/questions${query}`);
+      if (!res.ok) throw new Error("Failed to fetch questions");
+      const { questions } = await res.json();
+      setQuestions(questions);
+    } catch (err) {
+      setError("Failed to load questions");
+    }
+  }, [selectedEventId]);
+
+  const loadUsers = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/admin/users?eventId=${selectedEventId}`);
+      if (!res.ok) throw new Error("Failed to fetch users");
+      const { users: data, metrics: m } = await res.json();
+      setUsers(data);
+      setMetrics(m);
+    } catch (err) {
+      setError("Failed to load users");
+    }
+  }, [selectedEventId]);
+
   useEffect(() => {
     loadEvents();
   }, []);
@@ -119,47 +160,6 @@ function AdminDashboard() {
       }
     }, 500);
   }, [slug, editingEvent]);
-
-  const loadEvents = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch("/api/admin/events");
-      if (!res.ok) throw new Error("Failed to fetch events");
-      const { events } = await res.json();
-      setEvents(events);
-      if (events.length > 0) {
-        setSelectedEventId(events[0].id);
-      }
-    } catch (err) {
-      setError("Failed to load events");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadQuestions = useCallback(async () => {
-    try {
-      const query = selectedEventId ? `?eventId=${selectedEventId}` : "";
-      const res = await fetch(`/api/admin/questions${query}`);
-      if (!res.ok) throw new Error("Failed to fetch questions");
-      const { questions } = await res.json();
-      setQuestions(questions);
-    } catch (err) {
-      setError("Failed to load questions");
-    }
-  }, [selectedEventId]);
-
-  const loadUsers = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/admin/users?eventId=${selectedEventId}`);
-      if (!res.ok) throw new Error("Failed to fetch users");
-      const { users: data, metrics: m } = await res.json();
-      setUsers(data);
-      setMetrics(m);
-    } catch (err) {
-      setError("Failed to load users");
-    }
-  }, [selectedEventId]);
 
   const formatSlug = (str: string): string => {
     return str
