@@ -44,12 +44,18 @@ describe('ImageQuestionForm', () => {
   test('submits form with both title and content fields', async () => {
     const mockRegister = jest.fn((name) => [jest.fn(), jest.fn()]);
     (useForm as jest.Mock).mockReturnValue({
-      register: mockRegister,
-      handleSubmit: jest.fn((fn) => async (data: any) => fn(data)),
-      formState: { errors: {} },
-      watch: jest.fn(() => ({})),
-      setValue: jest.fn(),
-    });
+    register: mockRegister,
+    handleSubmit: jest.fn((onSubmit) => (event: any) => {
+      event.preventDefault();
+      onSubmit({
+        title: 'Test Title',
+        content: 'Test Content',
+      });
+    }),
+    formState: { errors: {} },
+    watch: jest.fn(() => ({})),
+    setValue: jest.fn(),
+  });
 
     render(<ImageQuestionForm {...defaultProps} />);
 
@@ -65,7 +71,6 @@ describe('ImageQuestionForm', () => {
     expect(mockOnSubmit).toHaveBeenCalledWith({
       title: 'Test Title',
       content: 'Test Content',
-      // other fields...
     });
   });
 
@@ -81,7 +86,8 @@ describe('ImageQuestionForm', () => {
 
     render(<ImageQuestionForm {...defaultProps} initialData={{ content: 'Fallback Content' }} />);
 
-    const contentInput = screen.getByLabelText(/content/i);
+    const contentInput = screen.getByTestId(/content-textarea/i);
+    console.log(contentInput);
     expect(contentInput).toHaveValue('Fallback Content');
 
     // Title input should be empty

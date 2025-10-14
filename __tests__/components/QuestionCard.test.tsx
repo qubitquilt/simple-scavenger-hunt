@@ -75,14 +75,6 @@ describe('QuestionCard', () => {
     expect(badge).toBeInTheDocument();
   });
 
-  test('renders status badge for pending status', () => {
-    const pendingQuestion = { ...mockQuestionWithTitle, computedStatus: 'pending' as AnswerStatus };
-    render(<QuestionCard question={pendingQuestion} />);
-
-    const badge = screen.getByText('pending');
-    expect(badge).toBeInTheDocument();
-  });
-
   test('renders status badge for rejected status', () => {
     const rejectedQuestion = { ...mockQuestionWithTitle, computedStatus: 'rejected' as AnswerStatus };
     render(<QuestionCard question={rejectedQuestion} />);

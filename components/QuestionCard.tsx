@@ -35,7 +35,10 @@ export default function QuestionCard({
     : null;
 
   const cardContent = (
-    <div className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow min-h-[120px] sm:min-h-[140px]">
+    <div className={`card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow min-h-[120px] sm:min-h-[140px] ${
+      question.computedStatus === "accepted" ? "card-success" :
+      question.computedStatus === "rejected" ? "card-warning" : ""
+    }`}>
       <div className="card-body p-4">
         <h2 className="card-title text-base sm:text-lg leading-tight">
           {effectiveTitle}

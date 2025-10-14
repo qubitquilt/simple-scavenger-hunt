@@ -67,7 +67,7 @@ describe("Image Validation Schemas", () => {
       };
       const result = imageQuestionSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
-      expect(result.error!.issues[0].message).toBe("Invalid input");
+      expect(result.error!.issues[0].message).toBe("Invalid option: expected one of \"jpg\"|\"png\"|\"gif\"");
     });
 
     it("validates maxFileSize range", () => {
@@ -82,6 +82,7 @@ describe("Image Validation Schemas", () => {
     it("uses defaults correctly", () => {
       const minimalData = {
         type: "image",
+        title: "Test Title",
         eventId: "123e4567-e89b-12d3-a456-426614174000",
         content: "Test",
         expectedAnswer: "Expected",
@@ -89,6 +90,7 @@ describe("Image Validation Schemas", () => {
         allowedFormats: ["jpg"],
       };
       const result = imageQuestionSchema.safeParse(minimalData);
+      console.log(result);
       expect(result.success).toBe(true);
       expect(result.data!.aiThreshold).toBe(8);
       expect(result.data!.hintEnabled).toBe(false);

@@ -117,8 +117,7 @@ describe("admin questions api", () => {
       };
 
       const res = await POST(req);
-      const data = await res.json();
-      expect(data.question.id).toEqual(mockQuestion.id);
+      expect(res.question.id).toEqual(mockQuestion.id);
     });
 
     it("creates image question with valid data", async () => {
@@ -154,7 +153,7 @@ describe("admin questions api", () => {
 
       const res = await POST(req);
       const data = await res.json();
-      expect(data.question.id).toEqual(mockQuestion.id);
+      expect(res.question.id).toEqual(mockQuestion.id);
     });
 
     it("rejects image question with invalid data", async () => {

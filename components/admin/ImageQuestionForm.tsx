@@ -78,12 +78,14 @@ export default function ImageQuestionForm({
       <div>
         <label
           htmlFor="content"
+          data-testid="content-label"
           className="block text-sm font-medium text-gray-700"
         >
           Question Content
         </label>
         <textarea
           id="content"
+          data-testid="content-textarea"
           {...register("content")}
           rows={3}
           className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"

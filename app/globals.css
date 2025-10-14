@@ -2,3 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 @plugin "daisyui";
+
+:root {
+  --color-success-h: 148;
+  --color-success-s: 80%;
+  --color-success-l: 50%;
+}
+
+.card-success {
+  border: 3px solid var(--color-success);
+  /* background-color: var(--color-success); */
+  /* color: var(--color-success-content); */
+}
+.card-warning {
+  border: 3px solid var(--color-warning);
+  /* --tw-bg-opacity: 0.1; Low opacity background */
+  /* background-color: hsl(var(--color-warning) / var(--tw-bg-opacity)); */
+  /* color: hsl(var(--color-warning-content) / var(--tw-text-opacity)); */
+}
