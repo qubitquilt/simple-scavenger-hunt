@@ -167,11 +167,24 @@ export default function ChallengeView({ question, event }: ChallengeViewProps) {
         return;
       }
 
-      setFeedback(
-        question.type === "text"
-          ? `Score: ${result.aiScore || 0}/${question.aiThreshold || 10}. Try again!`
-          : "Incorrect. Please try again."
-      );
+      let feedbackMessage = "Incorrect. Please try again.";
+      if (question.type === "text") {
+        const score = result.aiScore || 0;
+        const threshold = question.aiThreshold || 10;
+        const distance = threshold - score;
+        if (distance <= 1) {
+          feedbackMessage = "Very close to passing! Try again!";
+        } else if (score < 2.5) {
+          feedbackMessage = "Not close at all. Try again!";
+        } else if (score < 5) {
+          feedbackMessage = "Somewhat close. Try again!";
+        } else if (score < 7.5) {
+          feedbackMessage = "Getting close. Try again!";
+        } else {
+          feedbackMessage = "Very close. Try again!";
+        }
+      }
+      setFeedback(feedbackMessage);
 
       // Refetch to update status
       await fetchAnswer();
