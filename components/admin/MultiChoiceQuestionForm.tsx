@@ -3,14 +3,18 @@
 import React from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { createQuestionSchema, CreateQuestion } from "@/lib/validation";
+import { multipleChoiceQuestionSchema } from "@/lib/validation";
+import type { z } from "zod";
 import type { Question } from "@/types/question";
+
+  type MultiChoiceQuestionData = z.infer<typeof multipleChoiceQuestionSchema>;
+
 
 type OptionKey = "A" | "B" | "C" | "D";
 
 interface MultiChoiceQuestionFormProps {
   initialData?: Partial<Question>;
-  onSubmit: (data: CreateQuestion) => Promise<void>;
+  onSubmit: (data: MultiChoiceQuestionData) => Promise<void>;
   onCancel?: () => void;
   eventId: string;
 }
@@ -26,15 +30,15 @@ export default function MultiChoiceQuestionForm({
     handleSubmit,
     formState: { errors, isDirty },
     watch,
-  } = useForm<CreateQuestion>({
-    resolver: zodResolver(createQuestionSchema) as Resolver<CreateQuestion>,
+  } = useForm<MultiChoiceQuestionData>({
+    resolver: zodResolver(multipleChoiceQuestionSchema) as Resolver<MultiChoiceQuestionData>,
     defaultValues: {
       eventId,
       type: "multiple_choice",
       title: initialData?.title ?? initialData?.content ?? "",
       content: initialData?.content ?? "",
       expectedAnswer: initialData?.expectedAnswer ?? "",
-      options: initialData?.options || { A: "", B: "", C: "", D: "" },
+      options: (typeof initialData?.options === "string" ? JSON.parse(initialData.options) : initialData?.options) || { A: "", B: "", C: "", D: "" },
       aiThreshold: initialData?.aiThreshold ?? 8,
       hintEnabled: initialData?.hintEnabled ?? false,
     },

@@ -14,7 +14,7 @@ const textQuestionSchema = z.object({
   ...commonQuestionFields,
 });
 
-const multipleChoiceQuestionSchema = z
+export const multipleChoiceQuestionSchema = z
   .object({
     type: z.literal("multiple_choice"),
     ...commonQuestionFields,
@@ -38,19 +38,11 @@ export const imageQuestionSchema = z.object({
   type: z.literal("image"),
   ...commonQuestionFields,
   imageDescription: z.string().min(1, "Image description is required"),
-  allowedFormats: z
-    .union([
-      z.array(z.enum(["jpg", "png", "gif"])),
-      z
-        .string()
-        .transform((val) => JSON.parse(val))
-        .pipe(z.array(z.enum(["jpg", "png", "gif"]))),
-    ])
+  allowedFormats: z.array(z.enum(["jpg", "png", "gif"]))
     .refine((formats) => formats.length >= 1, {
       message: "At least one format required",
     }),
-  maxFileSize: z
-    .number()
+  maxFileSize: z.number()
     .min(1)
     .max(10 * 1024 * 1024, "Number must be less than or equal to 10485760")
     .default(5 * 1024 * 1024),
@@ -62,7 +54,7 @@ export const imageQuestionSchema = z.object({
     }),
   ).default({ width: 100, height: 100 }),
   required: z.boolean().default(false),
-});
+	});
 
 export const createQuestionSchema = z.discriminatedUnion("type", [
   textQuestionSchema,

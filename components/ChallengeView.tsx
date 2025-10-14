@@ -379,7 +379,7 @@ export default function ChallengeView({ question, event }: ChallengeViewProps) {
     }
 
     if (question.type === "multiple_choice") {
-      const options = question.options ? (JSON.parse(question.options) as Record<string, string>) : {};
+      const options = typeof question.options === 'string' ? (JSON.parse(question.options) as Record<string, string>) : (question.options || {});
       return (
         <form onSubmit={mcForm.handleSubmit(handleMcSubmit)} className="space-y-4">
           <div className="form-control">
