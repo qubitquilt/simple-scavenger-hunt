@@ -832,7 +832,7 @@ function AdminDashboard() {
                         <div className="flex items-center justify-between">
                           <div className="flex-1 min-w-0">
                             <h3 className="text-lg font-medium">
-                              {user.firstName} {user.lastName}
+                              {user.name}
                             </h3>
                             <p className="text-sm">
                               Progress: {user.completedQuestions}/{user.totalQuestions} ({Math.round((user.completedQuestions / user.totalQuestions) * 100) || 0}%)

@@ -61,5 +61,10 @@ export default async function ChallengePage({ params }: { params: Promise<{ [key
 
   const { question, event } = await getQuestionAndEvent(slug)
 
-  return <ChallengeView question={question} event={event} />
+  return (<div>
+    <button className="btn">
+      Back to Challenges
+    </button>
+    <ChallengeView question={question} event={event} />
+  </div>);
 }

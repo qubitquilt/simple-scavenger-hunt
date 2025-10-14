@@ -124,7 +124,7 @@ The admin views participant progress, identifies winners (completed hunts), moni
 
 ### Key Entities
 
-- **User**: Represents a participant, key attributes: firstName, lastName, uniqueIdentifier, progress (completion status per question), eventAssociation.
+- **User**: Represents a participant, key attributes: name, uniqueIdentifier, progress (completion status per question), eventAssociation.
 - **ScavengerHuntEvent**: Represents an event instance, key attributes: title, description, date (e.g., October 14, 2025), questions list; relationships: contains Questions, associated with Users' progress.
 - **Question**: Represents a challenge, key attributes: type (text, multipleChoice, image), content, correctAnswer, closenessScale (for text, 0-10); relationships: belongs to ScavengerHuntEvent, has user submissions via Progress.
 - **Answer**: Represents a correct response, key attributes: value (text/image options), type-specific details; relationships: tied to Question.

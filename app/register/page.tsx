@@ -4,12 +4,11 @@ import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 interface FormData {
-  firstName: string
-  lastName: string
+  name: string
 }
 
 export default function RegisterPage() {
-  const [formData, setFormData] = useState<FormData>({ firstName: '', lastName: '' })
+  const [formData, setFormData] = useState<FormData>({ name: '' })
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -46,8 +45,7 @@ export default function RegisterPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          firstName: formData.firstName,
-          lastName: formData.lastName,
+          name: formData.name,
           eventId: eventId // Pass eventId to registration API
         })
       })
@@ -69,43 +67,31 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-base-200">
+    <div className="mt-8 flex flex-col items-center justify-center p-4 bg-base-200 mt-50">
       <div className="w-full max-w-md">
         <h1 className="text-2xl font-bold mb-6 text-center">Register for Scavenger Hunt</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
-              First Name
-            </label>
+          <fieldset className="fieldset">
+            <legend className="fieldset-legend">What is your name?</legend>
             <input
               type="text"
-              id="firstName"
-              name="firstName"
-              value={formData.firstName}
+              id="name"
+              data-testid="registration-form-name-input"
+              name="name"
+              value={formData.name}
               onChange={handleInputChange}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              aria-describedby="firstName-error"
+              placeholder="Type here"
+              className="input"
+              aria-describedby="name-error"
             />
-          </div>
-          <div>
-            <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
-              Last Name
-            </label>
-            <input
-              type="text"
-              id="lastName"
-              name="lastName"
-              value={formData.lastName}
-              onChange={handleInputChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              aria-describedby="lastName-error"
-            />
-          </div>
+          </fieldset>
           {error && (
-            <div id="error" className="text-red-600 text-sm" role="alert">
-              {error}
+            <div role="alert" className="alert alert-error alert-soft">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>{error}</span>
             </div>
           )}
           <button

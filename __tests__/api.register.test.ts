@@ -31,13 +31,10 @@ describe('POST /api/register', () => {
 
 
   it('returns 400 when missing names', async () => {
-    const req = { json: async () => ({ firstName: '', lastName: '' }) }
-
-
-
+    const req = { json: async () => ({ name: '' }) }
 
     const res = await registerPOST(req)
-    expect(res).toEqual({ error: 'firstName and lastName are required' })
+    expect(res).toEqual({ error: 'name is required' })
   })
 
   it('returns 404 when no events found', async () => {
@@ -45,7 +42,7 @@ describe('POST /api/register', () => {
     registerPrisma.user.findFirst.mockResolvedValue(null)
     registerPrisma.user.create.mockResolvedValue({ id: 'u1' })
     registerPrisma.event.findFirst.mockResolvedValue(null)
-    const req = { json: async () => ({ firstName: 'A', lastName: 'B' }) }
+    const req = { json: async () => ({ name: 'A B' }) }
     const res = await registerPOST(req)
     expect(res).toEqual({ error: 'No events found' })
   })

@@ -8,8 +8,7 @@ export default function RegistrationForm({ event, onSuccess }: { event: Event; o
   const [registering, setRegistering] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: ''
+    name: ''
   })
   const router = useRouter()
 
@@ -30,8 +29,7 @@ export default function RegistrationForm({ event, onSuccess }: { event: Event; o
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          firstName: formData.firstName,
-          lastName: formData.lastName,
+          name: formData.name,
           eventId: event.id
         })
       })
@@ -62,14 +60,14 @@ export default function RegistrationForm({ event, onSuccess }: { event: Event; o
 
       <form onSubmit={handleRegister} className="space-y-4">
         <div>
-          <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
-            First Name
+          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+            Name
           </label>
           <input
             type="text"
-            id="firstName"
-            name="firstName"
-            value={formData.firstName}
+            id="name"
+            name="name"
+            value={formData.name}
             onChange={handleInputChange}
             required
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -77,24 +75,6 @@ export default function RegistrationForm({ event, onSuccess }: { event: Event; o
             disabled={registering}
           />
         </div>
-
-        <div>
-          <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
-            Last Name
-          </label>
-          <input
-            type="text"
-            id="lastName"
-            name="lastName"
-            value={formData.lastName}
-            onChange={handleInputChange}
-            required
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            aria-required="true"
-            disabled={registering}
-          />
-        </div>
-
 
         {error && (
           <div className="p-3 bg-red-100 text-red-800 rounded-md" role="alert">
@@ -104,7 +84,7 @@ export default function RegistrationForm({ event, onSuccess }: { event: Event; o
 
         <button
           type="submit"
-          disabled={registering || !formData.firstName || !formData.lastName}
+          disabled={registering || !formData.name}
           className="btn btn-primary btn-block"
           aria-label={registering ? 'Registering...' : 'Register for event'}
         >

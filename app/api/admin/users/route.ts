@@ -59,8 +59,7 @@ export async function GET(request: NextRequest) {
       return {
         id: user.id,
         userId: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        name: user.name,
         eventId: progress.eventId,
         eventTitle: '', // Would need to join with events if needed
         completed: progress.completed,

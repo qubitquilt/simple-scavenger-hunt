@@ -19,8 +19,7 @@ export interface AdminUser {
 export interface UserProgress {
   id: string;
   userId: string;
-  firstName: string;
-  lastName: string;
+  name: string;
   eventId: string;
   eventTitle: string;
   completed: boolean;

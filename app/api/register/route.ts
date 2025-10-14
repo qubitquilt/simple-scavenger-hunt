@@ -11,17 +11,16 @@ function shuffleArray(array: string[]) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { firstName, lastName, eventId } = await request.json()
+    const { name, eventId } = await request.json()
 
-    if (!firstName || !lastName) {
-      return NextResponse.json({ error: 'firstName and lastName are required' }, { status: 400 })
+    if (!name) {
+      return NextResponse.json({ error: 'name is required' }, { status: 400 })
     }
 
     // Check if user exists by name
     let user = await prisma.user.findFirst({
       where: {
-        firstName,
-        lastName
+        name
       }
     })
 
@@ -33,8 +32,7 @@ export async function POST(request: NextRequest) {
       // Create new user
       user = await prisma.user.create({
         data: {
-          firstName,
-          lastName
+          name
         }
       })
       userId = user.id

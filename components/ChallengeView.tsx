@@ -324,22 +324,26 @@ export default function ChallengeView({ question, event }: ChallengeViewProps) {
                   <label className="label">
                     <span className="label-text">Choose your answer</span>
                   </label>
-                  <div className="space-y-2">
-                    {question.options && Object.entries(JSON.parse((question.options as unknown) as string) as Record<string, string>).map(([key, value]) => (
-                      <label key={key} className="label cursor-pointer">
-                        <input
-                          type="radio"
-                          name="answer"
-                          value={value}
-                          checked={submission === value}
-                          onChange={(e) => handleMcChange(e.target.value)}
-                          className="radio radio-primary"
-                          disabled={isAccepted || submitting}
-                        />
-                        <span className="label-text ml-2">{value}</span>
-                      </label>
+                  <ul className="list bg-base-100 rounded-box shadow-md">
+                    {question.options && Object.entries(JSON.parse((question.options as unknown) as string) as Record<string, string>).map(([key, value], index) => (
+                      <li key={key} className="list-row">
+                        <div className="list-col-grow">
+                          <label className="label cursor-pointer">
+                            <input
+                              type="radio"
+                              name="answer"
+                              value={value}
+                              checked={submission === value}
+                              onChange={(e) => handleMcChange(e.target.value)}
+                              className="radio radio-primary"
+                              disabled={isAccepted || submitting}
+                            />
+                            <span className="label-text ml-2">{value}</span>
+                          </label>
+                        </div>
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 </div>
 
                 <div className="flex gap-2">

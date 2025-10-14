@@ -140,3 +140,10 @@ export const bufferValidationSchema = z.object({
   })
 
 export type ImageUpload = z.infer<typeof imageUploadSchema>
+
+export const userRegistrationSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  eventId: z.string().optional(),
+})
+
+export type UserRegistration = z.infer<typeof userRegistrationSchema>

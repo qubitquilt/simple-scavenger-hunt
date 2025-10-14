@@ -35,18 +35,16 @@ describe('User Flow Tests', () => {
     it('renders registration form and submits successfully', async () => {
       render(<RegisterPage />)
 
-      expect(screen.getByLabelText(/first name/i)).toBeInTheDocument()
-      expect(screen.getByLabelText(/last name/i)).toBeInTheDocument()
+      expect(screen.getByTestId('registration-form-name-input')).toBeInTheDocument()
 
-      fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: 'John' } })
-      fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Doe' } })
+      fireEvent.change(screen.getByTestId(/registration-form-name-input/), { target: { value: 'John Doe' } })
 
       fireEvent.click(screen.getByRole('button', { name: /register/i }))
 
       await waitFor(() => {
         expect(fetch).toHaveBeenCalledWith('/api/register', expect.objectContaining({
           method: 'POST',
-          body: JSON.stringify({ firstName: 'John', lastName: 'Doe', eventId: null }),
+          body: JSON.stringify({ name: 'John Doe', eventId: null }),
         }))
       })
 
@@ -61,8 +59,7 @@ describe('User Flow Tests', () => {
 
       render(<RegisterPage />)
 
-      fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: 'John' } })
-      fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Doe' } })
+      fireEvent.change(screen.getByTestId(/registration-form-name-input/), { target: { value: 'John Doe' } })
 
       fireEvent.click(screen.getByRole('button', { name: /register/i }))
 
