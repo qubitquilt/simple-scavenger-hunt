@@ -1,4 +1,4 @@
-export type AnswerStatus = 'pending' | 'accepted' | 'rejected';
+export type AnswerStatus = "pending" | "accepted" | "rejected";
 
 export interface Answer {
   id: string;
@@ -6,7 +6,7 @@ export interface Answer {
   questionId: string;
   submission: any; // JSONB: string for text/MC, object for image {url: string}
   aiScore?: number;
-  status: 'pending' | 'correct' | 'incorrect';
+  status: "pending" | "correct" | "incorrect";
   computedStatus?: AnswerStatus;
   createdAt: string;
 }

@@ -1,50 +1,53 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { signIn } from 'next-auth/react'
-import type { AdminSession } from '@/types/admin'
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
+import type { AdminSession } from "@/types/admin";
 
 interface LoginFormData {
-  username: string
-  password: string
+  username: string;
+  password: string;
 }
 
 export default function AdminLogin() {
-  const [formData, setFormData] = useState<LoginFormData>({ username: '', password: '' })
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState<boolean>(false)
-  const router = useRouter()
+  const [formData, setFormData] = useState<LoginFormData>({
+    username: "",
+    password: "",
+  });
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const router = useRouter();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
-    if (error) setError(null)
-  }
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (error) setError(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
 
-    const result = await signIn('credentials', {
+    const result = await signIn("credentials", {
       username: formData.username,
       password: formData.password,
       redirect: false,
-    })
+    });
 
     if (result?.error) {
-      setError('Invalid username or password')
+      setError("Invalid username or password");
     } else if (result?.ok) {
-      router.push('/admin')
-      router.refresh()
+      router.push("/admin");
+      router.refresh();
     }
 
-    setLoading(false)
-  }
+    setLoading(false);
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-base-200 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="flex items-center justify-center bg-base-200 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold">
@@ -67,7 +70,7 @@ export default function AdminLogin() {
                 value={formData.username}
                 onChange={handleInputChange}
                 disabled={loading}
-                aria-describedby={error ? 'username-error' : undefined}
+                aria-describedby={error ? "username-error" : undefined}
               />
             </div>
             <div>
@@ -84,13 +87,18 @@ export default function AdminLogin() {
                 value={formData.password}
                 onChange={handleInputChange}
                 disabled={loading}
-                aria-describedby={error ? 'password-error' : undefined}
+                aria-describedby={error ? "password-error" : undefined}
               />
             </div>
           </div>
 
           {error && (
-            <div id="login-error" className="text-red-600 text-sm text-center" role="alert" aria-live="assertive">
+            <div
+              id="login-error"
+              className="text-red-600 text-sm text-center"
+              role="alert"
+              aria-live="assertive"
+            >
               {error}
             </div>
           )}
@@ -101,13 +109,13 @@ export default function AdminLogin() {
               disabled={loading}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               aria-label="Sign in to admin panel"
-              aria-describedby={error ? 'login-error' : undefined}
+              aria-describedby={error ? "login-error" : undefined}
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? "Signing in..." : "Sign In"}
             </button>
           </div>
         </form>
       </div>
     </div>
-  )
+  );
 }

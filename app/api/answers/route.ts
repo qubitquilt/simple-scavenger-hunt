@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth/next'
+import { authOptions } from '@/lib/auth'
 import type { Prisma } from '@prisma/client'
 import type { Question } from '@/types/question'
 import storage from '@/lib/storage'
 import { imageUploadSchema, bufferValidationSchema } from '@/lib/validation'
+import { normalize } from '@/utils/normalize'
 import type { AnswerSubmission, AnswerStatus } from '@/types/answer'
 import * as fs from 'fs'
 import path from 'path'
@@ -17,11 +19,16 @@ const defaultMaxFileSize = 5 * 1024 * 1024 // 5MB
 export async function POST(request: NextRequest) {
   let uploadedUrl: string | null = null
   try {
-    const session = await getServerSession()
-    if (!session?.user?.id) {
+    const session = await getServerSession(authOptions)
+    let userId: string | null = null
+
+    if (session?.user?.id) {
+      userId = session.user.id
+    }
+
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    const userId = session.user.id
 
     let questionId: string
     let submission: string | { url: string }
@@ -259,6 +266,7 @@ export async function POST(request: NextRequest) {
 
     let status: 'correct' | 'incorrect' | 'pending' = 'pending'
     let aiScore: number | null = null
+    let explanation: string | null = null
 
     // Prepare submission for storage
     let storedSubmission: string | object = typeof submission === 'string' ? submission : { url: submission.url }
@@ -276,11 +284,82 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // AI analysis for all types: text, multiple_choice, image
-    let messages: any[] = []
-    let explanation = 'Validation completed'
+    if (type === 'multiple_choice') {
+      const normalizedSubmission = normalize(submission as string)
+      const normalizedExpectedAnswer = normalize(expectedAnswer)
+      if (normalizedSubmission === normalizedExpectedAnswer) {
+        status = 'correct'
+        aiScore = 10
+        explanation = 'Direct match'
+      } else {
+        status = 'incorrect'
+        aiScore = 0
+        explanation = 'Incorrect match'
+      }
+    } else if (type === 'text') {
+      const normalizedSubmission = normalize(submission as string)
+      const normalizedExpectedAnswer = normalize(expectedAnswer)
+      if (normalizedSubmission === normalizedExpectedAnswer) {
+        status = 'correct'
+        aiScore = 10
+        explanation = 'Direct match'
+      } else {
+        let messages: any[] = []
+        // text
+        const answerType = 'text answer'
+        const userInputTerm = 'answer'
+        const prompt = `The challenge is a ${answerType}: "${content}". The expected ${userInputTerm} is: "${expectedAnswer}". The user's ${userInputTerm}: "${submission}". Rate the similarity between the user's ${userInputTerm} and the expected one on a scale of 0 to 10. Provide a brief explanation of why you gave that score.\n\nRespond in this exact format:\n\nScore: [number 0-10]\n\nExplanation: [brief explanation]`
 
-    if (type === 'image') {
+        messages = [{ role: 'user', content: prompt }]
+
+        // Removed excessive logging - only log in development
+        if (process.env.NODE_ENV === 'development') {
+          console.log('API Key Loaded:', !!process.env.OPENROUTER_API_KEY ? 'Yes (masked)' : 'No');
+        }
+        const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY!}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.0-flash-exp:free',
+            // model: 'openai/gpt-4o-mini',
+            messages,
+            max_tokens: 150,
+            temperature: 0,
+          }),
+        })
+
+        if (!openRouterResponse.ok) {
+          const responseText = await openRouterResponse.text();
+          console.log('OpenRouter Response:', responseText);
+          throw new Error(`OpenRouter API error: ${openRouterResponse.statusText}`)
+        }
+
+        const data = await openRouterResponse.json()
+        const text = data.choices[0].message.content.trim()
+
+        // Parse score and explanation
+        const scoreMatch = text.match(/Score:\s*(\d+)/i)
+        const explanationMatch = text.match(/Explanation:\s*(.+)$/i, 'm')
+
+        aiScore = scoreMatch ? parseInt(scoreMatch[1], 10) : 0
+        explanation = explanationMatch ? explanationMatch[1].trim() : 'Unable to parse AI response'
+
+        if (isNaN(aiScore) || aiScore < 0 || aiScore > 10) {
+          aiScore = 0
+        }
+
+        if (aiScore >= aiThreshold) {
+          status = 'correct'
+        } else {
+          status = 'incorrect'
+        }
+      }
+    } else if (type === 'image') {
+      let messages: any[] = []
+
       const imageUrl = typeof submission === 'string' ? submission : (submission as { url: string }).url
       const fullPath = path.resolve(process.cwd(), 'public' + imageUrl)
       if (!fs.existsSync(fullPath)) {
@@ -301,65 +380,48 @@ export async function POST(request: NextRequest) {
           ]
         }
       ]
-    } else {
-      // text or multiple_choice
-      const answerType = type === 'multiple_choice' ? 'multiple choice selection' : 'text answer'
-      const userInputTerm = type === 'multiple_choice' ? 'selection' : 'answer'
-      const prompt = `The challenge is a ${answerType}: "${content}". The expected ${userInputTerm} is: "${expectedAnswer}". The user's ${userInputTerm}: "${submission}". Rate the similarity between the user's ${userInputTerm} and the expected one on a scale of 0 to 10. Provide a brief explanation of why you gave that score.\n\nRespond in this exact format:\n\nScore: [number 0-10]\n\nExplanation: [brief explanation]`
 
-      messages = [{ role: 'user', content: prompt }]
-    }
+      // Removed excessive logging - only log in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('API Key Loaded:', !!process.env.OPENROUTER_API_KEY ? 'Yes (masked)' : 'No');
+      }
+      const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY!}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.0-flash-exp:free',
+          // model: 'openai/gpt-4o-mini',
+          messages,
+          max_tokens: 150,
+          temperature: 0,
+        }),
+      })
 
-    // Removed excessive logging - only log in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log('API Key Loaded:', !!process.env.OPENROUTER_API_KEY ? 'Yes (masked)' : 'No');
-    }
-    const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY!}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.0-flash-exp:free',
-        // model: 'openai/gpt-4o-mini',
-        messages,
-        max_tokens: 150,
-        temperature: 0,
-      }),
-    })
+      if (!openRouterResponse.ok) {
+        const responseText = await openRouterResponse.text();
+        console.log('OpenRouter Response:', responseText);
+        throw new Error(`OpenRouter API error: ${openRouterResponse.statusText}`)
+      }
 
-    if (!openRouterResponse.ok) {
-      const responseText = await openRouterResponse.text();
-      console.log('OpenRouter Response:', responseText);
-      throw new Error(`OpenRouter API error: ${openRouterResponse.statusText}`)
-    }
+      const data = await openRouterResponse.json()
+      const text = data.choices[0].message.content.trim()
 
-    const data = await openRouterResponse.json()
-    const text = data.choices[0].message.content.trim()
-
-    if (type === 'image') {
       const lowerText = text.toLowerCase()
       aiScore = lowerText.includes('correct') ? 10 : 0
       explanation = text
-    } else {
-      // Parse score and explanation
-      const scoreMatch = text.match(/Score:\s*(\d+)/i)
-      const explanationMatch = text.match(/Explanation:\s*(.+)$/i, 'm')
 
-      aiScore = scoreMatch ? parseInt(scoreMatch[1], 10) : 0
-      explanation = explanationMatch ? explanationMatch[1].trim() : 'Unable to parse AI response'
-
-      if (isNaN(aiScore) || aiScore < 0 || aiScore > 10) {
-        aiScore = 0
+      if (aiScore >= aiThreshold) {
+        status = 'correct'
+      } else {
+        status = 'incorrect'
       }
     }
 
-    if (aiScore >= aiThreshold) {
-      status = 'correct'
-    } else {
-      status = 'incorrect'
-    }
+
+
 
     // Removed excessive logging - only log in development
     if (process.env.NODE_ENV === 'development') {
@@ -456,21 +518,23 @@ export async function POST(request: NextRequest) {
       status: responseStatus
     })
   } catch (error) {
-    console.error('Answers API error:', error)
-    if (uploadedUrl) {
-      await storage.cleanupImage(uploadedUrl)
-    }
+    console.error('Answers POST API error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession()
-    if (!session?.user?.id) {
+    const session = await getServerSession(authOptions)
+    let userId: string | null = null
+
+    if (session?.user?.id) {
+      userId = session.user.id
+    }
+
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    const userId = session.user.id
 
     const { searchParams } = new URL(request.url)
     const questionId = searchParams.get('questionId')

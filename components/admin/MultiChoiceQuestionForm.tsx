@@ -1,55 +1,56 @@
-'use client'
+"use client";
 
-import React from 'react'
-import { useForm, type Resolver } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { createQuestionSchema, CreateQuestion } from '@/lib/validation'
-import type { Question } from '@/types/question'
+import React from "react";
+import { useForm, type Resolver } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { createQuestionSchema, CreateQuestion } from "@/lib/validation";
+import type { Question } from "@/types/question";
 
-type OptionKey = 'A' | 'B' | 'C' | 'D'
+type OptionKey = "A" | "B" | "C" | "D";
 
 interface MultiChoiceQuestionFormProps {
-  initialData?: Partial<Question>
-  onSubmit: (data: CreateQuestion) => Promise<void>
-  onCancel?: () => void
-  eventId: string
+  initialData?: Partial<Question>;
+  onSubmit: (data: CreateQuestion) => Promise<void>;
+  onCancel?: () => void;
+  eventId: string;
 }
 
 export default function MultiChoiceQuestionForm({
   initialData,
   onSubmit,
   onCancel,
-  eventId
+  eventId,
 }: MultiChoiceQuestionFormProps) {
   const {
     register,
     handleSubmit,
     formState: { errors, isDirty },
-    watch
+    watch,
   } = useForm<CreateQuestion>({
     resolver: zodResolver(createQuestionSchema) as Resolver<CreateQuestion>,
     defaultValues: {
       eventId,
-      type: 'multiple_choice',
-      content: initialData?.content ?? '',
-      expectedAnswer: initialData?.expectedAnswer ?? '',
-      options: initialData?.options || { A: '', B: '', C: '', D: '' },
+      type: "multiple_choice",
+      content: initialData?.content ?? "",
+      expectedAnswer: initialData?.expectedAnswer ?? "",
+      options: initialData?.options || { A: "", B: "", C: "", D: "" },
       aiThreshold: initialData?.aiThreshold ?? 8,
-      hintEnabled: initialData?.hintEnabled ?? false
-    }
-  })
+      hintEnabled: initialData?.hintEnabled ?? false,
+    },
+  });
 
-  const options = watch('options') as Record<OptionKey, string> || {}
-  const optionKeys = Object.keys(options).filter((key): key is OptionKey => 
-    (options[key as OptionKey] || '').trim().length > 0
-  )
+  const options = (watch("options") as Record<OptionKey, string>) || {};
+  const optionKeys = Object.keys(options).filter(
+    (key): key is OptionKey =>
+      (options[key as OptionKey] || "").trim().length > 0,
+  );
 
   const handleCancel = () => {
-    if (isDirty && !confirm('Unsaved changes will be lost. Discard?')) {
-      return
+    if (isDirty && !confirm("Unsaved changes will be lost. Discard?")) {
+      return;
     }
-    onCancel?.()
-  }
+    onCancel?.();
+  };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -62,11 +63,11 @@ export default function MultiChoiceQuestionForm({
         </label>
         <textarea
           id="content"
-          {...register('content')}
+          {...register("content")}
           rows={3}
           className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
           aria-invalid={!!errors.content}
-          aria-describedby={errors.content ? 'content-error' : undefined}
+          aria-describedby={errors.content ? "content-error" : undefined}
           aria-required="true"
         />
         {errors.content && (
@@ -77,10 +78,13 @@ export default function MultiChoiceQuestionForm({
       </div>
 
       <fieldset role="group" aria-labelledby="options-legend">
-        <legend id="options-legend" className="block text-sm font-medium text-gray-700 mb-2">
+        <legend
+          id="options-legend"
+          className="block text-sm font-medium text-gray-700 mb-2"
+        >
           Options
         </legend>
-        {(['A', 'B', 'C', 'D'] as const).map((key) => (
+        {(["A", "B", "C", "D"] as const).map((key) => (
           <div key={key} className="flex items-center space-x-2">
             <label
               htmlFor={`options-${key}`}
@@ -95,7 +99,11 @@ export default function MultiChoiceQuestionForm({
               {...register(`options.${key}` as const)}
               className="flex-1 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               aria-invalid={!!(errors as any).options?.[key]}
-              aria-describedby={(errors as any).options?.[key] ? `options-${key}-error` : undefined}
+              aria-describedby={
+                (errors as any).options?.[key]
+                  ? `options-${key}-error`
+                  : undefined
+              }
             />
             {(errors as any).options?.[key] && (
               <p id={`options-${key}-error`} className="text-sm text-red-500">
@@ -105,7 +113,11 @@ export default function MultiChoiceQuestionForm({
           </div>
         ))}
         {errors.root?.message && (
-          <p className="mt-1 text-sm text-red-500" role="alert" aria-live="polite">
+          <p
+            className="mt-1 text-sm text-red-500"
+            role="alert"
+            aria-live="polite"
+          >
             {errors.root.message}
           </p>
         )}
@@ -120,10 +132,12 @@ export default function MultiChoiceQuestionForm({
         </label>
         <select
           id="expectedAnswer"
-          {...register('expectedAnswer')}
+          {...register("expectedAnswer")}
           className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
           aria-invalid={!!errors.expectedAnswer}
-          aria-describedby={errors.expectedAnswer ? 'expectedAnswer-error' : undefined}
+          aria-describedby={
+            errors.expectedAnswer ? "expectedAnswer-error" : undefined
+          }
           aria-required="true"
         >
           <option value="">Select an option</option>
@@ -153,10 +167,12 @@ export default function MultiChoiceQuestionForm({
           min={0}
           max={10}
           step={1}
-          {...register('aiThreshold', { valueAsNumber: true })}
+          {...register("aiThreshold", { valueAsNumber: true })}
           className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
           aria-invalid={!!errors.aiThreshold}
-          aria-describedby={errors.aiThreshold ? 'aiThreshold-error' : undefined}
+          aria-describedby={
+            errors.aiThreshold ? "aiThreshold-error" : undefined
+          }
         />
         {errors.aiThreshold && (
           <p id="aiThreshold-error" className="mt-1 text-sm text-red-500">
@@ -169,7 +185,7 @@ export default function MultiChoiceQuestionForm({
         <input
           id="hintEnabled"
           type="checkbox"
-          {...register('hintEnabled')}
+          {...register("hintEnabled")}
           className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
           aria-describedby="hintEnabled-description"
         />
@@ -182,22 +198,19 @@ export default function MultiChoiceQuestionForm({
       </div>
 
       <div className="flex space-x-3 pt-4">
-        <button
-          type="submit"
-          className="btn btn-primary"
-        >
+        <button type="submit" className="btn btn-primary btn-block">
           Submit
         </button>
         {onCancel && (
           <button
             type="button"
             onClick={handleCancel}
-            className="btn btn-secondary"
+            className="btn btn-secondary btn-block"
           >
             Cancel
           </button>
         )}
       </div>
     </form>
-  )
+  );
 }

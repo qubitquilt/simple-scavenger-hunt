@@ -1,30 +1,30 @@
-'use client'
+"use client";
 
-import { useTheme } from '@/app/providers'
+import { useTheme } from "@/app/providers";
 
 export default function ThemeToggle() {
-  const { theme, toggleTheme } = useTheme()
+  const { theme, toggleTheme } = useTheme();
 
   const handleToggle = () => {
-    toggleTheme()
-  }
+    toggleTheme();
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault()
-      toggleTheme()
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      toggleTheme();
     }
-  }
+  };
 
   return (
     <button
       onClick={handleToggle}
       onKeyDown={handleKeyDown}
       className="btn btn-ghost btn-circle"
-      aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
+      aria-label={`Switch to ${theme === "light" ? "dark" : "light"} theme`}
       tabIndex={0}
     >
-      {theme === 'light' ? (
+      {theme === "light" ? (
         <svg
           className="w-5 h-5"
           fill="none"
@@ -56,5 +56,5 @@ export default function ThemeToggle() {
         </svg>
       )}
     </button>
-  )
+  );
 }

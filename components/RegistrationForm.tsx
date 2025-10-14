@@ -1,66 +1,79 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import type { Event } from '@/types/admin'
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import type { Event } from "@/types/admin";
 
-export default function RegistrationForm({ event, onSuccess }: { event: Event; onSuccess?: () => void }) {
-  const [registering, setRegistering] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+export default function RegistrationForm({
+  event,
+  onSuccess,
+}: {
+  event: Event;
+  onSuccess?: () => void;
+}) {
+  const [registering, setRegistering] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    name: ''
-  })
-  const router = useRouter()
+    name: "",
+  });
+  const router = useRouter();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
-  }
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (registering) return
+    e.preventDefault();
+    if (registering) return;
 
-    setRegistering(true)
-    setError(null)
+    setRegistering(true);
+    setError(null);
 
     try {
-      const response = await fetch('/api/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: formData.name,
-          eventId: event.id
-        })
-      })
+          eventId: event.id,
+        }),
+      });
 
       if (!response.ok) {
-        const errData = await response.json()
-        throw new Error(errData.error || 'Registration failed')
+        const errData = await response.json();
+        throw new Error(errData.error || "Registration failed");
       }
 
-      console.log('Registration successful, calling onSuccess callback')
-      onSuccess?.() // Call the onSuccess callback to update progress data
+      console.log("Registration successful, calling onSuccess callback");
+      onSuccess?.(); // Call the onSuccess callback to update progress data
 
-      router.refresh() // Revalidate server data
-      router.push(`/events/${event.slug}`) // Stay on page to see updated view
+      router.refresh(); // Revalidate server data
+      router.push(`/events/${event.slug}`); // Stay on page to see updated view
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed')
+      setError(err instanceof Error ? err.message : "Registration failed");
     } finally {
-      setRegistering(false)
+      setRegistering(false);
     }
-  }
+  };
 
   return (
     <div className="space-y-4">
       <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-        <h2 className="text-lg font-semibold text-blue-800 mb-2">Register for this Event</h2>
-        <p className="text-blue-700">Fill out the form below to start participating.</p>
+        <h2 className="text-lg font-semibold text-blue-800 mb-2">
+          Register for this Event
+        </h2>
+        <p className="text-blue-700">
+          Fill out the form below to start participating.
+        </p>
       </div>
 
       <form onSubmit={handleRegister} className="space-y-4">
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+          <label
+            htmlFor="name"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             Name
           </label>
           <input
@@ -86,11 +99,11 @@ export default function RegistrationForm({ event, onSuccess }: { event: Event; o
           type="submit"
           disabled={registering || !formData.name}
           className="btn btn-primary btn-block"
-          aria-label={registering ? 'Registering...' : 'Register for event'}
+          aria-label={registering ? "Registering..." : "Register for event"}
         >
-          {registering ? 'Registering...' : 'Register'}
+          {registering ? "Registering..." : "Register"}
         </button>
       </form>
     </div>
-  )
+  );
 }

@@ -1,153 +1,165 @@
-'use client'
+"use client";
 
-import React, { useState, useRef, useEffect, useCallback } from 'react'
-import type { Question, Progress } from '@/types/question'
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import type { Question, Progress } from "@/types/question";
 
 interface ImageQuestionProps {
-  question: Question
-  progress: Progress | null
-  onAnswer: (url: string) => void
+  question: Question;
+  progress: Progress | null;
+  onAnswer: (url: string) => void;
 }
 
 export default function ImageQuestion({
   question,
   progress,
-  onAnswer
+  onAnswer,
 }: ImageQuestionProps) {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [isUploading, setIsUploading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [showCamera, setShowCamera] = useState(false)
-  const [showPreviewModal, setShowPreviewModal] = useState(false)
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const dropZoneRef = useRef<HTMLDivElement>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showCamera, setShowCamera] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const dropZoneRef = useRef<HTMLDivElement>(null);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-  }, [])
+    e.preventDefault();
+  }, []);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    const files = Array.from(e.dataTransfer.files)
-    const file = files[0]
-    if (file && file.type.startsWith('image/')) {
-      setError(null)
-      setSelectedFile(file)
-      const preview = URL.createObjectURL(file)
-      setPreviewUrl(preview)
-      setShowPreviewModal(true)
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer.files);
+    const file = files[0];
+    if (file && file.type.startsWith("image/")) {
+      setError(null);
+      setSelectedFile(file);
+      const preview = URL.createObjectURL(file);
+      setPreviewUrl(preview);
+      setShowPreviewModal(true);
     } else {
-      setError('Please drop an image file')
+      setError("Please drop an image file");
     }
-  }, [])
+  }, []);
 
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file && file.type.startsWith('image/')) {
-      setError(null)
-      setSelectedFile(file)
-      const preview = URL.createObjectURL(file)
-      setPreviewUrl(preview)
-      setShowPreviewModal(true)
-    } else {
-      setError('Please select an image file')
-    }
-  }, [])
+  const handleFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file && file.type.startsWith("image/")) {
+        setError(null);
+        setSelectedFile(file);
+        const preview = URL.createObjectURL(file);
+        setPreviewUrl(preview);
+        setShowPreviewModal(true);
+      } else {
+        setError("Please select an image file");
+      }
+    },
+    [],
+  );
 
   const handleUpload = async () => {
-    if (!selectedFile || isUploading) return
+    if (!selectedFile || isUploading) return;
 
-    setIsUploading(true)
-    setError(null)
+    setIsUploading(true);
+    setError(null);
 
     try {
-      const formData = new FormData()
-      formData.append('file', selectedFile)
-      formData.append('questionId', question.id)
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("questionId", question.id);
 
-      const response = await fetch('/api/upload/image', {
-        method: 'POST',
+      const response = await fetch("/api/upload/image", {
+        method: "POST",
         body: formData,
-      })
+      });
 
       if (!response.ok) {
-        const errData = await response.json()
-        throw new Error(errData.error || 'Upload failed')
+        const errData = await response.json();
+        throw new Error(errData.error || "Upload failed");
       }
 
-      const data = await response.json()
-      onAnswer(data.url)
+      const data = await response.json();
+      onAnswer(data.url);
 
       // Clear states
-      setSelectedFile(null)
-      setPreviewUrl(null)
+      setSelectedFile(null);
+      setPreviewUrl(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed')
+      setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
-      setIsUploading(false)
+      setIsUploading(false);
     }
-  }
+  };
 
   const openCamera = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true })
-      setShowCamera(true)
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      setShowCamera(true);
       if (videoRef.current) {
-        videoRef.current.srcObject = stream
+        videoRef.current.srcObject = stream;
       }
     } catch (err) {
-      setError('Unable to access camera')
+      setError("Unable to access camera");
     }
-  }, [])
+  }, []);
 
   const capturePhoto = useCallback(() => {
     if (videoRef.current && canvasRef.current) {
-      canvasRef.current.width = videoRef.current.videoWidth
-      canvasRef.current.height = videoRef.current.videoHeight
-      const ctx = canvasRef.current.getContext('2d')
+      canvasRef.current.width = videoRef.current.videoWidth;
+      canvasRef.current.height = videoRef.current.videoHeight;
+      const ctx = canvasRef.current.getContext("2d");
       if (ctx) {
-        ctx.drawImage(videoRef.current, 0, 0)
+        ctx.drawImage(videoRef.current, 0, 0);
         canvasRef.current.toBlob((blob) => {
           if (blob) {
-            const file = new File([blob], 'captured.jpg', { type: 'image/jpeg' })
-            setSelectedFile(file)
-            const preview = URL.createObjectURL(file)
-            setPreviewUrl(preview)
-            setShowCamera(false)
-            setShowPreviewModal(true)
+            const file = new File([blob], "captured.jpg", {
+              type: "image/jpeg",
+            });
+            setSelectedFile(file);
+            const preview = URL.createObjectURL(file);
+            setPreviewUrl(preview);
+            setShowCamera(false);
+            setShowPreviewModal(true);
             // Stop camera
             if (videoRef.current?.srcObject) {
-              (videoRef.current.srcObject as MediaStream).getTracks().forEach(track => track.stop())
+              (videoRef.current.srcObject as MediaStream)
+                .getTracks()
+                .forEach((track) => track.stop());
             }
           }
-        }, 'image/jpeg')
+        }, "image/jpeg");
       }
     }
-  }, [])
+  }, []);
 
   const closeCamera = useCallback(() => {
-    setShowCamera(false)
+    setShowCamera(false);
     if (videoRef.current?.srcObject) {
-      (videoRef.current.srcObject as MediaStream).getTracks().forEach(track => track.stop())
+      (videoRef.current.srcObject as MediaStream)
+        .getTracks()
+        .forEach((track) => track.stop());
     }
-  }, [])
+  }, []);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent, callback: () => void) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault()
-      callback()
-    }
-  }, [])
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent, callback: () => void) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        callback();
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     return () => {
       if (previewUrl) {
-        URL.revokeObjectURL(previewUrl)
+        URL.revokeObjectURL(previewUrl);
       }
-    }
-  }, [previewUrl])
+    };
+  }, [previewUrl]);
 
   if (showCamera) {
     return (
@@ -161,12 +173,23 @@ export default function ImageQuestion({
           <h2 id="camera-heading" className="sr-only">
             Camera
           </h2>
-          <video ref={videoRef} autoPlay playsInline className="w-full h-64 object-cover rounded" data-testid="camera-video" role="video" />
-          <canvas ref={canvasRef} className="hidden" data-testid="capture-canvas" />
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            className="w-full h-64 object-cover rounded"
+            data-testid="camera-video"
+            role="video"
+          />
+          <canvas
+            ref={canvasRef}
+            className="hidden"
+            data-testid="capture-canvas"
+          />
           <div className="flex space-x-3 mt-4">
             <button
               onClick={capturePhoto}
-              className="btn btn-primary flex-1"
+              className="btn btn-primary btn-block flex-1"
               tabIndex={0}
               aria-label="Capture photo"
               onKeyDown={(e) => handleKeyDown(e, capturePhoto)}
@@ -175,7 +198,7 @@ export default function ImageQuestion({
             </button>
             <button
               onClick={closeCamera}
-              className="btn btn-secondary flex-1"
+              className="btn btn-secondary btn-block flex-1"
               tabIndex={0}
               aria-label="Cancel camera"
               onKeyDown={(e) => handleKeyDown(e, closeCamera)}
@@ -185,17 +208,21 @@ export default function ImageQuestion({
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
     <div className="space-y-4">
       <div className="text-lg font-medium mb-4" id="question-prompt">
-        {question.imageDescription || 'Take or upload a photo'}
+        {question.imageDescription || "Take or upload a photo"}
       </div>
 
       {error && (
-        <div className="p-3 bg-red-100 text-red-600 rounded-md" role="alert" aria-live="polite">
+        <div
+          className="p-3 bg-red-100 text-red-600 rounded-md"
+          role="alert"
+          aria-live="polite"
+        >
           {error}
         </div>
       )}
@@ -221,7 +248,11 @@ export default function ImageQuestion({
           role="button"
           tabIndex={0}
           aria-label="Drag and drop image here or click to browse"
-          onKeyDown={(e) => handleKeyDown(e, () => dropZoneRef.current?.querySelector('input')?.click())}
+          onKeyDown={(e) =>
+            handleKeyDown(e, () =>
+              dropZoneRef.current?.querySelector("input")?.click(),
+            )
+          }
         >
           <input
             type="file"
@@ -232,9 +263,7 @@ export default function ImageQuestion({
           <p className="text-sm text-gray-500 mb-2">
             Drag and drop an image here or click to browse
           </p>
-          <p className="text-xs text-gray-400">
-            Supports all image formats
-          </p>
+          <p className="text-xs text-gray-400">Supports all image formats</p>
         </div>
       )}
 
@@ -250,7 +279,10 @@ export default function ImageQuestion({
       </button>
 
       {isUploading && (
-        <div className="flex items-center justify-center p-4" aria-live="polite">
+        <div
+          className="flex items-center justify-center p-4"
+          aria-live="polite"
+        >
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
           <span className="ml-2 text-sm text-gray-600">Uploading...</span>
         </div>
@@ -281,7 +313,9 @@ export default function ImageQuestion({
                 className="btn btn-secondary w-full sm:w-auto"
                 tabIndex={0}
                 aria-label="Cancel upload"
-                onKeyDown={(e) => handleKeyDown(e, () => setShowPreviewModal(false))}
+                onKeyDown={(e) =>
+                  handleKeyDown(e, () => setShowPreviewModal(false))
+                }
               >
                 Cancel
               </button>
@@ -293,12 +327,12 @@ export default function ImageQuestion({
                 aria-label="Confirm and upload image"
                 onKeyDown={(e) => handleKeyDown(e, handleUpload)}
               >
-                {isUploading ? 'Uploading...' : 'Upload Image'}
+                {isUploading ? "Uploading..." : "Upload Image"}
               </button>
             </div>
           </div>
         </div>
       )}
     </div>
-  )
+  );
 }

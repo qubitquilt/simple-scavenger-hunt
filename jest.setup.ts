@@ -1,4 +1,4 @@
-import '@testing-library/jest-dom'
+import "@testing-library/jest-dom";
 
 declare var jest: any;
 
@@ -38,34 +38,38 @@ class MockHeaders {
 
 // Mock next/server NextResponse.json used by route handlers
 // Export a NextResponse with a json helper; also export NextRequest/Headers if needed
-jest.mock('next/server', () => ({
+jest.mock("next/server", () => ({
   NextResponse: {
     json: (body: any, init?: any) => body,
-    redirect: (url: string) => ({ redirect: url })
+    redirect: (url: string) => ({ redirect: url }),
   },
   NextRequest: class NextRequest {},
   Headers: class Headers {
-    constructor(init: any) { ;(this as any).map = init || {} }
-  }
-}))
+    constructor(init: any) {
+      (this as any).map = init || {};
+    }
+  },
+}));
 
 // Provide a default mock for getServerSession from next-auth
 // so routes that import it won't throw; individual tests can override this mock in-suite.
-jest.mock('next-auth', () => ({ getServerSession: jest.fn() }))
+jest.mock("next-auth", () => ({ getServerSession: jest.fn() }));
 
 // Suppress console.error during tests to clean up output from expected database errors
-jest.spyOn(console, 'error').mockImplementation(() => {})
+jest.spyOn(console, "error").mockImplementation(() => {});
 
 // Mock URL.createObjectURL and revokeObjectURL for JSDOM compatibility in tests
-const mockCreateObjectURL = jest.fn((file: File) => `mock-url-for-${file.name}`)
-const mockRevokeObjectURL = jest.fn()
+const mockCreateObjectURL = jest.fn(
+  (file: File) => `mock-url-for-${file.name}`,
+);
+const mockRevokeObjectURL = jest.fn();
 
-Object.defineProperty(URL, 'createObjectURL', {
+Object.defineProperty(URL, "createObjectURL", {
   value: mockCreateObjectURL,
   writable: true,
-})
+});
 
-Object.defineProperty(URL, 'revokeObjectURL', {
+Object.defineProperty(URL, "revokeObjectURL", {
   value: mockRevokeObjectURL,
   writable: true,
-})
+});

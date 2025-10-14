@@ -1,53 +1,55 @@
-jest.mock('@/lib/prisma', () => ({
+jest.mock("@/lib/prisma", () => ({
   prisma: {
     user: {
-      findMany: jest.fn()
-    }
-  }
-}))
-
+      findMany: jest.fn(),
+    },
+  },
+}));
 
 beforeAll(() => {
-  process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://fake.supabase.co';
-  process.env.SUPABASE_SERVICE_ROLE_KEY = 'fake_key';
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "http://fake.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "fake_key";
 });
 
+const { GET: adminUsersGET } = require("@/app/api/admin/users/route");
+const { prisma: adminUsersPrisma } = require("@/lib/prisma");
 
-const { GET: adminUsersGET } = require('@/app/api/admin/users/route')
-const { prisma: adminUsersPrisma } = require('@/lib/prisma')
+describe("admin users api", () => {
+  it("returns 400 when no eventId", async () => {
+    const req = { url: "https://example.com/" };
+    const res = await adminUsersGET(req);
+    expect(res).toEqual({ error: "eventId is required" });
+  });
 
-describe('admin users api', () => {
-  it('returns 400 when no eventId', async () => {
-    const req = { url: 'https://example.com/' }
-    const res = await adminUsersGET(req)
-    expect(res).toEqual({ error: 'eventId is required' })
-  })
-
-  it('computes metrics correctly', async () => {
-    const validUUID = '123e4567-e89b-12d3-a456-426614174000'
+  it("computes metrics correctly", async () => {
+    const validUUID = "123e4567-e89b-12d3-a456-426614174000";
     const fakeUser = {
-      id: 'u1',
-      name: 'A B',
+      id: "u1",
+      name: "A B",
       createdAt: new Date(),
-      progress: [{
-        id: 'p1',
-        eventId: validUUID,
-        completed: true,
-        createdAt: new Date(),
-        answers: [{
-          id: 'a1',
-          questionId: 'q1',
-          status: 'correct',
+      progress: [
+        {
+          id: "p1",
+          eventId: validUUID,
+          completed: true,
           createdAt: new Date(),
-          submission: null,
-          aiScore: null
-        }]
-      }]
-    }
-    adminUsersPrisma.user.findMany.mockResolvedValue([fakeUser])
-    const req = { url: `https://example.com/?eventId=${validUUID}` }
-    const res = await adminUsersGET(req)
-    expect(res.users.length).toBe(1)
-    expect(res.metrics.totalUsers).toBe(1)
-  })
-})
+          answers: [
+            {
+              id: "a1",
+              questionId: "q1",
+              status: "correct",
+              createdAt: new Date(),
+              submission: null,
+              aiScore: null,
+            },
+          ],
+        },
+      ],
+    };
+    adminUsersPrisma.user.findMany.mockResolvedValue([fakeUser]);
+    const req = { url: `https://example.com/?eventId=${validUUID}` };
+    const res = await adminUsersGET(req);
+    expect(res.users.length).toBe(1);
+    expect(res.metrics.totalUsers).toBe(1);
+  });
+});

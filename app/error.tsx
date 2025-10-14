@@ -1,24 +1,26 @@
-'use client'
+"use client";
 
-import { useEffect } from 'react'
+import { useEffect } from "react";
 
 interface ErrorProps {
-  error: Error & { digest?: string }
-  reset: () => void
+  error: Error & { digest?: string };
+  reset: () => void;
 }
 
 export default function Error({ error, reset }: ErrorProps) {
   useEffect(() => {
-    console.error(error)
-  }, [error])
+    console.error(error);
+  }, [error]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-base-200 p-4">
+    <div className="flex items-center justify-center bg-base-200 p-4">
       <div className="max-w-md w-full bg-base-50 rounded-lg shadow-md p-6 text-center">
         <h2 className="text-2xl font-bold mb-4">Something went wrong!</h2>
-        <p className="text-gray-600 mb-6" id="error-message">
-          {typeof error.message === 'string' ? error.message : JSON.stringify(error.message)}
-        </p>
+        <div role="alert" className="alert alert-error alert-soft">
+          {typeof error.message === "string"
+            ? error.message
+            : JSON.stringify(error.message)}
+        </div>
         <button
           onClick={reset}
           className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
@@ -28,5 +30,5 @@ export default function Error({ error, reset }: ErrorProps) {
         </button>
       </div>
     </div>
-  )
+  );
 }

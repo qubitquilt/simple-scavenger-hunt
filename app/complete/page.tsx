@@ -1,66 +1,66 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import Confetti from 'react-confetti'
-import { getUserId } from '@/utils/session'
-import LoadingSpinner from '@/components/LoadingSpinner'
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Confetti from "react-confetti";
+import { getUserId } from "@/utils/session";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 export default function CompletionPage() {
-  const [showConfetti, setShowConfetti] = useState(true)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const router = useRouter()
-  const userId = getUserId()
+  const [showConfetti, setShowConfetti] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const userId = getUserId();
 
   useEffect(() => {
     if (!userId) {
-      router.push('/register')
-      return
+      router.push("/register");
+      return;
     }
 
     const verifyCompletion = async () => {
       try {
-        const response = await fetch('/api/progress')
+        const response = await fetch("/api/progress");
         if (!response.ok) {
-          throw new Error('Failed to verify completion')
+          throw new Error("Failed to verify completion");
         }
-        const data = await response.json()
+        const data = await response.json();
         if (!data.progress.completed) {
-          router.push('/challenges')
+          router.push("/challenges");
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Verification error')
+        setError(err instanceof Error ? err.message : "Verification error");
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    verifyCompletion()
-  }, [userId, router])
+    verifyCompletion();
+  }, [userId, router]);
 
   const handleRestart = () => {
     // Clear userId cookie and redirect to home
-    document.cookie = 'userId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
-    router.push('/')
-  }
+    document.cookie = "userId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    router.push("/");
+  };
 
   const handleHome = () => {
-    router.push('/')
-  }
+    router.push("/");
+  };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-base-200">
+      <div className="flex items-center justify-center bg-base-200">
         <LoadingSpinner size="lg" />
         <div className="sr-only">Loading...</div>
       </div>
-    )
+    );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-base-200">
+      <div className="flex items-center justify-center bg-base-200">
         <div className="text-red-600 text-center">
           <h2 className="text-xl font-bold mb-2">Error</h2>
           <p>{error}</p>
@@ -73,11 +73,11 @@ export default function CompletionPage() {
           </button>
         </div>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-base-200 relative">
+    <div className="flex flex-col items-center justify-center p-4 bg-base-200 relative">
       {showConfetti && (
         <Confetti
           width={window.innerWidth}
@@ -87,7 +87,7 @@ export default function CompletionPage() {
           aria-hidden="true"
         />
       )}
-      
+
       <div className="text-center max-w-md">
         <h1 className="text-4xl font-bold mb-4">Congratulations!</h1>
         <p className="text-xl mb-8 text-gray-700">
@@ -96,7 +96,7 @@ export default function CompletionPage() {
         <p className="text-lg mb-8 text-gray-600">
           Contact the organizers on October 14, 2025 to claim your prize.
         </p>
-        
+
         <div className="space-y-3">
           <button
             onClick={handleRestart}
@@ -115,5 +115,5 @@ export default function CompletionPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

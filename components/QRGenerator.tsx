@@ -1,14 +1,18 @@
-'use client'
+"use client";
 
-import { QRCodeCanvas } from 'qrcode.react'
+import { QRCodeCanvas } from "qrcode.react";
 
 interface QRGeneratorProps {
-  value: string
-  size?: number
-  className?: string
+  value: string;
+  size?: number;
+  className?: string;
 }
 
-export default function QRGenerator({ value, size = 128, className = '' }: QRGeneratorProps) {
+export default function QRGenerator({
+  value,
+  size = 128,
+  className = "",
+}: QRGeneratorProps) {
   return (
     <div className={`flex flex-col items-center space-y-2 ${className}`}>
       <QRCodeCanvas
@@ -24,5 +28,5 @@ export default function QRGenerator({ value, size = 128, className = '' }: QRGen
         Scan to join: {value}
       </p>
     </div>
-  )
+  );
 }
