@@ -6,6 +6,7 @@ import { Question as PrismaQuestion } from "@prisma/client";
 import { createQuestionSchema, updateQuestionSchema } from "@/lib/validation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { QuestionType } from "@/types/question";
 const createSlugFromTitle = (title: string): string => {
   return title
     .toLowerCase()
@@ -70,14 +71,15 @@ export async function GET(request: NextRequest) {
       const effectiveTitle = q.title || q.content || "";
       let options: Record<string, string> | undefined;
       let minResolution: { width: number; height: number } | undefined;
-      if (q.type === "multiple_choice" && q.options) {
+      if (q.type === QuestionType.MULTIPLE_CHOICE && q.options) {
         options = JSON.parse(q.options as string);
       }
-      if (q.type === "image" && q.minResolution) {
+      if (q.type === QuestionType.IMAGE && q.minResolution) {
         minResolution = JSON.parse(q.minResolution as string);
       }
       return {
         ...q,
+        type: q.type as QuestionType,
         title: effectiveTitle,
         options,
         expectedAnswer: q.expectedAnswer || "",
@@ -125,11 +127,11 @@ export async function POST(request: NextRequest) {
 
     const createData = validatedData as any;
 
-    if (validatedData.type === "multiple_choice") {
+    if (validatedData.type === QuestionType.MULTIPLE_CHOICE) {
       createData.options = JSON.stringify(validatedData.options);
     }
 
-    if (validatedData.type === "image") {
+    if (validatedData.type === QuestionType.IMAGE) {
       createData.allowedFormats = JSON.stringify(validatedData.allowedFormats);
       createData.minResolution = JSON.stringify(validatedData.minResolution);
     }
@@ -146,7 +148,7 @@ export async function POST(request: NextRequest) {
     const typedQuestion = {
       id: data.id,
       eventId: data.eventId,
-      type: data.type,
+      type: data.type as QuestionType,
       title: data.title,
       content: data.content,
       expectedAnswer: data.expectedAnswer || "",
@@ -156,13 +158,13 @@ export async function POST(request: NextRequest) {
       maxFileSize: data.maxFileSize,
       required: (validatedData as any).required ?? false,
       options:
-        data.type === "multiple_choice" && data.options
+        data.type === QuestionType.MULTIPLE_CHOICE && data.options
           ? JSON.parse(data.options as string)
           : undefined,
       createdAt: new Date(data.createdAt).toISOString(),
       allowedFormats: parseAllowedFormats(data.allowedFormats),
       minResolution:
-        data.type === "image" && data.minResolution
+        data.type === QuestionType.IMAGE && data.minResolution
           ? JSON.parse(data.minResolution as string)
           : (null as any),
     } as Question;
@@ -208,13 +210,13 @@ export async function PUT(request: NextRequest) {
 
     const updateQuestionData: any = { ...updateDataBase };
 
-    if (validatedData.type === "multiple_choice") {
+    if (validatedData.type === QuestionType.MULTIPLE_CHOICE) {
       if (updateDataBase.options !== undefined) {
         updateQuestionData.options = JSON.stringify(updateDataBase.options);
       }
     }
 
-    if (validatedData.type === "image") {
+    if (validatedData.type === QuestionType.IMAGE) {
       if (updateDataBase.allowedFormats !== undefined) {
         updateQuestionData.allowedFormats = JSON.stringify(
           updateDataBase.allowedFormats,
@@ -238,13 +240,14 @@ export async function PUT(request: NextRequest) {
 
     const typedQuestion: Question = {
       ...data,
+      type: data.type as QuestionType,
       title: effectiveTitle,
       options: data.options as Record<string, string> | undefined,
       expectedAnswer: data.expectedAnswer || "",
       createdAt: new Date(data.createdAt).toISOString(),
       allowedFormats: parseAllowedFormats(data.allowedFormats),
       minResolution:
-        data.type === "image" && data.minResolution
+        data.type === QuestionType.IMAGE && data.minResolution
           ? JSON.parse(data.minResolution as string)
           : undefined,
       imageDescription: data.imageDescription || undefined,

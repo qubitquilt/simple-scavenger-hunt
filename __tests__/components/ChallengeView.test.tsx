@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 
 import type { Question } from '@/types/question';
 import type { Event } from '@/types/admin';
+import { QuestionType } from '@/types/question';
 
 // Mock next/navigation
 const mockPush = jest.fn();
@@ -15,7 +16,7 @@ jest.mock('next/navigation', () => ({
 const mockQuestionWithTitle: Question = {
   id: 'q1',
   eventId: 'e1',
-  type: 'text',
+  type: QuestionType.TEXT,
   title: 'Test Title',
   content: 'Test Content',
   expectedAnswer: 'test',
@@ -27,7 +28,7 @@ const mockQuestionWithTitle: Question = {
 const mockQuestionWithoutTitle: Question = {
   id: 'q2',
   eventId: 'e1',
-  type: 'text',
+  type: QuestionType.TEXT,
   title: '',
   content: 'Test Content Only',
   expectedAnswer: 'test',
@@ -43,6 +44,7 @@ const mockEvent: Event = {
   description: 'A test event',
   date: new Date('2025-01-01T00:00:00Z'),
   createdAt: new Date('2025-01-01T00:00:00Z'),
+  theme: 'blue',
 };
 
 global.fetch = jest.fn();

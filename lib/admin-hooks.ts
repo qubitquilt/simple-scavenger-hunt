@@ -31,27 +31,42 @@ export const useAdminData = (): AdminData => {
         ]);
 
         // Handle events
-        if (eventsRes.status === "fulfilled" && eventsRes.value.ok) {
-          const eventsData = await eventsRes.value.json();
-          setEvents(eventsData.events || []);
+        if (eventsRes.status === "fulfilled") {
+          const res = eventsRes.value;
+          if (res.ok) {
+            const eventsData = await res.json();
+            setEvents(eventsData.events || []);
+          } else {
+            console.error("Failed to fetch events:", res.statusText);
+          }
         } else {
-          console.error("Failed to fetch events:", eventsRes.reason || eventsRes.value?.statusText);
+          console.error("Failed to fetch events:", eventsRes.reason);
         }
 
         // Handle questions
-        if (questionsRes.status === "fulfilled" && questionsRes.value.ok) {
-          const questionsData = await questionsRes.value.json();
-          setQuestions(questionsData.questions || []);
+        if (questionsRes.status === "fulfilled") {
+          const res = questionsRes.value;
+          if (res.ok) {
+            const questionsData = await res.json();
+            setQuestions(questionsData.questions || []);
+          } else {
+            console.error("Failed to fetch questions:", res.statusText);
+          }
         } else {
-          console.error("Failed to fetch questions:", questionsRes.reason || questionsRes.value?.statusText);
+          console.error("Failed to fetch questions:", questionsRes.reason);
         }
 
         // Handle users
-        if (usersRes.status === "fulfilled" && usersRes.value.ok) {
-          const usersData = await usersRes.value.json();
-          setUsers(usersData.users || []);
+        if (usersRes.status === "fulfilled") {
+          const res = usersRes.value;
+          if (res.ok) {
+            const usersData = await res.json();
+            setUsers(usersData.users || []);
+          } else {
+            console.error("Failed to fetch users:", res.statusText);
+          }
         } else {
-          console.error("Failed to fetch users:", usersRes.reason || usersRes.value?.statusText);
+          console.error("Failed to fetch users:", usersRes.reason);
         }
       } catch (err) {
         console.error("Unexpected error in admin data fetch:", err);

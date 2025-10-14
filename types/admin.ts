@@ -1,5 +1,7 @@
 import { Answer } from "./answer";
 
+export type EventTheme = 'blue' | 'green' | 'red';
+
 export interface Event {
   id: string;
   title: string;
@@ -7,6 +9,7 @@ export interface Event {
   description: string | null;
   date: Date;
   createdAt: Date;
+  theme: EventTheme;
 }
 
 export interface AdminUser {

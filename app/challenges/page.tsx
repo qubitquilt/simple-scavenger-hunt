@@ -5,13 +5,14 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getUserId } from "@/utils/session";
 import type { Question } from "@/types/question";
+import { QuestionType } from "@/types/question";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import QuestionCard from "@/components/QuestionCard";
 
 interface QuestionWithStatus {
   id: string;
   slug: string;
-  type: "text" | "multiple_choice" | "image";
+  type: QuestionType;
   title: string;
   content: string;
   answered?: boolean;

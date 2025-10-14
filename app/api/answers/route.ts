@@ -11,6 +11,7 @@ import { normalize } from '@/utils/normalize'
 import type { AnswerSubmission, AnswerStatus } from '@/types/answer'
 import * as fs from 'fs'
 import path from 'path'
+import { QuestionType } from '@/types/question';
 
 const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif']
 const defaultMaxFileSize = 5 * 1024 * 1024 // 5MB
@@ -118,7 +119,7 @@ export async function POST(request: NextRequest) {
         console.log('Question fetched:', !!questionValidationData, 'type:', questionValidationData?.type)
       }
 
-      if (!questionValidationData || questionValidationData.type !== 'image') {
+      if (!questionValidationData || questionValidationData.type !== QuestionType.IMAGE) {
         return NextResponse.json({ error: 'Image question not found' }, { status: 404 })
       }
 
@@ -126,11 +127,11 @@ export async function POST(request: NextRequest) {
 
       console.log('Fetched question:', { id: questionId, type: qType, expectedAnswer: qExpected })
 
-      if (qType !== 'image' && (qExpected == null || (qExpected && qExpected.trim() === ''))) {
+      if (qType !== QuestionType.IMAGE && (qExpected == null || (qExpected && qExpected.trim() === ''))) {
         return NextResponse.json({ error: 'Question missing expected answer' }, { status: 400 })
       }
 
-      type = qType
+      type = qType as QuestionType
       expectedAnswer = qExpected ?? ''
       aiThreshold = qAi || 0
       content = qContent || ''
@@ -207,7 +208,7 @@ export async function POST(request: NextRequest) {
       submission = { url }
 
       // Set common variables
-      type = qType
+      type = qType as QuestionType
       expectedAnswer = qExpected ?? ''
       aiThreshold = qAi
       content = qContent
@@ -260,11 +261,11 @@ export async function POST(request: NextRequest) {
 
       console.log('Fetched question:', { id: questionId, type: qType, expectedAnswer: qExpected })
 
-      if (qType !== 'image' && (qExpected == null || (qExpected && qExpected.trim() === ''))) {
+      if (qType !== QuestionType.IMAGE && (qExpected == null || (qExpected && qExpected.trim() === ''))) {
         return NextResponse.json({ error: 'Question missing expected answer' }, { status: 400 })
       }
 
-      type = qType
+      type = qType as QuestionType
       expectedAnswer = qExpected ?? ''
       aiThreshold = qAi || 0
       content = qContent || ''
@@ -293,7 +294,7 @@ export async function POST(request: NextRequest) {
 
 
 
-    if (type === 'multiple_choice') {
+    if (type === QuestionType.MULTIPLE_CHOICE) {
       const normalizedSubmission = normalize(submission as string)
       const normalizedExpectedAnswer = normalize(expectedAnswer)
       if (normalizedSubmission === normalizedExpectedAnswer) {
@@ -305,7 +306,7 @@ export async function POST(request: NextRequest) {
         aiScore = 0
         explanation = 'Incorrect match'
       }
-    } else if (type === 'text') {
+    } else if (type === QuestionType.TEXT) {
       const normalizedSubmission = normalize(submission as string)
       const normalizedExpectedAnswer = normalize(expectedAnswer)
       if (normalizedSubmission === normalizedExpectedAnswer) {
@@ -366,7 +367,7 @@ export async function POST(request: NextRequest) {
           status = 'incorrect'
         }
       }
-    } else if (type === 'image') {
+    } else if (type === QuestionType.IMAGE) {
       let messages: any[] = []
 
       const imageUrl = typeof submission === 'string' ? submission : (submission as { url: string }).url

@@ -2,12 +2,13 @@ import { render, screen } from '@testing-library/react';
 import QuestionCard from '@/components/QuestionCard';
 import type { QuestionWithStatus } from '@/components/QuestionCard';
 import type { AnswerStatus } from '@/types/answer';
+import { QuestionType } from '@/types/question';
 
 describe('QuestionCard', () => {
   const mockQuestionWithTitle: QuestionWithStatus = {
     id: 'test-id',
     slug: 'test-slug',
-    type: 'text',
+    type: QuestionType.TEXT,
     title: 'Test Title',
     content: 'Test Content',
     eventId: 'test-event',
@@ -21,7 +22,7 @@ describe('QuestionCard', () => {
   const mockQuestionWithoutTitle: QuestionWithStatus = {
     id: 'test-id-no-title',
     slug: 'test-slug-no-title',
-    type: 'text',
+    type: QuestionType.TEXT,
     title: '',
     content: 'Test Content Only',
     eventId: 'test-event',

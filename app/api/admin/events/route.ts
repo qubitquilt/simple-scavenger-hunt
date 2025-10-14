@@ -13,6 +13,7 @@ type EventData = Prisma.EventGetPayload<{
     description: true;
     date: true;
     createdAt: true;
+    theme: true;
   };
 }>;
 
@@ -32,6 +33,7 @@ export async function GET() {
         description: true,
         date: true,
         createdAt: true,
+        theme: true,
       },
       orderBy: { createdAt: "desc" },
     });
@@ -40,9 +42,10 @@ export async function GET() {
       id: event.id,
       title: event.title,
       slug: event.slug,
-      description: event.description || "",
+      description: event.description || null,
       date: event.date,
       createdAt: event.createdAt,
+      theme: event.theme,
     }));
 
     return NextResponse.json({ events: typedEvents });
@@ -82,9 +85,10 @@ export async function POST(request: NextRequest) {
       id: eventData.id,
       title: eventData.title,
       slug: eventData.slug,
-      description: eventData.description || "",
+      description: eventData.description || null,
       date: eventData.date,
       createdAt: eventData.createdAt,
+      theme: eventData.theme,
     };
     return NextResponse.json({ event: typedEvent }, { status: 201 });
   } catch (error) {
@@ -124,9 +128,10 @@ export async function PUT(request: NextRequest) {
       id: eventData.id,
       title: eventData.title,
       slug: eventData.slug,
-      description: eventData.description || "",
+      description: eventData.description || null,
       date: eventData.date,
       createdAt: eventData.createdAt,
+      theme: eventData.theme,
     };
     return NextResponse.json({ event: typedEvent });
   } catch (error) {

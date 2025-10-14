@@ -1,6 +1,6 @@
 "use client";
 
-import { Event } from "@prisma/client";
+import { Event } from "@/types/admin";
 
 interface EventListItemProps {
   event: Event;
