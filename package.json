@@ -11,6 +11,8 @@
     "seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
+    "@google-cloud/sql": "^0.21.1",
+    "@google-cloud/storage": "^7.17.2",
     "@hookform/resolvers": "^5.2.2",
     "@prisma/client": "^6.17.1",
     "@types/node": "^20.14.10",
