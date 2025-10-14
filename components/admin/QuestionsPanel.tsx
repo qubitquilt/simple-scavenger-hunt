@@ -1,10 +1,19 @@
 import React from 'react';
+import { Question } from '@/types/question';
 
-const QuestionsPanel = () => {
+interface QuestionsPanelProps {
+  questions: Question[];
+}
+
+const QuestionsPanel: React.FC<QuestionsPanelProps> = ({ questions }) => {
   return (
     <div className="p-4 border rounded-lg mt-4">
       <h2 className="text-2xl font-bold">Questions</h2>
-      <p>Question management will be displayed here.</p>
+      <ul>
+        {questions.map((question) => (
+          <li key={question.id}>{question.title}</li>
+        ))}
+      </ul>
     </div>
   );
 };

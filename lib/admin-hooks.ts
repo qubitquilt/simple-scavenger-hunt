@@ -22,26 +22,39 @@ export const useAdminData = (): AdminData => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [eventsRes, questionsRes, usersRes] = await Promise.all([
+        setError(null);
+
+        const [eventsRes, questionsRes, usersRes] = await Promise.allSettled([
           fetch("/api/admin/events"),
           fetch("/api/admin/questions"),
           fetch("/api/admin/users"),
         ]);
 
-        if (!eventsRes.ok || !questionsRes.ok || !usersRes.ok) {
-          throw new Error("Failed to fetch admin data");
+        // Handle events
+        if (eventsRes.status === "fulfilled" && eventsRes.value.ok) {
+          const eventsData = await eventsRes.value.json();
+          setEvents(eventsData.events || []);
+        } else {
+          console.error("Failed to fetch events:", eventsRes.reason || eventsRes.value?.statusText);
         }
 
-        const [eventsData, questionsData, usersData] = await Promise.all([
-          eventsRes.json(),
-          questionsRes.json(),
-          usersRes.json(),
-        ]);
+        // Handle questions
+        if (questionsRes.status === "fulfilled" && questionsRes.value.ok) {
+          const questionsData = await questionsRes.value.json();
+          setQuestions(questionsData.questions || []);
+        } else {
+          console.error("Failed to fetch questions:", questionsRes.reason || questionsRes.value?.statusText);
+        }
 
-        setEvents(eventsData.events);
-        setQuestions(questionsData.questions);
-        setUsers(usersData.users);
+        // Handle users
+        if (usersRes.status === "fulfilled" && usersRes.value.ok) {
+          const usersData = await usersRes.value.json();
+          setUsers(usersData.users || []);
+        } else {
+          console.error("Failed to fetch users:", usersRes.reason || usersRes.value?.statusText);
+        }
       } catch (err) {
+        console.error("Unexpected error in admin data fetch:", err);
         setError(err);
       } finally {
         setLoading(false);

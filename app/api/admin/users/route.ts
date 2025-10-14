@@ -12,35 +12,39 @@ export async function GET(request: NextRequest) {
     const completed = searchParams.get("completed") === "true";
     const eventId = searchParams.get("eventId");
 
-    if (!eventId) {
-      return NextResponse.json(
-        { error: "eventId is required" },
-        { status: 400 },
-      );
-    }
-
-    // Validate eventId is a valid UUID format
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(eventId)) {
-      return NextResponse.json(
-        { error: "Invalid eventId format" },
-        { status: 400 },
-      );
+    // Validate eventId format if provided
+    if (eventId) {
+      const uuidRegex =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(eventId)) {
+        return NextResponse.json(
+          { error: "Invalid eventId format" },
+          { status: 400 },
+        );
+      }
     }
 
     const usersData = await prisma.user.findMany({
-      where: {
+      where: eventId ? {
         progress: {
           some: {
             eventId,
             ...(completed !== undefined && { completed }),
           },
         },
+      } : {
+        // For admin purposes, fetch all users with any progress when no eventId specified
+        progress: {
+          some: completed !== undefined ? { completed } : {},
+        },
       },
       include: {
-        progress: {
+        progress: eventId ? {
           where: { eventId },
+          include: {
+            answers: true,
+          },
+        } : {
           include: {
             answers: true,
           },

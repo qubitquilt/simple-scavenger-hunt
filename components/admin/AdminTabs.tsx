@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 
-type AdminTab = 'Metrics' | 'Events' | 'Questions' | 'Users';
+export type AdminTab = 'Metrics' | 'Events' | 'Questions' | 'Users';
 
 interface AdminTabsProps {
   onTabChange: (tab: AdminTab) => void;
