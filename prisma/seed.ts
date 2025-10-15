@@ -38,7 +38,8 @@ async function main() {
              content: '02. Take a picture with 3 other people wearing the same color wristband.',
              type: 'multiple_choice',
              category: 'Sky Church',
-             expectedAnswer: JSON.stringify(["Yes I took a picture!"]),
+             options: { "A": "Yes I took the picture", "B": "No I didn't" },
+             expectedAnswer: "A",
              hintEnabled: false,
              aiThreshold: 0,
            },
@@ -48,7 +49,8 @@ async function main() {
              content: '03. Take a selfie with someone wearing a different color wristband',
              type: 'multiple_choice',
              category: 'Sky Church',
-             expectedAnswer: null,
+             options: { "A": "Yes I took the picture", "B": "No I didn't" },
+             expectedAnswer: "A",
              hintEnabled: false,
              aiThreshold: 0,
            },
@@ -58,7 +60,8 @@ async function main() {
              content: '04. Take a selfie with someone and a red guitar',
              type: 'multiple_choice',
              category: 'Sky Church',
-             expectedAnswer: JSON.stringify(["Yes I took a picture!"]),
+             options: { "A": "Yes I took the picture", "B": "No I didn't" },
+             expectedAnswer: "A",
              hintEnabled: false,
              aiThreshold: 0,
            },
@@ -68,7 +71,8 @@ async function main() {
              content: '05. Take a selfie with someone and a yellow guitar',
              type: 'multiple_choice',
              category: 'Sky Church',
-             expectedAnswer: JSON.stringify(["Yes I took a picture!"]),
+             options: { "A": "Yes I took the picture", "B": "No I didn't" },
+             expectedAnswer: "A",
              hintEnabled: false,
              aiThreshold: 0,
            },
@@ -78,7 +82,8 @@ async function main() {
              content: '06. Take a selfie with someone and a blue guitar',
              type: 'multiple_choice',
              category: 'Sky Church',
-             expectedAnswer: JSON.stringify(["Yes I took a picture!"]),
+             options: { "A": "Yes I took the picture", "B": "No I didn't" },
+             expectedAnswer: "A",
              hintEnabled: false,
              aiThreshold: 0,
            },
@@ -98,7 +103,8 @@ async function main() {
              content: '09. Take a picture so it looks like you\'re wearing Jimi\'s Westerner Hat.',
              type: 'multiple_choice',
              category: 'Wild Blue Angel: Hendrix Abroad 1966-1970',
-             expectedAnswer: JSON.stringify(["Yes I took a picture!"]),
+             options: { "A": "Yes I took the picture", "B": "No I didn't" },
+             expectedAnswer: "A",
              hintEnabled: true,
              aiThreshold: 0,
            },
@@ -172,10 +178,11 @@ async function main() {
              hintEnabled: true,
              aiThreshold: 5,
            },
-         ],
-      },
-    },
-  });
+         ]
+       }
+     }
+   });
+   console.log(`Created event: ${mopopEvent.title}`);
 }
 
 main()

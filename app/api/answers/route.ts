@@ -272,9 +272,9 @@ export async function POST(request: NextRequest) {
       imageDescription = qImageDesc ?? ''
     }
 
-    let status: 'correct' | 'incorrect' | 'pending' = 'pending'
-    let aiScore: number | null = null
-    let explanation: string | null = null
+let status: 'correct' | 'incorrect' | 'pending' = 'correct'
+    let aiScore: number | null = 10
+    let explanation: string | null = 'Accepted automatically'
 
     // Prepare submission for storage
     let storedSubmission: string | object = typeof submission === 'string' ? submission : { url: submission.url }
@@ -291,144 +291,6 @@ export async function POST(request: NextRequest) {
         aiScore: true
       }
     })
-
-
-
-    if (type === QuestionType.MULTIPLE_CHOICE) {
-      const normalizedSubmission = normalize(submission as string)
-      const normalizedExpectedAnswer = normalize(expectedAnswer)
-      if (normalizedSubmission === normalizedExpectedAnswer) {
-        status = 'correct'
-        aiScore = 10
-        explanation = 'Direct match'
-      } else {
-        status = 'incorrect'
-        aiScore = 0
-        explanation = 'Incorrect match'
-      }
-    } else if (type === QuestionType.TEXT) {
-      const normalizedSubmission = normalize(submission as string)
-      const normalizedExpectedAnswer = normalize(expectedAnswer)
-      if (normalizedSubmission === normalizedExpectedAnswer) {
-        status = 'correct'
-        aiScore = 10
-        explanation = 'Direct match'
-      } else {
-        let messages: any[] = []
-        // text
-        const answerType = 'text answer'
-        const userInputTerm = 'answer'
-        const prompt = `The challenge is a ${answerType}: "${content}". The expected ${userInputTerm} is: "${expectedAnswer}". The user's ${userInputTerm}: "${submission}". Rate the similarity between the user's ${userInputTerm} and the expected one on a scale of 0 to 10. Provide a brief explanation of why you gave that score.\n\nRespond in this exact format:\n\nScore: [number 0-10]\n\nExplanation: [brief explanation]`
-
-        messages = [{ role: 'user', content: prompt }]
-
-        // Removed excessive logging - only log in development
-        if (process.env.NODE_ENV === 'development') {
-          console.log('API Key Loaded:', !!process.env.OPENROUTER_API_KEY ? 'Yes (masked)' : 'No');
-        }
-        const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY!}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.0-flash-exp:free',
-            // model: 'openai/gpt-4o-mini',
-            messages,
-            max_tokens: 150,
-            temperature: 0,
-          }),
-        })
-
-        if (!openRouterResponse.ok) {
-          const responseText = await openRouterResponse.text();
-          console.log('OpenRouter Response:', responseText);
-          throw new Error(`OpenRouter API error: ${openRouterResponse.statusText}`)
-        }
-
-        const data = await openRouterResponse.json()
-        const text = data.choices[0].message.content.trim()
-
-        // Parse score and explanation
-        const scoreMatch = text.match(/Score:\s*(\d+)/i)
-        const explanationMatch = text.match(/Explanation:\s*(.+)$/i, 'm')
-
-        aiScore = scoreMatch ? parseInt(scoreMatch[1], 10) : 0
-        explanation = explanationMatch ? explanationMatch[1].trim() : 'Unable to parse AI response'
-
-        if (isNaN(aiScore) || aiScore < 0 || aiScore > 10) {
-          aiScore = 0
-        }
-
-        if (aiScore >= aiThreshold) {
-          status = 'correct'
-        } else {
-          status = 'incorrect'
-        }
-      }
-    } else if (type === QuestionType.IMAGE) {
-      let messages: any[] = []
-
-      const imageUrl = typeof submission === 'string' ? submission : (submission as { url: string }).url
-      const fullPath = path.resolve(process.cwd(), 'public' + imageUrl)
-      if (!fs.existsSync(fullPath)) {
-        return NextResponse.json({ error: 'Image file not found' }, { status: 400 })
-      }
-      const imageBuffer = fs.readFileSync(fullPath)
-      const base64Image = imageBuffer.toString('base64')
-      const mimeType = imageUrl.endsWith('.png') ? 'image/png' : 'image/jpeg'
-      const base64Url = `data:${mimeType};base64,${base64Image}`
-      const prompt = `Question image description: ${imageDescription}. Analyze the submitted image and determine if it matches the description. Respond with "correct" or "incorrect" and a brief explanation.`
-      messages = [
-        { role: 'system', content: 'You are an AI evaluator for scavenger hunt images.' },
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: prompt },
-            { type: 'image_url', image_url: { url: base64Url } }
-          ]
-        }
-      ]
-
-      // Removed excessive logging - only log in development
-      if (process.env.NODE_ENV === 'development') {
-        console.log('API Key Loaded:', !!process.env.OPENROUTER_API_KEY ? 'Yes (masked)' : 'No');
-      }
-      const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY!}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.0-flash-exp:free',
-          // model: 'openai/gpt-4o-mini',
-          messages,
-          max_tokens: 150,
-          temperature: 0,
-        }),
-      })
-
-      if (!openRouterResponse.ok) {
-        const responseText = await openRouterResponse.text();
-        console.log('OpenRouter Response:', responseText);
-        throw new Error(`OpenRouter API error: ${openRouterResponse.statusText}`)
-      }
-
-      const data = await openRouterResponse.json()
-      const text = data.choices[0].message.content.trim()
-
-      const lowerText = text.toLowerCase()
-      aiScore = lowerText.includes('correct') ? 10 : 0
-      explanation = text
-
-      if (aiScore >= aiThreshold) {
-        status = 'correct'
-      } else {
-        status = 'incorrect'
-      }
-    }
 
 
 
