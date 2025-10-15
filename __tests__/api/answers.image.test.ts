@@ -129,7 +129,7 @@ describe("POST /api/answers for image submission", () => {
           choices: [
             {
               message: {
-                content: "correct",
+                content: '{"score": 10, "correct": true, "explanation": "correct"}',
               },
             },
           ],
@@ -222,7 +222,7 @@ describe("POST /api/answers for image submission", () => {
     expect(res).toEqual({ error: "Internal server error" });
   });
 
-  it("returns 500 if AI analysis fails", async () => {
+  it("returns pending status if AI analysis fails", async () => {
     const { POST } = await import("@/app/api/answers/route");
     const formData = new FormData();
     const file = new File(["image data"], "test.jpg", { type: "image/jpeg" });
@@ -237,7 +237,10 @@ describe("POST /api/answers for image submission", () => {
 
     const res = await POST(req);
 
-    expect(res).toEqual({ error: "Internal server error" });
+    expect(res).toEqual({
+      accepted: false,
+      status: "pending"
+    });
   });
 
 

@@ -105,7 +105,7 @@ async function main() {
              category: 'Wild Blue Angel: Hendrix Abroad 1966-1970',
              options: { "A": "Yes I took the picture", "B": "No I didn't" },
              expectedAnswer: "A",
-             hintEnabled: true,
+             hintEnabled: false,
              aiThreshold: 0,
            },
            {

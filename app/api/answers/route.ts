@@ -210,8 +210,8 @@ export async function POST(request: NextRequest) {
       // Set common variables
       type = qType as QuestionType
       expectedAnswer = qExpected ?? ''
-      aiThreshold = qAi
-      content = qContent
+      aiThreshold = qAi ?? 0
+      content = qContent ?? ''
     } else {
       const body = await request.json()
       const { questionId: qId, submission: sub, answer } = body
@@ -272,9 +272,10 @@ export async function POST(request: NextRequest) {
       imageDescription = qImageDesc ?? ''
     }
 
-let status: 'correct' | 'incorrect' | 'pending' = 'correct'
-    let aiScore: number | null = 10
-    let explanation: string | null = 'Accepted automatically'
+    // AI Analysis for text and image questions
+    let status: 'correct' | 'incorrect' | 'pending' = 'pending'
+    let aiScore: number | null = null
+    let explanation: string | null = null
 
     // Prepare submission for storage
     let storedSubmission: string | object = typeof submission === 'string' ? submission : { url: submission.url }
@@ -292,9 +293,174 @@ let status: 'correct' | 'incorrect' | 'pending' = 'correct'
       }
     })
 
+    // Only perform AI analysis for new submissions or if previous analysis failed
+    if (!existingAnswer || existingAnswer.status === 'pending') {
+      try {
+        if (type === QuestionType.TEXT) {
+          if (aiThreshold === 0) {
+            const normalizedSubmission = normalize(submission as string);
+            const normalizedExpected = normalize(expectedAnswer);
+            const isExactMatch = normalizedSubmission === normalizedExpected;
+            aiScore = isExactMatch ? 10 : 0;
+            status = isExactMatch ? 'correct' : 'incorrect';
+            explanation = isExactMatch ? 'Exact match' : 'No exact match';
+          } else {
+            // AI analysis for text questions
+            const prompt = `You are evaluating a scavenger hunt answer. The question is: "${content}". The expected answer is: "${expectedAnswer}".
 
+User's answer: "${submission}"
 
+Rate this answer on a scale of 0-10, where:
+- 10 = Perfect match, exactly correct
+- 7-9 = Very close, minor differences but clearly correct
+- 4-6 = Partially correct but missing key elements
+- 1-3 = Mostly incorrect but shows some understanding
+- 0 = Completely wrong or irrelevant
 
+Provide your response in JSON format:
+{
+  "score": <number 0-10>,
+  "explanation": "<brief explanation of the score>"
+}`;
+
+            const openRouterResponse = await fetch(
+              "https://openrouter.ai/api/v1/chat/completions",
+              {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${process.env.OPENROUTER_API_KEY!}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  model: "google/gemini-2.0-flash-exp:free",
+                  messages: [{ role: "user", content: prompt }],
+                  temperature: 0.1,
+                  max_tokens: 200,
+                }),
+              },
+            );
+
+            if (!openRouterResponse.ok) {
+              throw new Error(`OpenRouter API error: ${openRouterResponse.statusText}`);
+            }
+
+            const data = await openRouterResponse.json();
+            const rawResponse = data.choices[0].message.content;
+
+            // Parse JSON response
+            const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              const aiResponse = JSON.parse(jsonMatch[0]);
+              aiScore = aiResponse.score;
+              explanation = aiResponse.explanation;
+            } else {
+              // Fallback parsing
+              const scoreMatch = rawResponse.match(/score["\s:]+(\d+)/i);
+              if (scoreMatch) {
+                aiScore = parseInt(scoreMatch[1]);
+                explanation = 'AI evaluation completed';
+              } else {
+                explanation = 'AI evaluation failed to parse response';
+              }
+            }
+
+            // Set status based on score
+            if (aiScore !== null) {
+              status = aiScore >= aiThreshold ? 'correct' : 'incorrect';
+            } else {
+              status = 'pending';
+            }
+          }
+        } else if (type === QuestionType.IMAGE) {
+          // AI analysis for image questions
+          const imageUrl = typeof submission === 'object' && 'url' in submission ? submission.url : '';
+
+          if (imageUrl) {
+            const prompt = `You are evaluating an image for a scavenger hunt question. The question is: "${content}". The expected content description is: "${imageDescription}".
+
+Analyze this image and determine how well it matches the expected content. Rate the match on a scale of 0-10, where:
+- 10 = Perfect match, exactly what was described
+- 7-9 = Very close match with minor differences
+- 4-6 = Partial match but missing some key elements
+- 1-3 = Poor match but some relevant elements present
+- 0 = No match or completely irrelevant
+
+Provide your response in JSON format:
+{
+  "score": <number 0-10>,
+  "explanation": "<brief explanation of why this score was given>"
+}
+
+Image URL: ${imageUrl}`;
+
+            const openRouterResponse = await fetch(
+              "https://openrouter.ai/api/v1/chat/completions",
+              {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${process.env.OPENROUTER_API_KEY!}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  model: "google/gemini-2.0-flash-exp:free",
+                  messages: [{ role: "user", content: prompt }],
+                  temperature: 0.1,
+                  max_tokens: 200,
+                }),
+              },
+            );
+
+            if (!openRouterResponse.ok) {
+              throw new Error(`OpenRouter API error: ${openRouterResponse.statusText}`);
+            }
+
+            const data = await openRouterResponse.json();
+            const rawResponse = data.choices[0].message.content;
+
+            // Parse JSON response
+            const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              const aiResponse = JSON.parse(jsonMatch[0]);
+              aiScore = aiResponse.score;
+              explanation = aiResponse.explanation;
+            } else {
+              // Fallback parsing
+              const scoreMatch = rawResponse.match(/score["\s:]+(\d+)/i);
+              if (scoreMatch) {
+                aiScore = parseInt(scoreMatch[1]);
+                explanation = 'AI image evaluation completed';
+              } else {
+                explanation = 'AI image evaluation failed to parse response';
+              }
+            }
+
+            // Set status based on score
+            if (aiScore !== null) {
+              const effectiveThreshold = aiThreshold === 0 ? 10 : aiThreshold;
+              status = aiScore >= effectiveThreshold ? 'correct' : 'incorrect';
+            } else {
+              status = 'pending';
+            }
+          } else {
+            status = 'pending';
+            explanation = 'No image URL provided for analysis';
+          }
+        } else {
+          // For multiple choice questions, accept automatically
+          status = 'correct';
+          aiScore = 10;
+          explanation = 'Multiple choice question accepted automatically';
+        }
+      } catch (error) {
+        console.error('AI analysis error:', error);
+        status = 'pending';
+        explanation = 'AI analysis failed, answer marked for manual review';
+      }
+    } else {
+      // Use existing answer status if already evaluated
+      status = existingAnswer.status as 'correct' | 'incorrect' | 'pending';
+      aiScore = existingAnswer.aiScore;
+    }
 
     // Removed excessive logging - only log in development
     if (process.env.NODE_ENV === 'development') {
