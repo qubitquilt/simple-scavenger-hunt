@@ -411,19 +411,26 @@ export default function ChallengeView({ question, event }: ChallengeViewProps) {
             <label className="label">
               <span className="label-text">Select your answer</span>
             </label>
-            <div className="space-y-2">
-              {Object.entries(options).map(([key, value]) => (
-                <label key={key} className="label btn-block cursor-pointer justify-start gap-2 p-4 hover:bg-base-200 rounded">
-                  <input
-                    type="radio"
-                    name="mcAnswer"
-                    value={value}
-                    className="radio radio-primary"
-                  />
-                  <span className="label-text">{value}</span>
-                </label>
-              ))}
-            </div>
+            <Controller
+              name="mcAnswer"
+              control={mcForm.control}
+              render={({ field }) => (
+                <div className="space-y-2">
+                  {Object.entries(options).map(([key, value]) => (
+                    <label key={key} className="label btn-block cursor-pointer justify-start gap-2 p-4 hover:bg-base-200 rounded">
+                      <input
+                        type="radio"
+                        value={value}
+                        checked={field.value === value}
+                        onChange={() => field.onChange(value)}
+                        className="radio radio-primary"
+                      />
+                      <span className="label-text">{value}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            />
             {mcForm.formState.errors.mcAnswer && (
               <label className="label">
                 <span className="label-text-alt text-error">{mcForm.formState.errors.mcAnswer.message}</span>
