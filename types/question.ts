@@ -12,6 +12,7 @@ export interface Question {
   type: QuestionType;
   title: string;
   content: string;
+  category?: string | null;
   options?: string | Record<string, string>;
   expectedAnswer: string | null;
   aiThreshold: number;
@@ -22,6 +23,15 @@ export interface Question {
   minResolution?: { width: number; height: number } | null;
   required?: boolean | null;
   createdAt: string;
+  slug?: string;
+}
+
+export interface QuestionWithStatus extends Question {
+  computedStatus?: "pending" | "accepted" | "rejected";
+  answered?: boolean;
+  aiScore?: number;
+  submission?: any;
+  slug: string;
 }
 
 export interface ImageQuestion

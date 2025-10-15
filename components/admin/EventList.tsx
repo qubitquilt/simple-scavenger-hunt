@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Event } from "@/types/admin";
+import EventListItem from "./EventListItem";
 
 const EventList = () => {
   const [events, setEvents] = useState<Event[]>([]);
@@ -57,40 +58,13 @@ const EventList = () => {
         </thead>
         <tbody>
           {events.map((event) => (
-            <tr key={event.id}>
-              <td>{event.title}</td>
-              <td className="max-w-xs truncate">{event.description}</td>
-              <td>{event.slug}</td>
-              <td>{event.date.toLocaleDateString()}</td>
-              <td>
-                <span className={`badge badge-${event.theme}`}>{event.theme}</span>
-              </td>
-              <td>
-                <div className="join">
-                  <button
-                    className="btn btn-sm btn-info join-item"
-                    onClick={() => handleViewEvent(event)}
-                    aria-label={`View ${event.title}`}
-                  >
-                    View
-                  </button>
-                  <button
-                    className="btn btn-sm btn-warning join-item"
-                    onClick={() => handleEditEvent(event)}
-                    aria-label={`Edit ${event.title}`}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="btn btn-sm btn-error join-item"
-                    onClick={() => handleDeleteEvent(event)}
-                    aria-label={`Delete ${event.title}`}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </td>
-            </tr>
+            <EventListItem
+              key={event.id}
+              event={event}
+              onView={handleViewEvent}
+              onEdit={handleEditEvent}
+              onDelete={handleDeleteEvent}
+            />
           ))}
         </tbody>
       </table>

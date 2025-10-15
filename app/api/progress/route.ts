@@ -46,8 +46,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch questions for the event
-    const questions = await prisma.question.findMany({
+const questions = await prisma.question.findMany({
       where: { eventId: event.id },
+      orderBy: [{ category: 'asc' }, { title: 'asc' }],
       select: { id: true },
     });
 
@@ -246,13 +247,14 @@ export async function GET(request: NextRequest) {
     // Fetch questions for the event
     const questionsData = await prisma.question.findMany({
       where: { eventId: targetEventId },
-      orderBy: { title: 'asc' },
+      orderBy: [{ category: 'asc' }, { title: 'asc' }],
       select: {
         id: true,
         eventId: true,
         type: true,
         title: true,
         content: true,
+        category: true,
         options: true,
         expectedAnswer: true,
         aiThreshold: true,
@@ -284,7 +286,7 @@ export async function GET(request: NextRequest) {
 
     const questionsWithStatus: QuestionWithStatus[] = questionsData.map((q) => {
       const userAnswer = answersMap.get(q.id);
-      const computedStatus: AnswerStatus = userAnswer
+      const computedStatus = userAnswer
         ? userAnswer.status === "correct"
           ? "accepted"
           : userAnswer.status === "incorrect"
@@ -292,13 +294,13 @@ export async function GET(request: NextRequest) {
             : "pending"
         : "pending";
 
-      const { answers: _, ...questionBase } = q as any; // Exclude relation if present, but since select doesn't include, safe
+      const { answers: _, ...questionBase } = q as any;
 
       return {
         ...questionBase,
         answered: !!userAnswer,
         computedStatus,
-        aiScore: userAnswer?.aiScore ?? undefined,
+        aiScore: userAnswer?.aiScore,
         submission: userAnswer?.submission,
       };
     });

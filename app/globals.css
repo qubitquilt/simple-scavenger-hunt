@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@plugin "daisyui";
+
 
 .card-success {
   border: 3px solid var(--color-success);

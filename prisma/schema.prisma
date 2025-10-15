@@ -39,6 +39,7 @@ model Question {
   type           QuestionType @map("type")
   title          String
   content        String
+  category       String?
   options        Json?
   expectedAnswer String?      @map("expected_answer")
   aiThreshold    Int          @default(8) @map("ai_threshold")

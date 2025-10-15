@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import type { Event } from "@/types/admin";
-import type { QuestionWithStatus } from "@/components/QuestionCard";
+import type { QuestionWithStatus } from "@/types/question";
 import QuestionCard from "@/components/QuestionCard";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import RegistrationForm from "@/components/RegistrationForm";
@@ -142,11 +142,38 @@ export default function EventQuestionsList({
             No challenges available for this event.
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {questions.map((question) => (
-              <QuestionCard key={question.id} question={question} />
-            ))}
-          </div>
+          <>
+            {(() => {
+              // Group questions by category
+              const grouped: Record<string, typeof questions> = {};
+              questions.forEach((q) => {
+                const cat = q.category || "Uncategorized";
+                if (!grouped[cat]) grouped[cat] = [];
+                grouped[cat].push(q);
+              });
+
+              // Sort categories alphabetically
+              const sortedCategories = Object.keys(grouped).sort();
+
+              return (
+                <div className="space-y-8">
+                  {sortedCategories.map((category) => (
+                    <section key={category}>
+                      <div className="mb-6">
+                        <h2 className="text-2xl font-bold text-base-content mb-2">{category}</h2>
+                        <div className="divider"></div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {grouped[category].sort((a, b) => a.title.localeCompare(b.title)).map((question) => (
+                          <QuestionCard key={question.id} question={question} />
+                        ))}
+                      </div>
+                    </section>
+                  ))}
+                </div>
+              );
+            })()}
+          </>
         )}
 
       {isCompleted && (

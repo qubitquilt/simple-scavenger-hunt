@@ -40,12 +40,9 @@ export default function QuestionCard({
       question.computedStatus === "rejected" ? "card-warning" : ""
     }`}>
       <div className="card-body p-4">
-        <h2 className="card-title text-base sm:text-lg leading-tight">
-          {effectiveTitle}
-        </h2>
-        {contentPreview && (
-          <p className="text-sm text-base-content/70 mt-2">{contentPreview}</p>
-        )}
+        <p className="card-title text-base sm:text-lg leading-tight">
+          {question.content}
+        </p>
       </div>
     </div>
   );
