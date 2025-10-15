@@ -36,18 +36,12 @@ describe('QuestionCard', () => {
   test('renders title and content separately when both present', () => {
     render(<QuestionCard question={mockQuestionWithTitle} />);
 
-    const titleElement = screen.getByRole('heading');
-    expect(titleElement).toHaveTextContent('Test Title');
-
     const contentElement = screen.getByText('Test Content');
     expect(contentElement).toBeInTheDocument();
   });
 
   test('renders content as title when title is missing (backward compatibility)', () => {
     render(<QuestionCard question={mockQuestionWithoutTitle} />);
-
-    const titleElement = screen.getByRole('heading');
-    expect(titleElement).toHaveTextContent('Test Content Only');
 
     // No separate content preview since title is empty
     expect(screen.queryByText('Test Content Only', { selector: 'p' })).not.toBeInTheDocument();

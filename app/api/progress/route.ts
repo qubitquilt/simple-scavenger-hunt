@@ -5,7 +5,37 @@ import { authOptions } from "@/lib/auth";
 import type { Progress, Question } from "@/types/question";
 import type { Answer, AnswerStatus } from "@/types/answer";
 
-export const dynamic = "force-dynamic";
+function naturalSort(a: string, b: string): number {
+  const rx = /(\d+)|(\D+)/g;
+  const aa = String(a).match(rx) || [];
+  const bb = String(b).match(rx) || [];
+  let i = 0;
+  while (i < Math.min(aa.length, bb.length)) {
+    const x = aa[i];
+    const y = bb[i];
+    if (!x || !y) {
+      i++;
+      continue;
+    }
+    if (x !== y) {
+      const bx = parseInt(x, 10);
+      const by = parseInt(y, 10);
+      if (isNaN(bx) && isNaN(by)) {
+        const cmp = x.localeCompare(y);
+        if (cmp !== 0) return cmp;
+      } else if (isNaN(bx)) {
+        return -1;
+      } else if (isNaN(by)) {
+        return 1;
+      } else {
+        if (bx < by) return -1;
+        if (bx > by) return 1;
+      }
+    }
+    i++;
+  }
+  return aa.length - bb.length;
+}
 
 function shuffleArray(array: string[]) {
   for (let i = array.length - 1; i > 0; i--) {
@@ -14,6 +44,8 @@ function shuffleArray(array: string[]) {
   }
   return array;
 }
+
+export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,10 +78,51 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch questions for the event
-const questions = await prisma.question.findMany({
+    let questions = await prisma.question.findMany({
       where: { eventId: event.id },
-      orderBy: [{ category: 'asc' }, { title: 'asc' }],
-      select: { id: true },
+      select: { 
+        id: true,
+        category: true,
+        content: true
+      },
+    });
+
+    // Natural sort by content
+    questions.sort((a, b) => naturalSort(a.content || '', b.content || ''));
+
+    // Natural sort by content
+    questions.sort((a, b) => naturalSort(a.content || '', b.content || ''));
+
+    // Natural sort by content
+    questions.sort((a, b) => naturalSort(a.content || '', b.content || ''));
+
+    // Natural sort by content
+    questions.sort((a, b) => naturalSort(a.content || '', b.content || ''));
+
+    // Natural sort by content
+    questions.sort((a, b) => naturalSort(a.content || '', b.content || ''));
+
+    // Natural sort by content
+    questions.sort((a, b) => naturalSort(a.content || '', b.content || ''));
+
+    // Natural sort by content
+    questions.sort((a, b) => naturalSort(a.content || '', b.content || ''));
+
+    // Natural sort by content
+    questions.sort((a, b) => naturalSort(a.content || '', b.content || ''));
+
+    // Natural sort by content
+    questions.sort((a, b) => naturalSort(a.content || '', b.content || ''));
+
+    // Natural sort by category then content
+    questions.sort((a, b) => {
+      const catA = a.category || '';
+      const catB = b.category || '';
+      const catCmp = naturalSort(catA, catB);
+      if (catCmp !== 0) {
+        return catCmp;
+      }
+      return naturalSort(a.content || '', b.content || '');
     });
 
     if (!questions || questions.length === 0) {
@@ -245,9 +318,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch questions for the event
-    const questionsData = await prisma.question.findMany({
+    let questionsData = await prisma.question.findMany({
       where: { eventId: targetEventId },
-      orderBy: [{ category: 'asc' }, { title: 'asc' }],
       select: {
         id: true,
         eventId: true,
@@ -266,6 +338,44 @@ export async function GET(request: NextRequest) {
         createdAt: true,
         slug: true,
       },
+    });
+
+    // Natural sort by content
+    questionsData.sort((a, b) => naturalSort(a.content || '', b.content || ''));
+
+    // Natural sort by content
+    questionsData.sort((a, b) => naturalSort(a.content || '', b.content || ''));
+
+    // Natural sort by content
+    questionsData.sort((a, b) => naturalSort(a.content || '', b.content || ''));
+
+    // Natural sort by content
+    questionsData.sort((a, b) => naturalSort(a.content || '', b.content || ''));
+
+    // Natural sort by content
+    questionsData.sort((a, b) => naturalSort(a.content || '', b.content || ''));
+
+    // Natural sort by content
+    questionsData.sort((a, b) => naturalSort(a.content || '', b.content || ''));
+
+    // Natural sort by content
+    questionsData.sort((a, b) => naturalSort(a.content || '', b.content || ''));
+
+    // Natural sort by content
+    questionsData.sort((a, b) => naturalSort(a.content || '', b.content || ''));
+
+    // Natural sort by content
+    questionsData.sort((a, b) => naturalSort(a.content || '', b.content || ''));
+
+    // Natural sort by category then content
+    questionsData.sort((a, b) => {
+      const catA = a.category || '';
+      const catB = b.category || '';
+      const catCmp = naturalSort(catA, catB);
+      if (catCmp !== 0) {
+        return catCmp;
+      }
+      return naturalSort(a.content || '', b.content || '');
     });
 
     console.log(

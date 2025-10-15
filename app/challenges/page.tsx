@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getUserId } from "@/utils/session";
@@ -15,6 +15,7 @@ interface QuestionWithStatus {
   type: QuestionType;
   title: string;
   content: string;
+  category?: string;
   answered?: boolean;
   status?: "pending" | "correct" | "incorrect";
   eventId: string;
@@ -22,6 +23,38 @@ interface QuestionWithStatus {
   aiThreshold: number;
   hintEnabled: boolean;
   createdAt: string;
+}
+
+function naturalSort(a: string, b: string): number {
+  const rx = /(\d+)|(\D+)/g;
+  const aa = String(a).match(rx) || [];
+  const bb = String(b).match(rx) || [];
+  let i = 0;
+  while (i < Math.min(aa.length, bb.length)) {
+    const x = aa[i];
+    const y = bb[i];
+    if (!x || !y) {
+      i++;
+      continue;
+    }
+    if (x !== y) {
+      const bx = parseInt(x, 10);
+      const by = parseInt(y, 10);
+      if (isNaN(bx) && isNaN(by)) {
+        const cmp = x.localeCompare(y);
+        if (cmp !== 0) return cmp;
+      } else if (isNaN(bx)) {
+        return -1;
+      } else if (isNaN(by)) {
+        return 1;
+      } else {
+        if (bx < by) return -1;
+        if (bx > by) return 1;
+      }
+    }
+    i++;
+  }
+  return aa.length - bb.length;
 }
 
 interface ProgressResponse {
@@ -114,6 +147,15 @@ export default function ChallengesPage() {
   const progressPercentage =
     stats.totalCount > 0 ? (stats.completedCount / stats.totalCount) * 100 : 0;
 
+  // Ensure questions are sorted by category then natural sort on content
+  const sortedQuestions = [...questions].sort((a, b) => {
+    const catA = a.category || '';
+    const catB = b.category || '';
+    const catCmp = naturalSort(catA, catB);
+    if (catCmp !== 0) return catCmp;
+    return naturalSort(a.content || '', b.content || '');
+  });
+
   return (
     <div className="bg-base-200">
       <div className="max-w-2xl mx-auto">
@@ -129,17 +171,32 @@ export default function ChallengesPage() {
           ></progress>
         </div>
 
-        <div className="space-y-4">
-          {questions.map((question) => (
-            <Link
-              key={question.id}
-              href={`/challenges/${question.slug}`}
-              className="block focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              aria-label={`Challenge: ${question.content.substring(0, 50)}... ${question.status || (question.answered ? "pending" : "Not started")}`}
-            >
-              <QuestionCard question={question} />
-            </Link>
-          ))}
+        <div className="space-y-8">
+          {(() => {
+            let prevCategory = '';
+            return sortedQuestions.map((question, index) => {
+              const cat = question.category || 'Uncategorized';
+              const showHeading = cat !== prevCategory;
+              prevCategory = cat;
+              return (
+                <div key={question.id}>
+                  {showHeading && (
+                    <div className="mb-6">
+                      <h2 className="text-2xl font-bold text-base-content mb-2">{cat}</h2>
+                      <div className="divider" />
+                    </div>
+                  )}
+                  <Link
+                    href={`/challenges/${question.slug}`}
+                    className="block focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    aria-label={`Challenge: ${question.content.substring(0, 50)}... ${question.status || (question.answered ? "pending" : "Not started")}`}
+                  >
+                    <QuestionCard question={question} />
+                  </Link>
+                </div>
+              );
+            });
+          })()}
         </div>
 
         {stats.totalCount === 0 && (

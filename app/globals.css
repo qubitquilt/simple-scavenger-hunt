@@ -2,8 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-
-
 .card-success {
   border: 3px solid var(--color-success);
 }

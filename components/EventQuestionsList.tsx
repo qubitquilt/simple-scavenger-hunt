@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import type { Event } from "@/types/admin";
@@ -10,6 +10,38 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import RegistrationForm from "@/components/RegistrationForm";
 import Link from "next/link";
 import { getUserId } from "@/utils/session";
+
+function naturalSort(a: string, b: string): number {
+  const rx = /(\d+)|(\D+)/g;
+  const aa = String(a).match(rx) || [];
+  const bb = String(b).match(rx) || [];
+  let i = 0;
+  while (i < Math.min(aa.length, bb.length)) {
+    const x = aa[i];
+    const y = bb[i];
+    if (!x || !y) {
+      i++;
+      continue;
+    }
+    if (x !== y) {
+      const bx = parseInt(x, 10);
+      const by = parseInt(y, 10);
+      if (isNaN(bx) && isNaN(by)) {
+        const cmp = x.localeCompare(y);
+        if (cmp !== 0) return cmp;
+      } else if (isNaN(bx)) {
+        return -1;
+      } else if (isNaN(by)) {
+        return 1;
+      } else {
+        if (bx < by) return -1;
+        if (bx > by) return 1;
+      }
+    }
+    i++;
+  }
+  return aa.length - bb.length;
+}
 
 interface ProgressResponse {
   questions: QuestionWithStatus[];
@@ -143,36 +175,42 @@ export default function EventQuestionsList({
           </div>
         ) : (
           <>
-            {(() => {
-              // Group questions by category
-              const grouped: Record<string, typeof questions> = {};
-              questions.forEach((q) => {
-                const cat = q.category || "Uncategorized";
-                if (!grouped[cat]) grouped[cat] = [];
-                grouped[cat].push(q);
+             {(() => {
+              const sections: { category: string; questions: typeof questions }[] = [];
+              let currentCategory: string | null = null;
+              let currentQuestions: typeof questions = [];
+
+              questions.forEach((question) => {
+                const cat = question.category || "Uncategorized";
+                if (cat !== currentCategory) {
+                  if (currentCategory !== null) {
+                    sections.push({ category: currentCategory, questions: currentQuestions });
+                  }
+                  currentCategory = cat;
+                  currentQuestions = [question];
+                } else {
+                  currentQuestions.push(question);
+                }
               });
 
-              // Sort categories alphabetically
-              const sortedCategories = Object.keys(grouped).sort();
+              if (currentCategory !== null) {
+                sections.push({ category: currentCategory, questions: currentQuestions });
+              }
 
-              return (
-                <div className="space-y-8">
-                  {sortedCategories.map((category) => (
-                    <section key={category}>
-                      <div className="mb-6">
-                        <h2 className="text-2xl font-bold text-base-content mb-2">{category}</h2>
-                        <div className="divider"></div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {grouped[category].sort((a, b) => a.title.localeCompare(b.title)).map((question) => (
-                          <QuestionCard key={question.id} question={question} />
-                        ))}
-                      </div>
-                    </section>
-                  ))}
-                </div>
-              );
-            })()}
+              return sections.map((section) => (
+                <section key={section.category}>
+                  <div className="mb-6">
+                    <h2 className="text-2xl font-bold text-base-content mb-2">{section.category}</h2>
+                    <div className="divider"></div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {section.questions.map((question) => (
+                      <QuestionCard key={question.id} question={question} />
+                    ))}
+                  </div>
+                </section>
+              ));
+             })()}
           </>
         )}
 

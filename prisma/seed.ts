@@ -25,7 +25,7 @@ async function main() {
            {
              title: 'Introduce yourself',
              slug: 'sky-church-introduce',
-             content: '1. Introduce yourself to someone you don\'t know. Who did you meet?',
+             content: '01. Introduce yourself to someone you don\'t know. Who did you meet?',
              type: 'text',
              category: 'Sky Church',
              expectedAnswer: null,
@@ -35,7 +35,7 @@ async function main() {
            {
              title: 'Picture with same color wristband',
              slug: 'sky-church-same-wristband',
-             content: '2. Take a picture with 3 other people wearing the same color wristband.',
+             content: '02. Take a picture with 3 other people wearing the same color wristband.',
              type: 'image',
              category: 'Sky Church',
              expectedAnswer: null,
@@ -45,7 +45,7 @@ async function main() {
            {
              title: 'Selfie with different color wristband',
              slug: 'sky-church-different-wristband',
-             content: '3. Take a selfie with someone wearing a different color wristband',
+             content: '03. Take a selfie with someone wearing a different color wristband',
              type: 'image',
              category: 'Sky Church',
              expectedAnswer: null,
@@ -55,7 +55,7 @@ async function main() {
            {
              title: 'Selfie with red guitar',
              slug: 'sky-church-red-guitar',
-             content: '4. Take a selfie with someone and a red guitar',
+             content: '04. Take a selfie with someone and a red guitar',
              type: 'image',
              category: 'Sky Church',
              expectedAnswer: null,
@@ -65,7 +65,7 @@ async function main() {
            {
              title: 'Selfie with yellow guitar',
              slug: 'sky-church-yellow-guitar',
-             content: '5. Take a selfie with someone and a yellow guitar',
+             content: '05. Take a selfie with someone and a yellow guitar',
              type: 'image',
              category: 'Sky Church',
              expectedAnswer: null,
@@ -75,7 +75,7 @@ async function main() {
            {
              title: 'Selfie with blue guitar',
              slug: 'sky-church-blue-guitar',
-             content: '6. Take a selfie with someone and a blue guitar',
+             content: '06. Take a selfie with someone and a blue guitar',
              type: 'image',
              category: 'Sky Church',
              expectedAnswer: null,
@@ -85,7 +85,7 @@ async function main() {
            {
              title: 'Jimi\'s Studio',
              slug: 'hendrix-studio',
-             content: '8. What was the name of Jimi\'s Studio?',
+             content: '08. What was the name of Jimi\'s Studio?',
              type: 'text',
              category: 'Wild Blue Angel: Hendrix Abroad 1966-1970',
              expectedAnswer: 'Electric Lady Studio',
@@ -95,7 +95,7 @@ async function main() {
            {
              title: 'Wearing Jimi\'s Westerner Hat',
              slug: 'hendrix-hat',
-             content: '9. Take a picture so it looks like you\'re wearing Jimi\'s Westerner Hat.',
+             content: '09. Take a picture so it looks like you\'re wearing Jimi\'s Westerner Hat.',
              type: 'image',
              category: 'Wild Blue Angel: Hendrix Abroad 1966-1970',
              expectedAnswer: null,
