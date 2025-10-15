@@ -149,10 +149,7 @@ export default function ChallengesPage() {
 
   // Ensure questions are sorted by category then natural sort on content
   const sortedQuestions = [...questions].sort((a, b) => {
-    const catA = a.category || '';
-    const catB = b.category || '';
-    const catCmp = naturalSort(catA, catB);
-    if (catCmp !== 0) return catCmp;
+
     return naturalSort(a.content || '', b.content || '');
   });
 
