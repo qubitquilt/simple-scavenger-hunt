@@ -127,9 +127,9 @@ export async function POST(request: NextRequest) {
 
       console.log('Fetched question:', { id: questionId, type: qType, expectedAnswer: qExpected })
 
-      if (qType !== QuestionType.IMAGE && (qExpected == null || (qExpected && qExpected.trim() === ''))) {
-        return NextResponse.json({ error: 'Question missing expected answer' }, { status: 400 })
-      }
+      // if (qType !== QuestionType.IMAGE && (qExpected == null || (qExpected && qExpected.trim() === ''))) {
+      //   return NextResponse.json({ error: 'Question missing expected answer' }, { status: 400 })
+      // }
 
       type = qType as QuestionType
       expectedAnswer = qExpected ?? ''
@@ -261,9 +261,9 @@ export async function POST(request: NextRequest) {
 
       console.log('Fetched question:', { id: questionId, type: qType, expectedAnswer: qExpected })
 
-      if (qType !== QuestionType.IMAGE && (qExpected == null || (qExpected && qExpected.trim() === ''))) {
-        return NextResponse.json({ error: 'Question missing expected answer' }, { status: 400 })
-      }
+      // if (qType !== QuestionType.IMAGE && (qExpected == null || (qExpected && qExpected.trim() === ''))) {
+      //   return NextResponse.json({ error: 'Question missing expected answer' }, { status: 400 })
+      // }
 
       type = qType as QuestionType
       expectedAnswer = qExpected ?? ''
